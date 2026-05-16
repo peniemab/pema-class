@@ -42,3 +42,19 @@ class LocalStudents extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+/// File d’attente des écritures (M3).
+class OutboxMutations extends Table {
+  TextColumn get id => text()();
+  TextColumn get operationType => text()();
+  TextColumn get payloadJson => text()();
+  TextColumn get status => text()();
+  IntColumn get attemptCount => integer().withDefault(const Constant(0))();
+  DateTimeColumn get nextRetryAt => dateTime()();
+  TextColumn get lastError => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}

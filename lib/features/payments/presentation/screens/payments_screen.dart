@@ -7,6 +7,7 @@ import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 
 import '../../../settings/presentation/screens/settings_screen.dart';
+import '../../../../core/outbox/outbox_providers.dart';
 import '../../data/payment_repository.dart';
 import '../widgets/receipt_generator.dart';
 
@@ -139,7 +140,20 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
                     );
                     
                     if (mounted) {
-                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Paiement enregistré et reçu généré !"), backgroundColor: Colors.green));
+                      final queued = result['queued'] == true;
+                      if (queued) {
+                        ref.read(outboxWorkerProvider).flush();
+                      }
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            queued
+                                ? 'Paiement en file d’attente — synchronisation automatique.'
+                                : 'Paiement enregistré et reçu généré !',
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
                     }
                   } catch (e) {
                     setDialogState(() => isProcessing = false);

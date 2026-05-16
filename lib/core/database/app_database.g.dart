@@ -1549,12 +1549,598 @@ class LocalStudentsCompanion extends UpdateCompanion<LocalStudent> {
   }
 }
 
+class $OutboxMutationsTable extends OutboxMutations
+    with TableInfo<$OutboxMutationsTable, OutboxMutation> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OutboxMutationsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _operationTypeMeta = const VerificationMeta(
+    'operationType',
+  );
+  @override
+  late final GeneratedColumn<String> operationType = GeneratedColumn<String>(
+    'operation_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payloadJsonMeta = const VerificationMeta(
+    'payloadJson',
+  );
+  @override
+  late final GeneratedColumn<String> payloadJson = GeneratedColumn<String>(
+    'payload_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _attemptCountMeta = const VerificationMeta(
+    'attemptCount',
+  );
+  @override
+  late final GeneratedColumn<int> attemptCount = GeneratedColumn<int>(
+    'attempt_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _nextRetryAtMeta = const VerificationMeta(
+    'nextRetryAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> nextRetryAt = GeneratedColumn<DateTime>(
+    'next_retry_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastErrorMeta = const VerificationMeta(
+    'lastError',
+  );
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+    'last_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _completedAtMeta = const VerificationMeta(
+    'completedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+    'completed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    operationType,
+    payloadJson,
+    status,
+    attemptCount,
+    nextRetryAt,
+    lastError,
+    createdAt,
+    completedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'outbox_mutations';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<OutboxMutation> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('operation_type')) {
+      context.handle(
+        _operationTypeMeta,
+        operationType.isAcceptableOrUnknown(
+          data['operation_type']!,
+          _operationTypeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_operationTypeMeta);
+    }
+    if (data.containsKey('payload_json')) {
+      context.handle(
+        _payloadJsonMeta,
+        payloadJson.isAcceptableOrUnknown(
+          data['payload_json']!,
+          _payloadJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadJsonMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('attempt_count')) {
+      context.handle(
+        _attemptCountMeta,
+        attemptCount.isAcceptableOrUnknown(
+          data['attempt_count']!,
+          _attemptCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('next_retry_at')) {
+      context.handle(
+        _nextRetryAtMeta,
+        nextRetryAt.isAcceptableOrUnknown(
+          data['next_retry_at']!,
+          _nextRetryAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_nextRetryAtMeta);
+    }
+    if (data.containsKey('last_error')) {
+      context.handle(
+        _lastErrorMeta,
+        lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+        _completedAtMeta,
+        completedAt.isAcceptableOrUnknown(
+          data['completed_at']!,
+          _completedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  OutboxMutation map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OutboxMutation(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      operationType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}operation_type'],
+      )!,
+      payloadJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload_json'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      attemptCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}attempt_count'],
+      )!,
+      nextRetryAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}next_retry_at'],
+      )!,
+      lastError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_error'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      completedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}completed_at'],
+      ),
+    );
+  }
+
+  @override
+  $OutboxMutationsTable createAlias(String alias) {
+    return $OutboxMutationsTable(attachedDatabase, alias);
+  }
+}
+
+class OutboxMutation extends DataClass implements Insertable<OutboxMutation> {
+  final String id;
+  final String operationType;
+  final String payloadJson;
+  final String status;
+  final int attemptCount;
+  final DateTime nextRetryAt;
+  final String? lastError;
+  final DateTime createdAt;
+  final DateTime? completedAt;
+  const OutboxMutation({
+    required this.id,
+    required this.operationType,
+    required this.payloadJson,
+    required this.status,
+    required this.attemptCount,
+    required this.nextRetryAt,
+    this.lastError,
+    required this.createdAt,
+    this.completedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['operation_type'] = Variable<String>(operationType);
+    map['payload_json'] = Variable<String>(payloadJson);
+    map['status'] = Variable<String>(status);
+    map['attempt_count'] = Variable<int>(attemptCount);
+    map['next_retry_at'] = Variable<DateTime>(nextRetryAt);
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<DateTime>(completedAt);
+    }
+    return map;
+  }
+
+  OutboxMutationsCompanion toCompanion(bool nullToAbsent) {
+    return OutboxMutationsCompanion(
+      id: Value(id),
+      operationType: Value(operationType),
+      payloadJson: Value(payloadJson),
+      status: Value(status),
+      attemptCount: Value(attemptCount),
+      nextRetryAt: Value(nextRetryAt),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
+      createdAt: Value(createdAt),
+      completedAt: completedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAt),
+    );
+  }
+
+  factory OutboxMutation.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OutboxMutation(
+      id: serializer.fromJson<String>(json['id']),
+      operationType: serializer.fromJson<String>(json['operationType']),
+      payloadJson: serializer.fromJson<String>(json['payloadJson']),
+      status: serializer.fromJson<String>(json['status']),
+      attemptCount: serializer.fromJson<int>(json['attemptCount']),
+      nextRetryAt: serializer.fromJson<DateTime>(json['nextRetryAt']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'operationType': serializer.toJson<String>(operationType),
+      'payloadJson': serializer.toJson<String>(payloadJson),
+      'status': serializer.toJson<String>(status),
+      'attemptCount': serializer.toJson<int>(attemptCount),
+      'nextRetryAt': serializer.toJson<DateTime>(nextRetryAt),
+      'lastError': serializer.toJson<String?>(lastError),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'completedAt': serializer.toJson<DateTime?>(completedAt),
+    };
+  }
+
+  OutboxMutation copyWith({
+    String? id,
+    String? operationType,
+    String? payloadJson,
+    String? status,
+    int? attemptCount,
+    DateTime? nextRetryAt,
+    Value<String?> lastError = const Value.absent(),
+    DateTime? createdAt,
+    Value<DateTime?> completedAt = const Value.absent(),
+  }) => OutboxMutation(
+    id: id ?? this.id,
+    operationType: operationType ?? this.operationType,
+    payloadJson: payloadJson ?? this.payloadJson,
+    status: status ?? this.status,
+    attemptCount: attemptCount ?? this.attemptCount,
+    nextRetryAt: nextRetryAt ?? this.nextRetryAt,
+    lastError: lastError.present ? lastError.value : this.lastError,
+    createdAt: createdAt ?? this.createdAt,
+    completedAt: completedAt.present ? completedAt.value : this.completedAt,
+  );
+  OutboxMutation copyWithCompanion(OutboxMutationsCompanion data) {
+    return OutboxMutation(
+      id: data.id.present ? data.id.value : this.id,
+      operationType: data.operationType.present
+          ? data.operationType.value
+          : this.operationType,
+      payloadJson: data.payloadJson.present
+          ? data.payloadJson.value
+          : this.payloadJson,
+      status: data.status.present ? data.status.value : this.status,
+      attemptCount: data.attemptCount.present
+          ? data.attemptCount.value
+          : this.attemptCount,
+      nextRetryAt: data.nextRetryAt.present
+          ? data.nextRetryAt.value
+          : this.nextRetryAt,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      completedAt: data.completedAt.present
+          ? data.completedAt.value
+          : this.completedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OutboxMutation(')
+          ..write('id: $id, ')
+          ..write('operationType: $operationType, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('status: $status, ')
+          ..write('attemptCount: $attemptCount, ')
+          ..write('nextRetryAt: $nextRetryAt, ')
+          ..write('lastError: $lastError, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('completedAt: $completedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    operationType,
+    payloadJson,
+    status,
+    attemptCount,
+    nextRetryAt,
+    lastError,
+    createdAt,
+    completedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OutboxMutation &&
+          other.id == this.id &&
+          other.operationType == this.operationType &&
+          other.payloadJson == this.payloadJson &&
+          other.status == this.status &&
+          other.attemptCount == this.attemptCount &&
+          other.nextRetryAt == this.nextRetryAt &&
+          other.lastError == this.lastError &&
+          other.createdAt == this.createdAt &&
+          other.completedAt == this.completedAt);
+}
+
+class OutboxMutationsCompanion extends UpdateCompanion<OutboxMutation> {
+  final Value<String> id;
+  final Value<String> operationType;
+  final Value<String> payloadJson;
+  final Value<String> status;
+  final Value<int> attemptCount;
+  final Value<DateTime> nextRetryAt;
+  final Value<String?> lastError;
+  final Value<DateTime> createdAt;
+  final Value<DateTime?> completedAt;
+  final Value<int> rowid;
+  const OutboxMutationsCompanion({
+    this.id = const Value.absent(),
+    this.operationType = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.status = const Value.absent(),
+    this.attemptCount = const Value.absent(),
+    this.nextRetryAt = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  OutboxMutationsCompanion.insert({
+    required String id,
+    required String operationType,
+    required String payloadJson,
+    required String status,
+    this.attemptCount = const Value.absent(),
+    required DateTime nextRetryAt,
+    this.lastError = const Value.absent(),
+    required DateTime createdAt,
+    this.completedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       operationType = Value(operationType),
+       payloadJson = Value(payloadJson),
+       status = Value(status),
+       nextRetryAt = Value(nextRetryAt),
+       createdAt = Value(createdAt);
+  static Insertable<OutboxMutation> custom({
+    Expression<String>? id,
+    Expression<String>? operationType,
+    Expression<String>? payloadJson,
+    Expression<String>? status,
+    Expression<int>? attemptCount,
+    Expression<DateTime>? nextRetryAt,
+    Expression<String>? lastError,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? completedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (operationType != null) 'operation_type': operationType,
+      if (payloadJson != null) 'payload_json': payloadJson,
+      if (status != null) 'status': status,
+      if (attemptCount != null) 'attempt_count': attemptCount,
+      if (nextRetryAt != null) 'next_retry_at': nextRetryAt,
+      if (lastError != null) 'last_error': lastError,
+      if (createdAt != null) 'created_at': createdAt,
+      if (completedAt != null) 'completed_at': completedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  OutboxMutationsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? operationType,
+    Value<String>? payloadJson,
+    Value<String>? status,
+    Value<int>? attemptCount,
+    Value<DateTime>? nextRetryAt,
+    Value<String?>? lastError,
+    Value<DateTime>? createdAt,
+    Value<DateTime?>? completedAt,
+    Value<int>? rowid,
+  }) {
+    return OutboxMutationsCompanion(
+      id: id ?? this.id,
+      operationType: operationType ?? this.operationType,
+      payloadJson: payloadJson ?? this.payloadJson,
+      status: status ?? this.status,
+      attemptCount: attemptCount ?? this.attemptCount,
+      nextRetryAt: nextRetryAt ?? this.nextRetryAt,
+      lastError: lastError ?? this.lastError,
+      createdAt: createdAt ?? this.createdAt,
+      completedAt: completedAt ?? this.completedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (operationType.present) {
+      map['operation_type'] = Variable<String>(operationType.value);
+    }
+    if (payloadJson.present) {
+      map['payload_json'] = Variable<String>(payloadJson.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (attemptCount.present) {
+      map['attempt_count'] = Variable<int>(attemptCount.value);
+    }
+    if (nextRetryAt.present) {
+      map['next_retry_at'] = Variable<DateTime>(nextRetryAt.value);
+    }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OutboxMutationsCompanion(')
+          ..write('id: $id, ')
+          ..write('operationType: $operationType, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('status: $status, ')
+          ..write('attemptCount: $attemptCount, ')
+          ..write('nextRetryAt: $nextRetryAt, ')
+          ..write('lastError: $lastError, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $SyncStatesTable syncStates = $SyncStatesTable(this);
   late final $LocalClassesTable localClasses = $LocalClassesTable(this);
   late final $LocalStudentsTable localStudents = $LocalStudentsTable(this);
+  late final $OutboxMutationsTable outboxMutations = $OutboxMutationsTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1563,6 +2149,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     syncStates,
     localClasses,
     localStudents,
+    outboxMutations,
   ];
 }
 
@@ -2333,6 +2920,298 @@ typedef $$LocalStudentsTableProcessedTableManager =
       LocalStudent,
       PrefetchHooks Function()
     >;
+typedef $$OutboxMutationsTableCreateCompanionBuilder =
+    OutboxMutationsCompanion Function({
+      required String id,
+      required String operationType,
+      required String payloadJson,
+      required String status,
+      Value<int> attemptCount,
+      required DateTime nextRetryAt,
+      Value<String?> lastError,
+      required DateTime createdAt,
+      Value<DateTime?> completedAt,
+      Value<int> rowid,
+    });
+typedef $$OutboxMutationsTableUpdateCompanionBuilder =
+    OutboxMutationsCompanion Function({
+      Value<String> id,
+      Value<String> operationType,
+      Value<String> payloadJson,
+      Value<String> status,
+      Value<int> attemptCount,
+      Value<DateTime> nextRetryAt,
+      Value<String?> lastError,
+      Value<DateTime> createdAt,
+      Value<DateTime?> completedAt,
+      Value<int> rowid,
+    });
+
+class $$OutboxMutationsTableFilterComposer
+    extends Composer<_$AppDatabase, $OutboxMutationsTable> {
+  $$OutboxMutationsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get operationType => $composableBuilder(
+    column: $table.operationType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get attemptCount => $composableBuilder(
+    column: $table.attemptCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get nextRetryAt => $composableBuilder(
+    column: $table.nextRetryAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$OutboxMutationsTableOrderingComposer
+    extends Composer<_$AppDatabase, $OutboxMutationsTable> {
+  $$OutboxMutationsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get operationType => $composableBuilder(
+    column: $table.operationType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get attemptCount => $composableBuilder(
+    column: $table.attemptCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get nextRetryAt => $composableBuilder(
+    column: $table.nextRetryAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$OutboxMutationsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $OutboxMutationsTable> {
+  $$OutboxMutationsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get operationType => $composableBuilder(
+    column: $table.operationType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get attemptCount => $composableBuilder(
+    column: $table.attemptCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get nextRetryAt => $composableBuilder(
+    column: $table.nextRetryAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$OutboxMutationsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $OutboxMutationsTable,
+          OutboxMutation,
+          $$OutboxMutationsTableFilterComposer,
+          $$OutboxMutationsTableOrderingComposer,
+          $$OutboxMutationsTableAnnotationComposer,
+          $$OutboxMutationsTableCreateCompanionBuilder,
+          $$OutboxMutationsTableUpdateCompanionBuilder,
+          (
+            OutboxMutation,
+            BaseReferences<
+              _$AppDatabase,
+              $OutboxMutationsTable,
+              OutboxMutation
+            >,
+          ),
+          OutboxMutation,
+          PrefetchHooks Function()
+        > {
+  $$OutboxMutationsTableTableManager(
+    _$AppDatabase db,
+    $OutboxMutationsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OutboxMutationsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OutboxMutationsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OutboxMutationsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> operationType = const Value.absent(),
+                Value<String> payloadJson = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<int> attemptCount = const Value.absent(),
+                Value<DateTime> nextRetryAt = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OutboxMutationsCompanion(
+                id: id,
+                operationType: operationType,
+                payloadJson: payloadJson,
+                status: status,
+                attemptCount: attemptCount,
+                nextRetryAt: nextRetryAt,
+                lastError: lastError,
+                createdAt: createdAt,
+                completedAt: completedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String operationType,
+                required String payloadJson,
+                required String status,
+                Value<int> attemptCount = const Value.absent(),
+                required DateTime nextRetryAt,
+                Value<String?> lastError = const Value.absent(),
+                required DateTime createdAt,
+                Value<DateTime?> completedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OutboxMutationsCompanion.insert(
+                id: id,
+                operationType: operationType,
+                payloadJson: payloadJson,
+                status: status,
+                attemptCount: attemptCount,
+                nextRetryAt: nextRetryAt,
+                lastError: lastError,
+                createdAt: createdAt,
+                completedAt: completedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$OutboxMutationsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $OutboxMutationsTable,
+      OutboxMutation,
+      $$OutboxMutationsTableFilterComposer,
+      $$OutboxMutationsTableOrderingComposer,
+      $$OutboxMutationsTableAnnotationComposer,
+      $$OutboxMutationsTableCreateCompanionBuilder,
+      $$OutboxMutationsTableUpdateCompanionBuilder,
+      (
+        OutboxMutation,
+        BaseReferences<_$AppDatabase, $OutboxMutationsTable, OutboxMutation>,
+      ),
+      OutboxMutation,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2343,4 +3222,6 @@ class $AppDatabaseManager {
       $$LocalClassesTableTableManager(_db, _db.localClasses);
   $$LocalStudentsTableTableManager get localStudents =>
       $$LocalStudentsTableTableManager(_db, _db.localStudents);
+  $$OutboxMutationsTableTableManager get outboxMutations =>
+      $$OutboxMutationsTableTableManager(_db, _db.outboxMutations);
 }

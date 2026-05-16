@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/network/connectivity_providers.dart';
+import '../../../../core/outbox/outbox_providers.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/data/auth_repository.dart';
@@ -96,11 +97,45 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              'Hors ligne : les listes utilisent le dernier rapport '
-                              'mis en cache sur cet appareil. Inscriptions et paiements '
-                              'nécessitent une connexion.',
+                              'Hors ligne : lecture locale (Drift). Les inscriptions et '
+                              'paiements sont mis en file et synchronisés au retour en ligne.',
                               style: TextStyle(
                                 color: Colors.amber.shade900,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                orElse: () => const SizedBox.shrink(),
+              );
+            },
+          ),
+          Consumer(
+            builder: (context, ref, _) {
+              final pending = ref.watch(pendingOutboxCountProvider);
+              return pending.maybeWhen(
+                data: (count) {
+                  if (count <= 0) return const SizedBox.shrink();
+                  return Material(
+                    color: Colors.blue.shade50,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.cloud_upload, color: Colors.blue.shade800),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              '$count écriture(s) en attente de synchronisation.',
+                              style: TextStyle(
+                                color: Colors.blue.shade900,
                                 fontSize: 13,
                               ),
                             ),

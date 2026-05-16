@@ -195,14 +195,15 @@ class _AdmissionScreenState extends ConsumerState<AdmissionScreen> {
 
       final matricule = result['matricule'];
       final classe = result['classe_assignee'];
+      final queued = result['queued'] == true;
 
       if (mounted) {
         showDialog(
           context: context,
           barrierDismissible: false,
           builder: (_) => AlertDialog(
-            title: const Text(
-              'Inscription Réussie !',
+            title: Text(
+              queued ? 'Inscription enregistrée localement' : 'Inscription Réussie !',
               textAlign: TextAlign.center,
             ),
             content: Column(
@@ -232,10 +233,12 @@ class _AdmissionScreenState extends ConsumerState<AdmissionScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  "reçu PDF prêt à imprimé.",
+                Text(
+                  queued
+                      ? 'Synchronisation avec le serveur dès que la connexion est disponible.'
+                      : 'Reçu PDF prêt à imprimer.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
+                  style: const TextStyle(color: Colors.grey),
                 ),
               ],
             ),
