@@ -6,9 +6,11 @@ import '../../../../core/utils/responsive.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 
-import '../../../settings/presentation/screens/settings_screen.dart';
+import '../../../../core/network/connectivity_providers.dart';
 import '../../../../core/outbox/outbox_providers.dart';
+import '../../../settings/presentation/screens/settings_screen.dart';
 import '../../data/payment_repository.dart';
+import '../../../students/data/student_search_helper.dart';
 import '../widgets/receipt_generator.dart';
 
 class PaymentsScreen extends ConsumerStatefulWidget {
@@ -49,13 +51,17 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
       if (student == null) {
         setState(() => _errorMessage = "Aucun élève trouvé avec ce matricule.");
       } else {
-        final year = await ref.read(activeAcademicYearNameProvider.future);
-        final status = await repo.getStudentFeeStatus(student['id'], year);
+        final status = await repo.getStudentFeeStatus(
+          student['id'] as String,
+          studentMatricule: student['matricule']?.toString(),
+        );
         setState(() {
           _student = student;
           _feeStatus = status;
         });
       }
+    } on StateError catch (e) {
+      setState(() => _errorMessage = e.message);
     } catch (e) {
       setState(() => _errorMessage = "Erreur de recherche : $e");
     } finally {
@@ -108,51 +114,119 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
                   }
 
                   setDialogState(() => isProcessing = true);
+                  final repo = ref.read(paymentRepositoryProvider);
+                  final studentId = _student!['id'] as String;
+                  final matricule = _student!['matricule']?.toString();
+                  Map<String, dynamic>? result;
                   try {
-                    final repo = ref.read(paymentRepositoryProvider);
-                    final result = await repo.payFee(
-                      studentId: _student!['id'],
-                      feeId: fee['fee_id'],
+                    result = await repo.payFee(
+                      studentId: studentId,
+                      feeId: fee['fee_id'] as String,
                       amountPaid: amount,
+                      studentMatricule: matricule,
                     );
 
                     if (mounted) Navigator.pop(ctx);
-                    
-                    // Générer le reçu
-                    final logoUrl = await ref.read(logoUrlProvider.future);
-                    
-                    // Refresh data behind the scenes
-                    final year = await ref.read(activeAcademicYearNameProvider.future);
-                    final status = await repo.getStudentFeeStatus(_student!['id'], year);
-                    setState(() {
-                      _feeStatus = status;
-                    });
 
-                    // We need the updated fee status for the receipt (or just use current + amount)
-                    final newFeeState = status.firstWhere((f) => f['fee_id'] == fee['fee_id']);
-                    
-                    await ReceiptGenerator.generateReceipt(
-                      student: _student!,
-                      feeStatus: newFeeState,
-                      amountPaid: amount,
-                      receiptNumber: result['receipt_number'],
-                      logoUrl: logoUrl,
-                    );
-                    
+                    List<Map<String, dynamic>> status;
+                    try {
+                      status = await repo.getStudentFeeStatus(
+                        studentId,
+                        studentMatricule: matricule,
+                      );
+                    } catch (_) {
+                      status = List<Map<String, dynamic>>.from(_feeStatus!);
+                      for (var i = 0; i < status.length; i++) {
+                        if (status[i]['fee_id'] != fee['fee_id']) continue;
+                        final paid =
+                            (status[i]['total_paid'] as num).toDouble() + amount;
+                        final expected =
+                            (status[i]['expected_amount'] as num).toDouble();
+                        status[i] = {
+                          ...status[i],
+                          'total_paid': paid,
+                          'remaining': expected - paid,
+                          'is_fully_paid': paid >= expected,
+                        };
+                        break;
+                      }
+                    }
                     if (mounted) {
+                      setState(() => _feeStatus = status);
+                    }
+
+                    Map<String, dynamic> feeState;
+                    try {
+                      feeState = status.firstWhere(
+                        (f) => f['fee_id'] == fee['fee_id'],
+                      );
+                    } catch (_) {
+                      feeState = Map<String, dynamic>.from(fee);
+                      final paid =
+                          (feeState['total_paid'] as num).toDouble() + amount;
+                      final expected =
+                          (feeState['expected_amount'] as num).toDouble();
+                      feeState['total_paid'] = paid;
+                      feeState['remaining'] = expected - paid;
+                      feeState['is_fully_paid'] = paid >= expected;
+                    }
+
+                    String? logoUrl;
+                    try {
+                      logoUrl = await ref.read(logoUrlProvider.future);
+                    } catch (_) {}
+
+                    var receiptOk = true;
+                    try {
+                      await ReceiptGenerator.generateReceipt(
+                        student: _student!,
+                        feeStatus: feeState,
+                        amountPaid: amount,
+                        receiptNumber:
+                            result['receipt_number']?.toString() ?? 'REC-LOCAL',
+                        logoUrl: logoUrl,
+                      );
+                    } catch (e) {
+                      receiptOk = false;
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Paiement enregistré, mais le reçu PDF n’a pas pu '
+                              's’ouvrir : $e',
+                            ),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                      }
+                    }
+
+                    if (mounted && receiptOk) {
                       final queued = result['queued'] == true;
                       if (queued) {
                         ref.read(outboxWorkerProvider).flush();
                       }
+                      final draft =
+                          _student != null && isLocalDraftStudent(_student!);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            queued
-                                ? 'Paiement en file d’attente — synchronisation automatique.'
-                                : 'Paiement enregistré et reçu généré !',
+                            queued && draft
+                                ? 'Frais encaissé — reçu généré. Envoi serveur '
+                                    'après synchronisation de l’inscription.'
+                                : queued
+                                    ? 'Paiement en file d’attente — reçu généré.'
+                                    : 'Paiement enregistré — reçu généré.',
                           ),
                           backgroundColor: Colors.green,
                         ),
+                      );
+                    }
+                  } on StateError catch (e) {
+                    setDialogState(() => isProcessing = false);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
                       );
                     }
                   } catch (e) {
@@ -179,8 +253,13 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
         children: [
           const Text("Caisse & Paiements", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
           const SizedBox(height: 8),
-          const Text("Recherchez un élève pour encaisser ses frais.", style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
-          const SizedBox(height: 32),
+          const Text(
+            "Recherchez un élève pour encaisser ses frais.",
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+          ),
+          const SizedBox(height: 12),
+          _buildOfflineHint(),
+          const SizedBox(height: 20),
 
           // Search Bar
           Container(
@@ -225,11 +304,38 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
     );
   }
 
+  Widget _buildOfflineHint() {
+    final connectivity = ref.watch(connectivityResultsProvider);
+    return connectivity.when(
+      data: (results) {
+        final online = connectionLayerOnline(results);
+        if (online) return const SizedBox.shrink();
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.orange.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.orange.shade200),
+          ),
+          child: const Text(
+            'Mode hors ligne : recherche par matricule et encaissement via le cache local. '
+            'Synchronisez l’annuaire en ligne au moins une fois si les frais n’apparaissent pas.',
+            style: TextStyle(color: Colors.orange, fontSize: 13),
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+    );
+  }
+
   Widget _buildStudentInfo() {
     final last = (_student!['last_name'] ?? _student!['nom'] ?? '?').toString();
     final first = (_student!['first_name'] ?? _student!['prenom'] ?? '').toString();
     final mat = _student!['matricule']?.toString() ?? '';
-    final classe = _student!['classe_assignee']?.toString();
+    final classeRaw = _student!['classe_assignee']?.toString() ?? '';
+    final classe = classeRaw.trim().isEmpty ? '—' : classeRaw;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -252,7 +358,10 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
               children: [
                 Text("$first $last", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
                 const SizedBox(height: 4),
-                Text("Matricule: $mat  |  Classe: ${classe ?? '—'}", style: const TextStyle(color: AppColors.textSecondary)),
+                Text(
+                  "Matricule: $mat  |  Classe: $classe",
+                  style: const TextStyle(color: AppColors.textSecondary),
+                ),
               ],
             ),
           ),

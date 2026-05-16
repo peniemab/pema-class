@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
@@ -10,6 +11,7 @@ import '../../../invites/data/pending_staff_invite_storage.dart';
 import '../../../../core/auth/auth_session_service.dart';
 import '../../../../core/outbox/outbox_providers.dart';
 import '../../../../core/sync/sync_providers.dart';
+import '../../../../core/auth/auth_error_messages.dart';
 import '../../data/auth_repository.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -55,6 +57,46 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  Future<void> _offerResendConfirmationEmail() async {
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty || !mounted) return;
+
+    final send = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirmer votre e-mail'),
+        content: Text(
+          'Renvoyer l’e-mail de confirmation à $email ?\n\n'
+          'Après avoir cliqué le lien, reconnectez-vous ici (l’invitation sera finalisée automatiquement si besoin).',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Renvoyer')),
+        ],
+      ),
+    );
+
+    if (send != true || !mounted) return;
+
+    try {
+      await ref.read(authRepositoryProvider).resendSignupConfirmation(email);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('E-mail de confirmation renvoyé. Vérifiez votre boîte de réception.'),
+            duration: Duration(seconds: 8),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(authErrorMessage(e))),
+        );
+      }
+    }
+  }
+
   Future<void> _login() async {
     if (_emailCtrl.text.isEmpty || _passwordCtrl.text.isEmpty) return;
 
@@ -78,8 +120,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final authRepo = ref.read(authRepositoryProvider);
 
       await authRepo.signIn(
-        email: _emailCtrl.text.trim(),
-        password: _passwordCtrl.text.trim(),
+        email: _emailCtrl.text,
+        password: _passwordCtrl.text,
       );
       if (!mounted) return;
 
@@ -151,10 +193,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Accès refusé.')));
         await authRepo.signOut();
       }
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      final message = authErrorMessage(e);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), duration: const Duration(seconds: 10)),
+      );
+      if (isEmailNotConfirmedError(e)) {
+        _offerResendConfirmationEmail();
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur : Email ou mot de passe incorrect.')),
+          SnackBar(
+            content: Text(authErrorMessage(e)),
+            duration: const Duration(seconds: 8),
+          ),
         );
       }
     } finally {
