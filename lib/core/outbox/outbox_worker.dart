@@ -7,6 +7,7 @@ import '../sync/sync_engine.dart';
 import 'idempotency_policy.dart';
 import 'mutation_executor.dart';
 import 'outbox_repository.dart';
+import 'outbox_flush_result.dart';
 import 'outbox_status.dart';
 
 /// Worker push : retry + backoff + statuts (L-05).
@@ -31,13 +32,27 @@ class OutboxWorker {
 
   bool _running = false;
 
-  Future<int> flush() async {
-    if (_running) return 0;
-    if (!_authSession.hasLocalSession) return 0;
+  Future<OutboxFlushResult> flush() async {
+    if (_running) {
+      return const OutboxFlushResult(
+        processed: 0,
+        stillPending: 0,
+        failed: 0,
+      );
+    }
+    if (!_authSession.hasLocalSession) {
+      return const OutboxFlushResult(
+        processed: 0,
+        stillPending: 0,
+        failed: 0,
+      );
+    }
 
     _running = true;
     var processed = 0;
+    String? lastError;
     try {
+      await _db.resetStuckProcessingOutbox();
       final rows = await _outboxRepo.readyMutations();
       for (final row in rows) {
         if (!_authSession.hasLocalSession) break;
@@ -62,6 +77,7 @@ class OutboxWorker {
           processed++;
         } catch (e, st) {
           debugPrint('OutboxWorker mutation ${row.id}: $e\n$st');
+          lastError = e.toString();
 
           if (IdempotencyPolicy.isAuthError(e)) {
             _authSession.markSessionExpired(reason: e.toString());
@@ -117,11 +133,28 @@ class OutboxWorker {
       }
 
       if (processed > 0) {
-        await _syncEngine.pullStudentsDirectory();
+        await _syncEngine.pullStudentsDirectory(force: true);
       }
+
+      final remaining = await (_db.select(_db.outboxMutations)).get();
+      final stillPending = remaining
+          .where(
+            (r) =>
+                r.status == OutboxStatus.pending ||
+                r.status == OutboxStatus.processing,
+          )
+          .length;
+      final failed =
+          remaining.where((r) => r.status == OutboxStatus.failed).length;
+
+      return OutboxFlushResult(
+        processed: processed,
+        stillPending: stillPending,
+        failed: failed,
+        lastError: lastError,
+      );
     } finally {
       _running = false;
     }
-    return processed;
   }
 }

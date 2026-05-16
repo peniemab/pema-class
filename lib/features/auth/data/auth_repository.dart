@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/auth/auth_credentials.dart';
+
 final supabaseClientProvider = Provider<SupabaseClient>((ref) {
   return Supabase.instance.client;
 });
@@ -15,14 +17,32 @@ class AuthRepository {
   AuthRepository(this._supabase);
 
   Future<void> signIn({required String email, required String password}) async {
-    await _supabase.auth.signInWithPassword(email: email, password: password);
+    await _supabase.auth.signInWithPassword(
+      email: normalizeAuthEmail(email),
+      password: normalizeAuthPassword(password),
+    );
   }
 
   Future<AuthResponse> signUpWithEmail({
     required String email,
     required String password,
   }) async {
-    return _supabase.auth.signUp(email: email, password: password);
+    final redirect = authEmailRedirectUrl();
+    return _supabase.auth.signUp(
+      email: normalizeAuthEmail(email),
+      password: normalizeAuthPassword(password),
+      emailRedirectTo: redirect,
+    );
+  }
+
+  /// Renvoie l’e-mail de confirmation (après inscription sans session).
+  Future<void> resendSignupConfirmation(String email) async {
+    final redirect = authEmailRedirectUrl();
+    await _supabase.auth.resend(
+      type: OtpType.signup,
+      email: normalizeAuthEmail(email),
+      emailRedirectTo: redirect,
+    );
   }
 
   /// Inscription Auth seule (sans création d'école — utiliser les liens d'invitation).
@@ -33,7 +53,7 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
-    await _supabase.auth.signUp(email: email, password: password);
+    await signUpWithEmail(email: email, password: password);
   }
 
   Future<void> signOut() async {

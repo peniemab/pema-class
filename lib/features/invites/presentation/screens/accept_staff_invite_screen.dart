@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
+import '../../../../core/auth/auth_error_messages.dart';
 import '../../../auth/data/auth_repository.dart';
 import '../../data/invitations_repository.dart';
 import '../../data/pending_staff_invite_storage.dart';
@@ -126,8 +127,8 @@ class _AcceptStaffInviteScreenState extends ConsumerState<AcceptStaffInviteScree
       if (!mounted) return;
 
       final res = await auth.signUpWithEmail(
-        email: _emailCtrl.text.trim(),
-        password: _passwordCtrl.text.trim(),
+        email: _emailCtrl.text,
+        password: _passwordCtrl.text,
       );
       if (res.session == null) {
         await PendingStaffInviteStorage.save(
@@ -163,7 +164,9 @@ class _AcceptStaffInviteScreenState extends ConsumerState<AcceptStaffInviteScree
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur : $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(authErrorMessage(e)), duration: const Duration(seconds: 10)),
+        );
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -181,8 +184,8 @@ class _AcceptStaffInviteScreenState extends ConsumerState<AcceptStaffInviteScree
       if (!mounted) return;
 
       await auth.signIn(
-        email: _emailCtrl.text.trim(),
-        password: _passwordCtrl.text.trim(),
+        email: _emailCtrl.text,
+        password: _passwordCtrl.text,
       );
       if (!mounted) return;
 
@@ -209,13 +212,7 @@ class _AcceptStaffInviteScreenState extends ConsumerState<AcceptStaffInviteScree
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              e.toString().contains('Invalid login credentials')
-                  ? 'E-mail ou mot de passe incorrect. Vous pouvez aussi créer un compte avec l’option « Nouveau compte » si vous n’avez jamais utilisé cet e-mail.'
-                  : 'Erreur : $e',
-            ),
-          ),
+          SnackBar(content: Text(authErrorMessage(e)), duration: const Duration(seconds: 10)),
         );
       }
     } finally {

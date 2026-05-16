@@ -11,7 +11,9 @@ import '../../../../core/widgets/custom_text_field.dart';
 import '../../../../core/sync/sync_providers.dart';
 import '../../../settings/presentation/screens/settings_screen.dart'
     show activeAcademicYearNameProvider;
+import '../../data/local_student_cleanup.dart';
 import '../../data/student_directory_mapper.dart';
+import '../../data/student_search_helper.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class StudentsListScreen extends ConsumerStatefulWidget {
@@ -33,6 +35,48 @@ class _StudentsListScreenState extends ConsumerState<StudentsListScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(syncEngineProvider).pullStudentsDirectory();
     });
+  }
+
+  Future<void> _confirmDeleteDraft(Map<String, dynamic> student) async {
+    final id = student['id']?.toString();
+    if (id == null || id.isEmpty) return;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Supprimer ce brouillon ?'),
+        content: Text(
+          'Élève ${student['prenom']} ${student['nom']} (${student['matricule']}) '
+          'sera retiré de cet appareil. À utiliser seulement si la synchronisation '
+          'est bloquée (les brouillons envoyés avec succès disparaissent seuls).',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true || !mounted) return;
+
+    try {
+      await ref.read(localStudentCleanupProvider).removeDraftEnrollment(id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Brouillon supprimé de cet appareil.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Impossible de supprimer : $e')),
+        );
+      }
+    }
   }
 
   Future<void> _refreshDirectory() async {
@@ -634,6 +678,7 @@ class _StudentsListScreenState extends ConsumerState<StudentsListScreen> {
                                     _selectedClassOption = "Toutes les Salles";
                                   }
                                   return DropdownButtonFormField<String>(
+                                    isExpanded: true,
                                     initialValue: _selectedClassOption,
                                     decoration: InputDecoration(
                                       labelText: "Salle de Classe",
@@ -770,13 +815,44 @@ class _StudentsListScreenState extends ConsumerState<StudentsListScreen> {
                                 ),
                               ),
                               DataCell(
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.visibility,
-                                    color: Colors.blue,
-                                  ),
-                                  onPressed: () =>
-                                      _showStudentDetails(context, s),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.visibility,
+                                        color: Colors.blue,
+                                      ),
+                                      tooltip: 'Voir le profil',
+                                      onPressed: () =>
+                                          _showStudentDetails(context, s),
+                                    ),
+                                    if (isLocalDraftStudent(s))
+                                      FutureBuilder<bool>(
+                                        future: ref
+                                            .read(
+                                              localStudentCleanupProvider,
+                                            )
+                                            .shouldOfferManualDelete(
+                                              s['id'] as String,
+                                            ),
+                                        builder: (context, snap) {
+                                          if (snap.data != true) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          return IconButton(
+                                            icon: const Icon(
+                                              Icons.delete_outline,
+                                              color: Colors.red,
+                                            ),
+                                            tooltip:
+                                                'Supprimer (sync bloquée uniquement)',
+                                            onPressed: () =>
+                                                _confirmDeleteDraft(s),
+                                          );
+                                        },
+                                      ),
+                                  ],
                                 ),
                               ),
                             ],

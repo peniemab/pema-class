@@ -4,8 +4,12 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 import '../../../../core/utils/responsive.dart';
+import '../../data/admission_classrooms_provider.dart';
 import '../../data/admission_repository.dart';
-import '../../../settings/presentation/screens/settings_screen.dart';
+import '../../../../core/outbox/outbox_providers.dart';
+import '../../../../core/sync/sync_providers.dart';
+import '../../../settings/presentation/screens/settings_screen.dart'
+    show activeAcademicYearNameProvider, logoUrlProvider;
 import '../widgets/admission_receipt_generator.dart';
 
 class AdmissionScreen extends ConsumerStatefulWidget {
@@ -87,6 +91,14 @@ class _AdmissionScreenState extends ConsumerState<AdmissionScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(syncEngineProvider).pullStudentsDirectory();
+    });
+  }
+
+  @override
   void dispose() {
     _nomCtrl.dispose();
     _prenomCtrl.dispose();
@@ -166,6 +178,20 @@ class _AdmissionScreenState extends ConsumerState<AdmissionScreen> {
       return;
     }
 
+    if (_selectedClasseId == null || _selectedClasseId!.trim().isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Sélectionnez une salle de classe (étape 2). '
+              'Hors ligne : les classes viennent du cache — connectez-vous une fois en ligne si la liste est vide.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -177,13 +203,19 @@ class _AdmissionScreenState extends ConsumerState<AdmissionScreen> {
       final urgenceComplete =
           "${_urgenceNomCtrl.text.trim()} - $_countryCodeUrgence ${_urgencePhoneCtrl.text.trim()}";
 
+      final classes = ref.read(admissionClassroomsProvider).value ?? [];
+      final selectedClass = classes.where((c) => c['id'] == _selectedClasseId);
+      final className =
+          selectedClass.isEmpty ? '' : selectedClass.first['name'] as String;
+
       final result = await repo.registerStudent(
         nom: _nomCtrl.text.trim().toUpperCase(),
         prenom: _prenomCtrl.text.trim().toUpperCase(),
         sexe: _selectedSexe,
         lieuNaissance: _lieuNaissCtrl.text.trim(),
         dateNaissance: _selectedDateNaiss!.toIso8601String().split('T').first,
-        classeAssignee: _selectedClasseId ?? '',
+        classeAssignee: className,
+        classId: _selectedClasseId,
         ecoleProvenance: _ecoleProvCtrl.text.trim(),
         tuteurNom: _tuteurNomCtrl.text.trim(),
         lienParente: _selectedLien,
@@ -243,6 +275,25 @@ class _AdmissionScreenState extends ConsumerState<AdmissionScreen> {
               ],
             ),
             actions: [
+              if (queued)
+                TextButton.icon(
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    final result =
+                        await ref.read(outboxWorkerProvider).flush();
+                    if (!context.mounted) return;
+                    final msg = result.processed > 0
+                        ? 'Synchronisation réussie (${result.processed} inscription).'
+                        : result.lastError != null
+                            ? 'Échec : ${result.lastError}'
+                            : 'Rien à synchroniser pour le moment.';
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(msg), duration: const Duration(seconds: 8)),
+                    );
+                  },
+                  icon: const Icon(Icons.sync),
+                  label: const Text('Synchroniser maintenant'),
+                ),
               TextButton(
                 onPressed: () {
                   Navigator.pop(context);
@@ -535,21 +586,23 @@ class _AdmissionScreenState extends ConsumerState<AdmissionScreen> {
         const SizedBox(height: 24),
         Consumer(
           builder: (context, ref, child) {
-            final classesAsync = ref.watch(classroomsProvider);
+            final classesAsync = ref.watch(admissionClassroomsProvider);
             return classesAsync.when(
               data: (classes) {
                 if (classes.isEmpty) {
                   return const Text(
-                    "Veuillez d'abord configurer des classes dans les paramètres.",
+                    'Aucune classe en cache. Connectez-vous en ligne une fois '
+                    '(ou ouvrez l’onglet Élèves) pour charger les salles, puis réessayez hors ligne.',
                     style: TextStyle(color: Colors.red),
                   );
                 }
                 if (_selectedClasseId == null && classes.isNotEmpty) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
-                    setState(() => _selectedClasseId = classes.first['name']);
+                    setState(() => _selectedClasseId = classes.first['id']);
                   });
                 }
                 return DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: _selectedClasseId,
                   decoration: InputDecoration(
                     labelText: "Classe d'affectation",
@@ -564,17 +617,20 @@ class _AdmissionScreenState extends ConsumerState<AdmissionScreen> {
                   items: classes
                       .map(
                         (c) => DropdownMenuItem<String>(
-                          value: c['name'],
-                          child: Text(c['name']),
+                          value: c['id'] as String,
+                          child: Text(c['name'] as String),
                         ),
                       )
                       .toList(),
-                  onChanged: (val) => setState(() => _selectedClasseId = val!),
+                  onChanged: (val) => setState(() => _selectedClasseId = val),
                 );
               },
-              loading: () => const CircularProgressIndicator(),
+              loading: () => const Padding(
+                padding: EdgeInsets.all(8),
+                child: LinearProgressIndicator(),
+              ),
               error: (err, _) => Text(
-                'Erreur: $err',
+                'Classes indisponibles : $err',
                 style: const TextStyle(color: Colors.red),
               ),
             );

@@ -43,6 +43,34 @@ class LocalStudents extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Catalogue des frais (année scolaire = libellé texte Supabase).
+class LocalFees extends Table {
+  TextColumn get id => text()();
+  TextColumn get schoolId => text()();
+  TextColumn get academicYear => text()();
+  TextColumn get name => text()();
+  RealColumn get amount => real()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Paiements connus localement (pull serveur + encaissements en file d’attente).
+class LocalPayments extends Table {
+  TextColumn get id => text()();
+  TextColumn get schoolId => text()();
+  TextColumn get studentId => text()();
+  TextColumn get feeId => text()();
+  RealColumn get amountPaid => real()();
+  TextColumn get receiptNumber => text()();
+  DateTimeColumn get paidAt => dateTime().nullable()();
+  BoolColumn get pendingSync =>
+      boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// File d’attente des écritures (M3).
 class OutboxMutations extends Table {
   TextColumn get id => text()();

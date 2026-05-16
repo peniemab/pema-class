@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../database/app_database.dart';
 import '../supabase/tenant_context.dart';
 import '../../features/settings/data/settings_repository.dart';
+import 'draft_sync_cleanup.dart';
 
 /// Pull Supabase → Drift pour classes + élèves (année active).
 class StudentsPullSync {
@@ -101,12 +102,92 @@ class StudentsPullSync {
       );
     }
 
+    final feesRaw = await _supabase
+        .from('fees')
+        .select('id, name, amount, academic_year')
+        .eq('school_id', schoolId)
+        .eq('academic_year', yearName)
+        .order('name');
+
+    final feeRows = (feesRaw as List).cast<Map<String, dynamic>>();
+    final feeCompanions = feeRows
+        .map(
+          (f) => LocalFeesCompanion(
+            id: Value(f['id'] as String),
+            schoolId: Value(schoolId),
+            academicYear: Value(yearName),
+            name: Value(f['name'] as String),
+            amount: Value(double.parse(f['amount'].toString())),
+          ),
+        )
+        .toList();
+
+    final feeIds = feeRows.map((f) => f['id'] as String).toList();
+    final paymentCompanions = <LocalPaymentsCompanion>[];
+
+    if (feeIds.isNotEmpty) {
+      final paymentsRaw = await _supabase
+          .from('payments_history')
+          .select(
+            'id, student_id, fee_id, amount_paid, receipt_number, created_at',
+          )
+          .inFilter('fee_id', feeIds);
+
+      for (final row in (paymentsRaw as List).cast<Map<String, dynamic>>()) {
+        DateTime? paidAt;
+        final createdRaw = row['created_at'];
+        if (createdRaw is String) {
+          paidAt = DateTime.tryParse(createdRaw);
+        }
+
+        paymentCompanions.add(
+          LocalPaymentsCompanion(
+            id: Value(row['id'] as String),
+            schoolId: Value(schoolId),
+            studentId: Value(row['student_id'] as String),
+            feeId: Value(row['fee_id'] as String),
+            amountPaid: Value(double.parse(row['amount_paid'].toString())),
+            receiptNumber: Value(row['receipt_number'] as String),
+            paidAt: Value(paidAt),
+            pendingSync: const Value(false),
+          ),
+        );
+      }
+    }
+
+    final cleanup = DraftSyncCleanup(_db);
+    final draftsToPreserve = await cleanup.pendingRegistrationDrafts(schoolId);
+    final serverMatriculesUpper = studentCompanions
+        .map((s) => s.matricule.value?.trim().toUpperCase())
+        .whereType<String>()
+        .where((m) => m.isNotEmpty)
+        .toSet();
+    final serverStudentIds =
+        studentCompanions.map((s) => s.id.value).toSet();
+
     await _db.replaceStudentsDirectory(
       schoolId: schoolId,
       academicYearId: yearId,
       academicYearName: yearName,
       classes: classCompanions,
       students: studentCompanions,
+      fees: feeCompanions,
+      payments: paymentCompanions,
+    );
+
+    for (final draft in draftsToPreserve) {
+      final mat = draft.matricule.value?.trim().toUpperCase();
+      if (mat != null &&
+          mat.isNotEmpty &&
+          !serverMatriculesUpper.contains(mat)) {
+        await _db.upsertLocalStudent(draft);
+      }
+    }
+
+    await cleanup.purgeSentDrafts(
+      schoolId: schoolId,
+      serverMatriculesUpper: serverMatriculesUpper,
+      serverStudentIds: serverStudentIds,
     );
 
     return DirectoryPullResult(
@@ -115,6 +196,8 @@ class StudentsPullSync {
       academicYearName: yearName,
       studentCount: studentCompanions.length,
       classCount: classCompanions.length,
+      feeCount: feeCompanions.length,
+      paymentCount: paymentCompanions.length,
     );
   }
 }
@@ -126,6 +209,8 @@ class DirectoryPullResult {
     required this.academicYearName,
     required this.studentCount,
     required this.classCount,
+    this.feeCount = 0,
+    this.paymentCount = 0,
   });
 
   final String schoolId;
@@ -133,4 +218,6 @@ class DirectoryPullResult {
   final String academicYearName;
   final int studentCount;
   final int classCount;
+  final int feeCount;
+  final int paymentCount;
 }

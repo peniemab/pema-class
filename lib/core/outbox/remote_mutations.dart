@@ -24,25 +24,70 @@ class RemoteMutations {
     return 'other';
   }
 
-  Future<Map<String, dynamic>> registerStudent(
-    Map<String, dynamic> payload,
-  ) async {
-    final schoolId = await _supabase.requireSchoolId();
-    final academicYearId = await _settings.getActiveAcademicYearId();
-    final classeAssignee = payload['classe_assignee'] as String;
-    final matricule = payload['matricule'] as String;
+  static final _uuidPattern = RegExp(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+  );
+
+  Future<String> _resolveClassId({
+    required String schoolId,
+    required String academicYearId,
+    required Map<String, dynamic> payload,
+  }) async {
+    final classIdRaw = payload['class_id']?.toString().trim();
+    if (classIdRaw != null && classIdRaw.isNotEmpty) {
+      final byId = await _supabase
+          .from('classes')
+          .select('id')
+          .eq('school_id', schoolId)
+          .eq('academic_year_id', academicYearId)
+          .eq('id', classIdRaw)
+          .maybeSingle();
+      if (byId != null) return byId['id'] as String;
+    }
+
+    final classeLabel = (payload['classe_assignee'] as String?)?.trim() ?? '';
+    if (classeLabel.isEmpty) {
+      throw Exception(
+        'Classe non renseignée. Rouvrez l’inscription et choisissez une salle.',
+      );
+    }
+
+    if (_uuidPattern.hasMatch(classeLabel)) {
+      final byUuid = await _supabase
+          .from('classes')
+          .select('id')
+          .eq('school_id', schoolId)
+          .eq('academic_year_id', academicYearId)
+          .eq('id', classeLabel)
+          .maybeSingle();
+      if (byUuid != null) return byUuid['id'] as String;
+    }
 
     final classRow = await _supabase
         .from('classes')
         .select('id')
         .eq('school_id', schoolId)
         .eq('academic_year_id', academicYearId)
-        .eq('name', classeAssignee)
+        .eq('name', classeLabel)
         .maybeSingle();
     if (classRow == null) {
-      throw Exception('Classe inconnue pour cette année : $classeAssignee');
+      throw Exception('Classe inconnue pour cette année : $classeLabel');
     }
-    final classId = classRow['id'] as String;
+    return classRow['id'] as String;
+  }
+
+  Future<Map<String, dynamic>> registerStudent(
+    Map<String, dynamic> payload,
+  ) async {
+    final schoolId = await _supabase.requireSchoolId();
+    final academicYearId = await _settings.getActiveAcademicYearId();
+    final matricule = payload['matricule'] as String;
+
+    final classId = await _resolveClassId(
+      schoolId: schoolId,
+      academicYearId: academicYearId,
+      payload: payload,
+    );
 
     final studentRow = await _supabase
         .from('students')
@@ -86,20 +131,65 @@ class RemoteMutations {
 
     return {
       'matricule': matricule,
-      'classe_assignee': classeAssignee,
+      'classe_assignee': (payload['classe_assignee'] as String?) ?? '',
       'student_id': studentId,
       'queued': false,
     };
+  }
+
+  Future<String> _resolvePaymentStudentId(Map<String, dynamic> payload) async {
+    final schoolId = await _supabase.requireSchoolId();
+    final matricule = (payload['student_matricule'] as String?)?.trim();
+
+    if (matricule != null && matricule.isNotEmpty) {
+      final byMatricule = await _supabase
+          .from('students')
+          .select('id')
+          .eq('school_id', schoolId)
+          .eq('matricule', matricule)
+          .maybeSingle();
+      if (byMatricule != null) {
+        return byMatricule['id'] as String;
+      }
+    }
+
+    final studentId = payload['student_id'] as String;
+    final exists = await _supabase
+        .from('students')
+        .select('id')
+        .eq('id', studentId)
+        .maybeSingle();
+    if (exists != null) return studentId;
+
+    if (matricule != null && matricule.startsWith('MAT-P-')) {
+      throw Exception(
+        'Inscription de l’élève en cours de synchronisation — le paiement sera '
+        'réessayé automatiquement.',
+      );
+    }
+
+    throw Exception('Élève introuvable pour enregistrer ce paiement.');
   }
 
   Future<Map<String, dynamic>> payFee(Map<String, dynamic> payload) async {
     final userId = _supabase.auth.currentUser?.id;
     final receiptNumber = payload['receipt_number'] as String;
 
+    final existing = await _supabase
+        .from('payments_history')
+        .select()
+        .eq('receipt_number', receiptNumber)
+        .maybeSingle();
+    if (existing != null) {
+      return {...Map<String, dynamic>.from(existing), 'queued': false};
+    }
+
+    final studentId = await _resolvePaymentStudentId(payload);
+
     final row = await _supabase
         .from('payments_history')
         .insert({
-          'student_id': payload['student_id'],
+          'student_id': studentId,
           'fee_id': payload['fee_id'],
           'amount_paid': payload['amount_paid'],
           'receipt_number': receiptNumber,

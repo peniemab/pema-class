@@ -1549,6 +1549,891 @@ class LocalStudentsCompanion extends UpdateCompanion<LocalStudent> {
   }
 }
 
+class $LocalFeesTable extends LocalFees
+    with TableInfo<$LocalFeesTable, LocalFee> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalFeesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _schoolIdMeta = const VerificationMeta(
+    'schoolId',
+  );
+  @override
+  late final GeneratedColumn<String> schoolId = GeneratedColumn<String>(
+    'school_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _academicYearMeta = const VerificationMeta(
+    'academicYear',
+  );
+  @override
+  late final GeneratedColumn<String> academicYear = GeneratedColumn<String>(
+    'academic_year',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+    'amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    schoolId,
+    academicYear,
+    name,
+    amount,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_fees';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LocalFee> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('school_id')) {
+      context.handle(
+        _schoolIdMeta,
+        schoolId.isAcceptableOrUnknown(data['school_id']!, _schoolIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_schoolIdMeta);
+    }
+    if (data.containsKey('academic_year')) {
+      context.handle(
+        _academicYearMeta,
+        academicYear.isAcceptableOrUnknown(
+          data['academic_year']!,
+          _academicYearMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_academicYearMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_amountMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalFee map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalFee(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      schoolId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}school_id'],
+      )!,
+      academicYear: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}academic_year'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount'],
+      )!,
+    );
+  }
+
+  @override
+  $LocalFeesTable createAlias(String alias) {
+    return $LocalFeesTable(attachedDatabase, alias);
+  }
+}
+
+class LocalFee extends DataClass implements Insertable<LocalFee> {
+  final String id;
+  final String schoolId;
+  final String academicYear;
+  final String name;
+  final double amount;
+  const LocalFee({
+    required this.id,
+    required this.schoolId,
+    required this.academicYear,
+    required this.name,
+    required this.amount,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['school_id'] = Variable<String>(schoolId);
+    map['academic_year'] = Variable<String>(academicYear);
+    map['name'] = Variable<String>(name);
+    map['amount'] = Variable<double>(amount);
+    return map;
+  }
+
+  LocalFeesCompanion toCompanion(bool nullToAbsent) {
+    return LocalFeesCompanion(
+      id: Value(id),
+      schoolId: Value(schoolId),
+      academicYear: Value(academicYear),
+      name: Value(name),
+      amount: Value(amount),
+    );
+  }
+
+  factory LocalFee.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalFee(
+      id: serializer.fromJson<String>(json['id']),
+      schoolId: serializer.fromJson<String>(json['schoolId']),
+      academicYear: serializer.fromJson<String>(json['academicYear']),
+      name: serializer.fromJson<String>(json['name']),
+      amount: serializer.fromJson<double>(json['amount']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'schoolId': serializer.toJson<String>(schoolId),
+      'academicYear': serializer.toJson<String>(academicYear),
+      'name': serializer.toJson<String>(name),
+      'amount': serializer.toJson<double>(amount),
+    };
+  }
+
+  LocalFee copyWith({
+    String? id,
+    String? schoolId,
+    String? academicYear,
+    String? name,
+    double? amount,
+  }) => LocalFee(
+    id: id ?? this.id,
+    schoolId: schoolId ?? this.schoolId,
+    academicYear: academicYear ?? this.academicYear,
+    name: name ?? this.name,
+    amount: amount ?? this.amount,
+  );
+  LocalFee copyWithCompanion(LocalFeesCompanion data) {
+    return LocalFee(
+      id: data.id.present ? data.id.value : this.id,
+      schoolId: data.schoolId.present ? data.schoolId.value : this.schoolId,
+      academicYear: data.academicYear.present
+          ? data.academicYear.value
+          : this.academicYear,
+      name: data.name.present ? data.name.value : this.name,
+      amount: data.amount.present ? data.amount.value : this.amount,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalFee(')
+          ..write('id: $id, ')
+          ..write('schoolId: $schoolId, ')
+          ..write('academicYear: $academicYear, ')
+          ..write('name: $name, ')
+          ..write('amount: $amount')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, schoolId, academicYear, name, amount);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalFee &&
+          other.id == this.id &&
+          other.schoolId == this.schoolId &&
+          other.academicYear == this.academicYear &&
+          other.name == this.name &&
+          other.amount == this.amount);
+}
+
+class LocalFeesCompanion extends UpdateCompanion<LocalFee> {
+  final Value<String> id;
+  final Value<String> schoolId;
+  final Value<String> academicYear;
+  final Value<String> name;
+  final Value<double> amount;
+  final Value<int> rowid;
+  const LocalFeesCompanion({
+    this.id = const Value.absent(),
+    this.schoolId = const Value.absent(),
+    this.academicYear = const Value.absent(),
+    this.name = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalFeesCompanion.insert({
+    required String id,
+    required String schoolId,
+    required String academicYear,
+    required String name,
+    required double amount,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       schoolId = Value(schoolId),
+       academicYear = Value(academicYear),
+       name = Value(name),
+       amount = Value(amount);
+  static Insertable<LocalFee> custom({
+    Expression<String>? id,
+    Expression<String>? schoolId,
+    Expression<String>? academicYear,
+    Expression<String>? name,
+    Expression<double>? amount,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (schoolId != null) 'school_id': schoolId,
+      if (academicYear != null) 'academic_year': academicYear,
+      if (name != null) 'name': name,
+      if (amount != null) 'amount': amount,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalFeesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? schoolId,
+    Value<String>? academicYear,
+    Value<String>? name,
+    Value<double>? amount,
+    Value<int>? rowid,
+  }) {
+    return LocalFeesCompanion(
+      id: id ?? this.id,
+      schoolId: schoolId ?? this.schoolId,
+      academicYear: academicYear ?? this.academicYear,
+      name: name ?? this.name,
+      amount: amount ?? this.amount,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (schoolId.present) {
+      map['school_id'] = Variable<String>(schoolId.value);
+    }
+    if (academicYear.present) {
+      map['academic_year'] = Variable<String>(academicYear.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalFeesCompanion(')
+          ..write('id: $id, ')
+          ..write('schoolId: $schoolId, ')
+          ..write('academicYear: $academicYear, ')
+          ..write('name: $name, ')
+          ..write('amount: $amount, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LocalPaymentsTable extends LocalPayments
+    with TableInfo<$LocalPaymentsTable, LocalPayment> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalPaymentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _schoolIdMeta = const VerificationMeta(
+    'schoolId',
+  );
+  @override
+  late final GeneratedColumn<String> schoolId = GeneratedColumn<String>(
+    'school_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _studentIdMeta = const VerificationMeta(
+    'studentId',
+  );
+  @override
+  late final GeneratedColumn<String> studentId = GeneratedColumn<String>(
+    'student_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _feeIdMeta = const VerificationMeta('feeId');
+  @override
+  late final GeneratedColumn<String> feeId = GeneratedColumn<String>(
+    'fee_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountPaidMeta = const VerificationMeta(
+    'amountPaid',
+  );
+  @override
+  late final GeneratedColumn<double> amountPaid = GeneratedColumn<double>(
+    'amount_paid',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _receiptNumberMeta = const VerificationMeta(
+    'receiptNumber',
+  );
+  @override
+  late final GeneratedColumn<String> receiptNumber = GeneratedColumn<String>(
+    'receipt_number',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _paidAtMeta = const VerificationMeta('paidAt');
+  @override
+  late final GeneratedColumn<DateTime> paidAt = GeneratedColumn<DateTime>(
+    'paid_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _pendingSyncMeta = const VerificationMeta(
+    'pendingSync',
+  );
+  @override
+  late final GeneratedColumn<bool> pendingSync = GeneratedColumn<bool>(
+    'pending_sync',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("pending_sync" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    schoolId,
+    studentId,
+    feeId,
+    amountPaid,
+    receiptNumber,
+    paidAt,
+    pendingSync,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_payments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LocalPayment> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('school_id')) {
+      context.handle(
+        _schoolIdMeta,
+        schoolId.isAcceptableOrUnknown(data['school_id']!, _schoolIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_schoolIdMeta);
+    }
+    if (data.containsKey('student_id')) {
+      context.handle(
+        _studentIdMeta,
+        studentId.isAcceptableOrUnknown(data['student_id']!, _studentIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_studentIdMeta);
+    }
+    if (data.containsKey('fee_id')) {
+      context.handle(
+        _feeIdMeta,
+        feeId.isAcceptableOrUnknown(data['fee_id']!, _feeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_feeIdMeta);
+    }
+    if (data.containsKey('amount_paid')) {
+      context.handle(
+        _amountPaidMeta,
+        amountPaid.isAcceptableOrUnknown(data['amount_paid']!, _amountPaidMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_amountPaidMeta);
+    }
+    if (data.containsKey('receipt_number')) {
+      context.handle(
+        _receiptNumberMeta,
+        receiptNumber.isAcceptableOrUnknown(
+          data['receipt_number']!,
+          _receiptNumberMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_receiptNumberMeta);
+    }
+    if (data.containsKey('paid_at')) {
+      context.handle(
+        _paidAtMeta,
+        paidAt.isAcceptableOrUnknown(data['paid_at']!, _paidAtMeta),
+      );
+    }
+    if (data.containsKey('pending_sync')) {
+      context.handle(
+        _pendingSyncMeta,
+        pendingSync.isAcceptableOrUnknown(
+          data['pending_sync']!,
+          _pendingSyncMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalPayment map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalPayment(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      schoolId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}school_id'],
+      )!,
+      studentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}student_id'],
+      )!,
+      feeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}fee_id'],
+      )!,
+      amountPaid: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount_paid'],
+      )!,
+      receiptNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}receipt_number'],
+      )!,
+      paidAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}paid_at'],
+      ),
+      pendingSync: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}pending_sync'],
+      )!,
+    );
+  }
+
+  @override
+  $LocalPaymentsTable createAlias(String alias) {
+    return $LocalPaymentsTable(attachedDatabase, alias);
+  }
+}
+
+class LocalPayment extends DataClass implements Insertable<LocalPayment> {
+  final String id;
+  final String schoolId;
+  final String studentId;
+  final String feeId;
+  final double amountPaid;
+  final String receiptNumber;
+  final DateTime? paidAt;
+  final bool pendingSync;
+  const LocalPayment({
+    required this.id,
+    required this.schoolId,
+    required this.studentId,
+    required this.feeId,
+    required this.amountPaid,
+    required this.receiptNumber,
+    this.paidAt,
+    required this.pendingSync,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['school_id'] = Variable<String>(schoolId);
+    map['student_id'] = Variable<String>(studentId);
+    map['fee_id'] = Variable<String>(feeId);
+    map['amount_paid'] = Variable<double>(amountPaid);
+    map['receipt_number'] = Variable<String>(receiptNumber);
+    if (!nullToAbsent || paidAt != null) {
+      map['paid_at'] = Variable<DateTime>(paidAt);
+    }
+    map['pending_sync'] = Variable<bool>(pendingSync);
+    return map;
+  }
+
+  LocalPaymentsCompanion toCompanion(bool nullToAbsent) {
+    return LocalPaymentsCompanion(
+      id: Value(id),
+      schoolId: Value(schoolId),
+      studentId: Value(studentId),
+      feeId: Value(feeId),
+      amountPaid: Value(amountPaid),
+      receiptNumber: Value(receiptNumber),
+      paidAt: paidAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(paidAt),
+      pendingSync: Value(pendingSync),
+    );
+  }
+
+  factory LocalPayment.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalPayment(
+      id: serializer.fromJson<String>(json['id']),
+      schoolId: serializer.fromJson<String>(json['schoolId']),
+      studentId: serializer.fromJson<String>(json['studentId']),
+      feeId: serializer.fromJson<String>(json['feeId']),
+      amountPaid: serializer.fromJson<double>(json['amountPaid']),
+      receiptNumber: serializer.fromJson<String>(json['receiptNumber']),
+      paidAt: serializer.fromJson<DateTime?>(json['paidAt']),
+      pendingSync: serializer.fromJson<bool>(json['pendingSync']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'schoolId': serializer.toJson<String>(schoolId),
+      'studentId': serializer.toJson<String>(studentId),
+      'feeId': serializer.toJson<String>(feeId),
+      'amountPaid': serializer.toJson<double>(amountPaid),
+      'receiptNumber': serializer.toJson<String>(receiptNumber),
+      'paidAt': serializer.toJson<DateTime?>(paidAt),
+      'pendingSync': serializer.toJson<bool>(pendingSync),
+    };
+  }
+
+  LocalPayment copyWith({
+    String? id,
+    String? schoolId,
+    String? studentId,
+    String? feeId,
+    double? amountPaid,
+    String? receiptNumber,
+    Value<DateTime?> paidAt = const Value.absent(),
+    bool? pendingSync,
+  }) => LocalPayment(
+    id: id ?? this.id,
+    schoolId: schoolId ?? this.schoolId,
+    studentId: studentId ?? this.studentId,
+    feeId: feeId ?? this.feeId,
+    amountPaid: amountPaid ?? this.amountPaid,
+    receiptNumber: receiptNumber ?? this.receiptNumber,
+    paidAt: paidAt.present ? paidAt.value : this.paidAt,
+    pendingSync: pendingSync ?? this.pendingSync,
+  );
+  LocalPayment copyWithCompanion(LocalPaymentsCompanion data) {
+    return LocalPayment(
+      id: data.id.present ? data.id.value : this.id,
+      schoolId: data.schoolId.present ? data.schoolId.value : this.schoolId,
+      studentId: data.studentId.present ? data.studentId.value : this.studentId,
+      feeId: data.feeId.present ? data.feeId.value : this.feeId,
+      amountPaid: data.amountPaid.present
+          ? data.amountPaid.value
+          : this.amountPaid,
+      receiptNumber: data.receiptNumber.present
+          ? data.receiptNumber.value
+          : this.receiptNumber,
+      paidAt: data.paidAt.present ? data.paidAt.value : this.paidAt,
+      pendingSync: data.pendingSync.present
+          ? data.pendingSync.value
+          : this.pendingSync,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalPayment(')
+          ..write('id: $id, ')
+          ..write('schoolId: $schoolId, ')
+          ..write('studentId: $studentId, ')
+          ..write('feeId: $feeId, ')
+          ..write('amountPaid: $amountPaid, ')
+          ..write('receiptNumber: $receiptNumber, ')
+          ..write('paidAt: $paidAt, ')
+          ..write('pendingSync: $pendingSync')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    schoolId,
+    studentId,
+    feeId,
+    amountPaid,
+    receiptNumber,
+    paidAt,
+    pendingSync,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalPayment &&
+          other.id == this.id &&
+          other.schoolId == this.schoolId &&
+          other.studentId == this.studentId &&
+          other.feeId == this.feeId &&
+          other.amountPaid == this.amountPaid &&
+          other.receiptNumber == this.receiptNumber &&
+          other.paidAt == this.paidAt &&
+          other.pendingSync == this.pendingSync);
+}
+
+class LocalPaymentsCompanion extends UpdateCompanion<LocalPayment> {
+  final Value<String> id;
+  final Value<String> schoolId;
+  final Value<String> studentId;
+  final Value<String> feeId;
+  final Value<double> amountPaid;
+  final Value<String> receiptNumber;
+  final Value<DateTime?> paidAt;
+  final Value<bool> pendingSync;
+  final Value<int> rowid;
+  const LocalPaymentsCompanion({
+    this.id = const Value.absent(),
+    this.schoolId = const Value.absent(),
+    this.studentId = const Value.absent(),
+    this.feeId = const Value.absent(),
+    this.amountPaid = const Value.absent(),
+    this.receiptNumber = const Value.absent(),
+    this.paidAt = const Value.absent(),
+    this.pendingSync = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalPaymentsCompanion.insert({
+    required String id,
+    required String schoolId,
+    required String studentId,
+    required String feeId,
+    required double amountPaid,
+    required String receiptNumber,
+    this.paidAt = const Value.absent(),
+    this.pendingSync = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       schoolId = Value(schoolId),
+       studentId = Value(studentId),
+       feeId = Value(feeId),
+       amountPaid = Value(amountPaid),
+       receiptNumber = Value(receiptNumber);
+  static Insertable<LocalPayment> custom({
+    Expression<String>? id,
+    Expression<String>? schoolId,
+    Expression<String>? studentId,
+    Expression<String>? feeId,
+    Expression<double>? amountPaid,
+    Expression<String>? receiptNumber,
+    Expression<DateTime>? paidAt,
+    Expression<bool>? pendingSync,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (schoolId != null) 'school_id': schoolId,
+      if (studentId != null) 'student_id': studentId,
+      if (feeId != null) 'fee_id': feeId,
+      if (amountPaid != null) 'amount_paid': amountPaid,
+      if (receiptNumber != null) 'receipt_number': receiptNumber,
+      if (paidAt != null) 'paid_at': paidAt,
+      if (pendingSync != null) 'pending_sync': pendingSync,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalPaymentsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? schoolId,
+    Value<String>? studentId,
+    Value<String>? feeId,
+    Value<double>? amountPaid,
+    Value<String>? receiptNumber,
+    Value<DateTime?>? paidAt,
+    Value<bool>? pendingSync,
+    Value<int>? rowid,
+  }) {
+    return LocalPaymentsCompanion(
+      id: id ?? this.id,
+      schoolId: schoolId ?? this.schoolId,
+      studentId: studentId ?? this.studentId,
+      feeId: feeId ?? this.feeId,
+      amountPaid: amountPaid ?? this.amountPaid,
+      receiptNumber: receiptNumber ?? this.receiptNumber,
+      paidAt: paidAt ?? this.paidAt,
+      pendingSync: pendingSync ?? this.pendingSync,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (schoolId.present) {
+      map['school_id'] = Variable<String>(schoolId.value);
+    }
+    if (studentId.present) {
+      map['student_id'] = Variable<String>(studentId.value);
+    }
+    if (feeId.present) {
+      map['fee_id'] = Variable<String>(feeId.value);
+    }
+    if (amountPaid.present) {
+      map['amount_paid'] = Variable<double>(amountPaid.value);
+    }
+    if (receiptNumber.present) {
+      map['receipt_number'] = Variable<String>(receiptNumber.value);
+    }
+    if (paidAt.present) {
+      map['paid_at'] = Variable<DateTime>(paidAt.value);
+    }
+    if (pendingSync.present) {
+      map['pending_sync'] = Variable<bool>(pendingSync.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalPaymentsCompanion(')
+          ..write('id: $id, ')
+          ..write('schoolId: $schoolId, ')
+          ..write('studentId: $studentId, ')
+          ..write('feeId: $feeId, ')
+          ..write('amountPaid: $amountPaid, ')
+          ..write('receiptNumber: $receiptNumber, ')
+          ..write('paidAt: $paidAt, ')
+          ..write('pendingSync: $pendingSync, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $OutboxMutationsTable extends OutboxMutations
     with TableInfo<$OutboxMutationsTable, OutboxMutation> {
   @override
@@ -2138,6 +3023,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SyncStatesTable syncStates = $SyncStatesTable(this);
   late final $LocalClassesTable localClasses = $LocalClassesTable(this);
   late final $LocalStudentsTable localStudents = $LocalStudentsTable(this);
+  late final $LocalFeesTable localFees = $LocalFeesTable(this);
+  late final $LocalPaymentsTable localPayments = $LocalPaymentsTable(this);
   late final $OutboxMutationsTable outboxMutations = $OutboxMutationsTable(
     this,
   );
@@ -2149,6 +3036,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     syncStates,
     localClasses,
     localStudents,
+    localFees,
+    localPayments,
     outboxMutations,
   ];
 }
@@ -2920,6 +3809,465 @@ typedef $$LocalStudentsTableProcessedTableManager =
       LocalStudent,
       PrefetchHooks Function()
     >;
+typedef $$LocalFeesTableCreateCompanionBuilder =
+    LocalFeesCompanion Function({
+      required String id,
+      required String schoolId,
+      required String academicYear,
+      required String name,
+      required double amount,
+      Value<int> rowid,
+    });
+typedef $$LocalFeesTableUpdateCompanionBuilder =
+    LocalFeesCompanion Function({
+      Value<String> id,
+      Value<String> schoolId,
+      Value<String> academicYear,
+      Value<String> name,
+      Value<double> amount,
+      Value<int> rowid,
+    });
+
+class $$LocalFeesTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalFeesTable> {
+  $$LocalFeesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get schoolId => $composableBuilder(
+    column: $table.schoolId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get academicYear => $composableBuilder(
+    column: $table.academicYear,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LocalFeesTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalFeesTable> {
+  $$LocalFeesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get schoolId => $composableBuilder(
+    column: $table.schoolId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get academicYear => $composableBuilder(
+    column: $table.academicYear,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LocalFeesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalFeesTable> {
+  $$LocalFeesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get schoolId =>
+      $composableBuilder(column: $table.schoolId, builder: (column) => column);
+
+  GeneratedColumn<String> get academicYear => $composableBuilder(
+    column: $table.academicYear,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+}
+
+class $$LocalFeesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LocalFeesTable,
+          LocalFee,
+          $$LocalFeesTableFilterComposer,
+          $$LocalFeesTableOrderingComposer,
+          $$LocalFeesTableAnnotationComposer,
+          $$LocalFeesTableCreateCompanionBuilder,
+          $$LocalFeesTableUpdateCompanionBuilder,
+          (LocalFee, BaseReferences<_$AppDatabase, $LocalFeesTable, LocalFee>),
+          LocalFee,
+          PrefetchHooks Function()
+        > {
+  $$LocalFeesTableTableManager(_$AppDatabase db, $LocalFeesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalFeesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalFeesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalFeesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> schoolId = const Value.absent(),
+                Value<String> academicYear = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<double> amount = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalFeesCompanion(
+                id: id,
+                schoolId: schoolId,
+                academicYear: academicYear,
+                name: name,
+                amount: amount,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String schoolId,
+                required String academicYear,
+                required String name,
+                required double amount,
+                Value<int> rowid = const Value.absent(),
+              }) => LocalFeesCompanion.insert(
+                id: id,
+                schoolId: schoolId,
+                academicYear: academicYear,
+                name: name,
+                amount: amount,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LocalFeesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LocalFeesTable,
+      LocalFee,
+      $$LocalFeesTableFilterComposer,
+      $$LocalFeesTableOrderingComposer,
+      $$LocalFeesTableAnnotationComposer,
+      $$LocalFeesTableCreateCompanionBuilder,
+      $$LocalFeesTableUpdateCompanionBuilder,
+      (LocalFee, BaseReferences<_$AppDatabase, $LocalFeesTable, LocalFee>),
+      LocalFee,
+      PrefetchHooks Function()
+    >;
+typedef $$LocalPaymentsTableCreateCompanionBuilder =
+    LocalPaymentsCompanion Function({
+      required String id,
+      required String schoolId,
+      required String studentId,
+      required String feeId,
+      required double amountPaid,
+      required String receiptNumber,
+      Value<DateTime?> paidAt,
+      Value<bool> pendingSync,
+      Value<int> rowid,
+    });
+typedef $$LocalPaymentsTableUpdateCompanionBuilder =
+    LocalPaymentsCompanion Function({
+      Value<String> id,
+      Value<String> schoolId,
+      Value<String> studentId,
+      Value<String> feeId,
+      Value<double> amountPaid,
+      Value<String> receiptNumber,
+      Value<DateTime?> paidAt,
+      Value<bool> pendingSync,
+      Value<int> rowid,
+    });
+
+class $$LocalPaymentsTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalPaymentsTable> {
+  $$LocalPaymentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get schoolId => $composableBuilder(
+    column: $table.schoolId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get studentId => $composableBuilder(
+    column: $table.studentId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get feeId => $composableBuilder(
+    column: $table.feeId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amountPaid => $composableBuilder(
+    column: $table.amountPaid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get receiptNumber => $composableBuilder(
+    column: $table.receiptNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get paidAt => $composableBuilder(
+    column: $table.paidAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get pendingSync => $composableBuilder(
+    column: $table.pendingSync,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LocalPaymentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalPaymentsTable> {
+  $$LocalPaymentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get schoolId => $composableBuilder(
+    column: $table.schoolId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get studentId => $composableBuilder(
+    column: $table.studentId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get feeId => $composableBuilder(
+    column: $table.feeId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get amountPaid => $composableBuilder(
+    column: $table.amountPaid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get receiptNumber => $composableBuilder(
+    column: $table.receiptNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get paidAt => $composableBuilder(
+    column: $table.paidAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get pendingSync => $composableBuilder(
+    column: $table.pendingSync,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LocalPaymentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalPaymentsTable> {
+  $$LocalPaymentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get schoolId =>
+      $composableBuilder(column: $table.schoolId, builder: (column) => column);
+
+  GeneratedColumn<String> get studentId =>
+      $composableBuilder(column: $table.studentId, builder: (column) => column);
+
+  GeneratedColumn<String> get feeId =>
+      $composableBuilder(column: $table.feeId, builder: (column) => column);
+
+  GeneratedColumn<double> get amountPaid => $composableBuilder(
+    column: $table.amountPaid,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get receiptNumber => $composableBuilder(
+    column: $table.receiptNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get paidAt =>
+      $composableBuilder(column: $table.paidAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get pendingSync => $composableBuilder(
+    column: $table.pendingSync,
+    builder: (column) => column,
+  );
+}
+
+class $$LocalPaymentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LocalPaymentsTable,
+          LocalPayment,
+          $$LocalPaymentsTableFilterComposer,
+          $$LocalPaymentsTableOrderingComposer,
+          $$LocalPaymentsTableAnnotationComposer,
+          $$LocalPaymentsTableCreateCompanionBuilder,
+          $$LocalPaymentsTableUpdateCompanionBuilder,
+          (
+            LocalPayment,
+            BaseReferences<_$AppDatabase, $LocalPaymentsTable, LocalPayment>,
+          ),
+          LocalPayment,
+          PrefetchHooks Function()
+        > {
+  $$LocalPaymentsTableTableManager(_$AppDatabase db, $LocalPaymentsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalPaymentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalPaymentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalPaymentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> schoolId = const Value.absent(),
+                Value<String> studentId = const Value.absent(),
+                Value<String> feeId = const Value.absent(),
+                Value<double> amountPaid = const Value.absent(),
+                Value<String> receiptNumber = const Value.absent(),
+                Value<DateTime?> paidAt = const Value.absent(),
+                Value<bool> pendingSync = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalPaymentsCompanion(
+                id: id,
+                schoolId: schoolId,
+                studentId: studentId,
+                feeId: feeId,
+                amountPaid: amountPaid,
+                receiptNumber: receiptNumber,
+                paidAt: paidAt,
+                pendingSync: pendingSync,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String schoolId,
+                required String studentId,
+                required String feeId,
+                required double amountPaid,
+                required String receiptNumber,
+                Value<DateTime?> paidAt = const Value.absent(),
+                Value<bool> pendingSync = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalPaymentsCompanion.insert(
+                id: id,
+                schoolId: schoolId,
+                studentId: studentId,
+                feeId: feeId,
+                amountPaid: amountPaid,
+                receiptNumber: receiptNumber,
+                paidAt: paidAt,
+                pendingSync: pendingSync,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LocalPaymentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LocalPaymentsTable,
+      LocalPayment,
+      $$LocalPaymentsTableFilterComposer,
+      $$LocalPaymentsTableOrderingComposer,
+      $$LocalPaymentsTableAnnotationComposer,
+      $$LocalPaymentsTableCreateCompanionBuilder,
+      $$LocalPaymentsTableUpdateCompanionBuilder,
+      (
+        LocalPayment,
+        BaseReferences<_$AppDatabase, $LocalPaymentsTable, LocalPayment>,
+      ),
+      LocalPayment,
+      PrefetchHooks Function()
+    >;
 typedef $$OutboxMutationsTableCreateCompanionBuilder =
     OutboxMutationsCompanion Function({
       required String id,
@@ -3222,6 +4570,10 @@ class $AppDatabaseManager {
       $$LocalClassesTableTableManager(_db, _db.localClasses);
   $$LocalStudentsTableTableManager get localStudents =>
       $$LocalStudentsTableTableManager(_db, _db.localStudents);
+  $$LocalFeesTableTableManager get localFees =>
+      $$LocalFeesTableTableManager(_db, _db.localFees);
+  $$LocalPaymentsTableTableManager get localPayments =>
+      $$LocalPaymentsTableTableManager(_db, _db.localPayments);
   $$OutboxMutationsTableTableManager get outboxMutations =>
       $$OutboxMutationsTableTableManager(_db, _db.outboxMutations);
 }

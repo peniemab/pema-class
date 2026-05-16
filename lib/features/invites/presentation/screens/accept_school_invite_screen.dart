@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
+import '../../../../core/auth/auth_error_messages.dart';
 import '../../../auth/data/auth_repository.dart';
 import '../../data/invitations_repository.dart';
 import '../../data/pending_school_invite_storage.dart';
@@ -75,9 +76,13 @@ class _AcceptSchoolInviteScreenState extends ConsumerState<AcceptSchoolInviteScr
     setState(() => _loading = true);
     try {
       final auth = ref.read(authRepositoryProvider);
+      if (ref.read(supabaseClientProvider).auth.currentUser != null) {
+        await auth.signOut();
+        if (!mounted) return;
+      }
       final res = await auth.signUpWithEmail(
-        email: _emailCtrl.text.trim(),
-        password: _passwordCtrl.text.trim(),
+        email: _emailCtrl.text,
+        password: _passwordCtrl.text,
       );
       if (res.session == null) {
         await PendingSchoolInviteStorage.save(
@@ -114,7 +119,9 @@ class _AcceptSchoolInviteScreenState extends ConsumerState<AcceptSchoolInviteScr
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur : $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(authErrorMessage(e)), duration: const Duration(seconds: 10)),
+        );
       }
     } finally {
       if (mounted) setState(() => _loading = false);
