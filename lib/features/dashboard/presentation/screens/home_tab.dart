@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../data/current_staff_profile_provider.dart';
-import '../../../reports/presentation/screens/unpaid_screen.dart'; // import financialReportProvider
+import '../../../reports/data/financial_report_provider.dart';
 
 class HomeTab extends ConsumerWidget {
   final Function(int)? onNavigate;

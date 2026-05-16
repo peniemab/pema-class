@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/network/connectivity_providers.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/data/auth_repository.dart';
@@ -71,10 +72,56 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ],
             ),
 
-      body: Row(
+      body: Column(
         children: [
-          if (isDesktop) _buildSidebar(),
-          Expanded(child: _buildCurrentView()),
+          Consumer(
+            builder: (context, ref, _) {
+              final net = ref.watch(connectivityResultsProvider);
+              return net.maybeWhen(
+                data: (results) {
+                  if (connectionLayerOnline(results)) {
+                    return const SizedBox.shrink();
+                  }
+                  return Material(
+                    color: Colors.amber.shade100,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.wifi_off, color: Colors.amber.shade900),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Hors ligne : les listes utilisent le dernier rapport '
+                              'mis en cache sur cet appareil. Inscriptions et paiements '
+                              'nécessitent une connexion.',
+                              style: TextStyle(
+                                color: Colors.amber.shade900,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                orElse: () => const SizedBox.shrink(),
+              );
+            },
+          ),
+          Expanded(
+            child: Row(
+              children: [
+                if (isDesktop) _buildSidebar(),
+                Expanded(child: _buildCurrentView()),
+              ],
+            ),
+          ),
         ],
       ),
 

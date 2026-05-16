@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'core/routing/app_router.dart';
+import 'core/sync/sync_providers.dart';
 import 'core/theme/app_colors.dart';
 
 void main() async {
@@ -31,7 +32,9 @@ void main() async {
   runApp(
     // ProviderScope allows Riverpod to track states across our entire app
     const ProviderScope(
-      child: SchoolSaaSApp(),
+      child: SyncLifecycleListener(
+        child: SchoolSaaSApp(),
+      ),
     ),
   );
 }

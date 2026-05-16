@@ -8,8 +8,10 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 
-import '../../../settings/presentation/screens/settings_screen.dart';
-import '../../../reports/presentation/screens/unpaid_screen.dart'; // import financialReportProvider
+import '../../../../core/sync/sync_providers.dart';
+import '../../../settings/presentation/screens/settings_screen.dart'
+    show activeAcademicYearNameProvider;
+import '../../data/student_directory_mapper.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class StudentsListScreen extends ConsumerStatefulWidget {
@@ -23,6 +25,43 @@ class _StudentsListScreenState extends ConsumerState<StudentsListScreen> {
   final _searchCtrl = TextEditingController();
   String _searchQuery = "";
   String _selectedClassOption = "Toutes les Salles";
+  bool _isPulling = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(syncEngineProvider).pullStudentsDirectory();
+    });
+  }
+
+  Future<void> _refreshDirectory() async {
+    if (_isPulling) return;
+    setState(() => _isPulling = true);
+    try {
+      final result =
+          await ref.read(syncEngineProvider).pullStudentsDirectory(force: true);
+      if (!mounted) return;
+      if (result != null) {
+        ref.invalidate(directoryLastSyncedAtProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Annuaire synchronisé (${result.studentCount} élèves).',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Synchronisation impossible : $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isPulling = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -31,7 +70,13 @@ class _StudentsListScreenState extends ConsumerState<StudentsListScreen> {
   }
 
   Future<void> _printAttendanceList(List<Map<String, dynamic>> students) async {
-    final academicYear = await ref.read(activeAcademicYearNameProvider.future);
+    String academicYear;
+    try {
+      academicYear = await ref.read(activeAcademicYearNameProvider.future);
+    } catch (_) {
+      final scope = await ref.read(directoryScopeProvider.future);
+      academicYear = scope?.academicYearName ?? '—';
+    }
     // Sort students alphabetically by name
     final sortedStudents = List<Map<String, dynamic>>.from(students)
       ..sort(
@@ -456,33 +501,82 @@ class _StudentsListScreenState extends ConsumerState<StudentsListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final reportAsync = ref.watch(financialReportProvider);
-    final classesAsync = ref.watch(classroomsProvider);
+    final studentsAsync = ref.watch(studentsDirectoryStreamProvider);
+    final classesAsync = ref.watch(localClassesStreamProvider);
+    final lastSyncAsync = ref.watch(directoryLastSyncedAtProvider);
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(Responsive.isMobile(context) ? 16.0 : 32.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Annuaire des Élèves",
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Annuaire des Élèves",
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      "Données locales (Drift) — synchronisées au retour en ligne.",
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: 'Synchroniser l’annuaire',
+                onPressed: _isPulling ? null : _refreshDirectory,
+                icon: _isPulling
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.sync),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          const Text(
-            "Base de données complète avec filtrage et recherche.",
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+          lastSyncAsync.maybeWhen(
+            data: (at) {
+              if (at == null) return const SizedBox.shrink();
+              final label =
+                  '${at.day.toString().padLeft(2, '0')}/'
+                  '${at.month.toString().padLeft(2, '0')}/'
+                  '${at.year} '
+                  '${at.hour.toString().padLeft(2, '0')}:'
+                  '${at.minute.toString().padLeft(2, '0')}';
+              return Padding(
+                padding: const EdgeInsets.only(top: 4, bottom: 8),
+                child: Text(
+                  'Dernière synchro : $label',
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
+                ),
+              );
+            },
+            orElse: () => const SizedBox.shrink(),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
 
-          reportAsync.when(
-            data: (report) {
+          studentsAsync.when(
+            data: (localStudents) {
               List<Map<String, dynamic>> students =
-                  List<Map<String, dynamic>>.from(report['students']);
+                  localStudents.map((s) => s.toUiMap()).toList();
 
               // Filtering by Classroom
               if (_selectedClassOption != "Toutes les Salles") {
@@ -531,13 +625,14 @@ class _StudentsListScreenState extends ConsumerState<StudentsListScreen> {
                             Expanded(
                               flex: 1,
                               child: classesAsync.maybeWhen(
-                                data: (classes) {
-                                  final options = [
+                                data: (classRows) {
+                                  final options = <String>[
                                     "Toutes les Salles",
-                                    ...classes.map((c) => c['name'].toString()),
+                                    ...classRows.map((c) => c.name),
                                   ];
-                                  if (!options.contains(_selectedClassOption))
+                                  if (!options.contains(_selectedClassOption)) {
                                     _selectedClassOption = "Toutes les Salles";
+                                  }
                                   return DropdownButtonFormField<String>(
                                     initialValue: _selectedClassOption,
                                     decoration: InputDecoration(
@@ -552,15 +647,16 @@ class _StudentsListScreenState extends ConsumerState<StudentsListScreen> {
                                     ),
                                     items: options
                                         .map(
-                                          (o) => DropdownMenuItem(
+                                          (o) => DropdownMenuItem<String>(
                                             value: o,
                                             child: Text(o),
                                           ),
                                         )
                                         .toList(),
-                                    onChanged: (val) => setState(
-                                      () => _selectedClassOption = val!,
-                                    ),
+                                    onChanged: (val) {
+                                      if (val == null) return;
+                                      setState(() => _selectedClassOption = val);
+                                    },
                                   );
                                 },
                                 orElse: () =>
@@ -694,9 +790,21 @@ class _StudentsListScreenState extends ConsumerState<StudentsListScreen> {
             },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, _) => Center(
-              child: Text(
-                "Erreur: $err",
-                style: const TextStyle(color: Colors.red),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Erreur: $err",
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: _refreshDirectory,
+                    icon: const Icon(Icons.sync),
+                    label: const Text('Réessayer la synchronisation'),
+                  ),
+                ],
               ),
             ),
           ),
