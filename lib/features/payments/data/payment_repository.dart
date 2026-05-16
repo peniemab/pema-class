@@ -1,15 +1,32 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/network/connectivity_providers.dart';
+import '../../../core/outbox/outbox_mutation_type.dart';
+import '../../../core/outbox/outbox_providers.dart';
+import '../../../core/outbox/outbox_repository.dart';
+import '../../../core/outbox/remote_mutations.dart';
 import '../../../core/supabase/tenant_context.dart';
 
 final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
-  return PaymentRepository(Supabase.instance.client);
+  return PaymentRepository(
+    Supabase.instance.client,
+    ref.watch(remoteMutationsProvider),
+    ref.watch(outboxRepositoryProvider),
+  );
 });
 
 class PaymentRepository {
+  PaymentRepository(
+    this._supabase,
+    this._remote,
+    this._outbox,
+  );
+
   final SupabaseClient _supabase;
-  PaymentRepository(this._supabase);
+  final RemoteMutations _remote;
+  final OutboxRepository _outbox;
 
   Future<String> _getSchoolId() => _supabase.requireSchoolId();
 
@@ -23,7 +40,10 @@ class PaymentRepository {
         .maybeSingle();
   }
 
-  Future<List<Map<String, dynamic>>> getStudentFeeStatus(String studentId, String academicYear) async {
+  Future<List<Map<String, dynamic>>> getStudentFeeStatus(
+    String studentId,
+    String academicYear,
+  ) async {
     final schoolId = await _getSchoolId();
 
     final fees = await _supabase
@@ -68,16 +88,36 @@ class PaymentRepository {
     required String feeId,
     required double amountPaid,
   }) async {
-    final userId = _supabase.auth.currentUser?.id;
-    final receiptNumber = 'REC-${DateTime.now().millisecondsSinceEpoch}';
+    final mutationId = _outbox.newMutationId();
+    final receiptNumber = receiptNumberForPayment(mutationId);
 
-    return _supabase.from('payments_history').insert({
+    final payload = <String, dynamic>{
       'student_id': studentId,
       'fee_id': feeId,
       'amount_paid': amountPaid,
       'receipt_number': receiptNumber,
-      'created_by': userId,
-    }).select().single();
+    };
+
+    final connectivity = await Connectivity().checkConnectivity();
+    if (connectionLayerOnline(connectivity)) {
+      try {
+        return await _remote.payFee(payload);
+      } catch (_) {
+        // File d’attente si échec réseau transitoire.
+      }
+    }
+
+    await _outbox.enqueue(
+      idempotencyKey: mutationId,
+      operationType: OutboxMutationType.payFee,
+      payload: payload,
+    );
+
+    return {
+      'receipt_number': receiptNumber,
+      'amount_paid': amountPaid,
+      'queued': true,
+    };
   }
 
   Future<List<dynamic>> getRecentPayments() async {

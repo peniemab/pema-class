@@ -7,6 +7,8 @@ import '../../../../core/widgets/custom_text_field.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../invites/data/pending_school_invite_storage.dart';
 import '../../../invites/data/pending_staff_invite_storage.dart';
+import '../../../../core/auth/auth_session_service.dart';
+import '../../../../core/outbox/outbox_providers.dart';
 import '../../../../core/sync/sync_providers.dart';
 import '../../data/auth_repository.dart';
 
@@ -57,11 +59,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (_emailCtrl.text.isEmpty || _passwordCtrl.text.isEmpty) return;
 
     setState(() => _isLoading = true);
-    
+
     try {
+      final authSession = ref.read(authSessionServiceProvider);
+      if (!await authSession.canAttemptOnlineAuth()) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Connexion impossible hors ligne. Vérifiez le réseau pour vous authentifier.',
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
       final authRepo = ref.read(authRepositoryProvider);
-      
-      // Essayer de se connecter
+
       await authRepo.signIn(
         email: _emailCtrl.text.trim(),
         password: _passwordCtrl.text.trim(),
@@ -109,7 +124,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       } else if (status == 'platform_admin') {
         context.go('/platform-admin');
       } else if (status == 'active') {
-        ref.read(syncEngineProvider).onAfterLogin();
+        ref.read(sessionExpiredProvider.notifier).clear();
+        await ref.read(syncEngineProvider).onAfterLogin();
+        await ref.read(outboxWorkerProvider).flush();
+        if (!mounted) return;
         context.go('/dashboard');
       } else if (status == 'pending') {
         showDialog<void>(

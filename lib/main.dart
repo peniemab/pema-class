@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'core/routing/app_router.dart';
+import 'core/outbox/outbox_providers.dart';
 import 'core/sync/sync_providers.dart';
 import 'core/theme/app_colors.dart';
 
@@ -33,7 +34,11 @@ void main() async {
     // ProviderScope allows Riverpod to track states across our entire app
     const ProviderScope(
       child: SyncLifecycleListener(
-        child: SchoolSaaSApp(),
+        child: OutboxLifecycleListener(
+          child: AuthSessionExpiredListener(
+            child: SchoolSaaSApp(),
+          ),
+        ),
       ),
     ),
   );
