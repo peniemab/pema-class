@@ -10,14 +10,7 @@ import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 
 import '../../../settings/presentation/screens/settings_screen.dart';
-import '../../data/report_repository.dart';
-
-final financialReportProvider = FutureProvider<Map<String, dynamic>>((
-  ref,
-) async {
-  final year = await ref.watch(activeAcademicYearNameProvider.future);
-  return ref.watch(reportRepositoryProvider).getFinancialReport(year);
-});
+import '../../data/financial_report_provider.dart';
 
 class UnpaidScreen extends ConsumerStatefulWidget {
   const UnpaidScreen({super.key});

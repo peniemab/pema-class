@@ -7,6 +7,7 @@ import '../../../../core/widgets/custom_text_field.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../invites/data/pending_school_invite_storage.dart';
 import '../../../invites/data/pending_staff_invite_storage.dart';
+import '../../../../core/sync/sync_providers.dart';
 import '../../data/auth_repository.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -108,6 +109,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       } else if (status == 'platform_admin') {
         context.go('/platform-admin');
       } else if (status == 'active') {
+        ref.read(syncEngineProvider).onAfterLogin();
         context.go('/dashboard');
       } else if (status == 'pending') {
         showDialog<void>(
