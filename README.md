@@ -1,17 +1,20 @@
-# school_system_saas
+# Pema Class
 
-A new Flutter project.
+Gestion scolaire (RDC) — **PWA Next.js** + **Supabase**.
 
-## Getting Started
+## Démarrage
 
-This project is a starting point for a Flutter application.
+```bash
+cp web-app/.env.example web-app/.env.local
+# Renseigner NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-A few resources to get you started if this is your first Flutter project:
+npm run dev
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Ouvrir http://localhost:3000
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Structure
+
+- `web-app/` — application Next.js
+- `supabase/migrations/` — schéma Postgres
+- `docs/domain-spec.md` — règles métier (inscription, caisse, hors ligne)

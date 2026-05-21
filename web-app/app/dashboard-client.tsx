@@ -31,7 +31,7 @@ export function DashboardClient({ email }: { email: string }) {
             <li>Phase 3 : caisse en ligne</li>
           </ul>
           <p style={{ marginTop: '1rem' }}>
-            Flutter reste utilisable en parallèle jusqu’à la phase 3.
+            Spécification métier : voir docs/domain-spec.md à la racine du dépôt.
           </p>
         </div>
       </main>

@@ -1,105 +1,49 @@
 # Contexte pour les agents (Cursor / IA)
 
-
-
 ## Produit
 
+- **Pema Class** : gestion scolaire (inscription, caisse, annuaire élèves, impayés, dashboard, paramètres).
+- **Frontend** : PWA **Next.js 15** dans `web-app/` (App Router, TypeScript, React).
+- **Backend** : Supabase (`supabase/migrations/`). Pas de Flutter / Dart dans ce dépôt.
 
+## Spécification métier
 
-- **School SaaS** : portail de gestion scolaire (inscription, caisse / paiements, liste élèves + filtre par classe, impayés, dashboard, paramètres).
+Voir **`docs/domain-spec.md`** (logique ex-Flutter : outbox, MAT-P, sync, caisse).
 
-- **Backend** : Supabase (Auth, Postgres, Storage). Migrations SQL dans `supabase/migrations/`.
+## Roadmap PWA
 
-- **App en transition** : abandon progressif de **Flutter** → **PWA** (web). Le code Flutter dans `lib/` reste la référence métier jusqu’à reprise écran par écran.
-
-
-
-## Migration Flutter → PWA (pas à pas)
-
-
-
-**Stack cible** : **Next.js 15** (App Router) + TypeScript + React, `@supabase/supabase-js` + `@supabase/ssr`, Dexie (IndexedDB, phases suivantes), PWA via **Serwist**. Code dans **`web-app/`**.
-
-
-
-| Phase | Objectif | Flutter |
-
-|-------|----------|---------|
-
-| 0 | Préparer `web-app/`, auth login, manifest PWA | Inchangé (prod) |
-
-| 1 | Liste élèves **lecture seule** en ligne | Inchangé |
-
-| 2 | Sync pull élèves + classes → IndexedDB | Inchangé |
-
-| 3 | Caisse en ligne (recherche matricule, encaissement, reçu) | Inchangé |
-
-| 4 | Inscription + outbox + hors ligne (comme M2/M3 actuels) | Inchangé |
-
-| 5 | Impayés, paramètres, invitations | Flutter déprécié écran par écran |
-
-| 6 | Retirer `lib/` quand parité atteinte | Supprimé |
-
-
-
-**Règle** : une phase = une PR ; ne pas casser Supabase ; variables d’env `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` dans `web-app/.env.local`.
-
-
-
-## Objectifs produit importants
-
-
-
-- **Résilience réseau** (RDC) : **local-first** (cache IndexedDB, outbox, sync au retour en ligne). Le comportement déjà implémenté en Flutter (Drift, outbox, frais en cache) sert de **spécification** pour la PWA.
-
-- **Cible principale** : **PWA** installable (Chrome / Edge / mobile navigateur). Plus de priorité Android/iOS natifs via Flutter.
-
-
+| Phase | Objectif |
+|-------|----------|
+| 0 | Auth + dashboard + PWA (Serwist) — fait |
+| 1 | Annuaire élèves lecture seule (en ligne) |
+| 2 | Dexie + pull sync |
+| 3 | Caisse en ligne + reçu |
+| 4 | Inscription + outbox + hors ligne |
+| 5 | Impayés, paramètres, invitations |
 
 ## Langue
 
+- UI et réponses en **français**.
 
+## Git
 
-- Réponses et messages UI en **français** sauf demande contraire.
+- Pas de `commit` / `push` sans demande explicite de l’utilisateur.
 
+## Secrets
 
+- Ne pas committer `.env`, `web-app/.env.local`, clés Supabase.
 
-## Git — règle stricte
+## Commandes
 
+```bash
+cd web-app && npm run dev    # http://localhost:3000
+# ou depuis la racine :
+npm run dev
+```
 
+Variables : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` dans `web-app/.env.local`.
 
-- **Ne pas** exécuter `git commit`, `git push`, `git pull --rebase`, `git push --force` ni réécrire l’historique **sans demande explicite** de l’utilisateur.
+## Style
 
-- Proposer les commandes ou les changements de fichiers ; **l’utilisateur** valide et pousse lui-même.
-
-
-
-## Secrets et fichiers locaux
-
-
-
-- Ne jamais committer `.env`, `test/.env.test`, clés Supabase, ni secrets CI.
-
-- `README` / doc : ne pas en ajouter si l’utilisateur ne le demande pas.
-
-
-
-## Style de travail
-
-
-
-- **PWA** (`web-app/`) : `npm run dev` / `npm run build` / `npm run lint` (Next.js).
-
-- **Flutter** (legacy) : ne modifier que si correction bloquante ; sinon prioriser la PWA.
-
-- Lire le code existant avant de modifier ; rester **ciblé** sur la tâche.
-
-
-
-## Copie de ce fichier
-
-
-
-Recopier **`AGENTS.md`** à la racine du dépôt principal pour toute nouvelle fenêtre Cursor.
-
-
+- `npm run lint` / `npm run build` dans `web-app/`.
+- Changements ciblés ; lire `docs/domain-spec.md` avant les features hors ligne.
