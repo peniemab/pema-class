@@ -1,20 +1,15 @@
-import { FormEvent, useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { authErrorMessage, isEmailNotConfirmed } from '@/lib/authErrors';
-import { useAuth } from '@/hooks/useAuth';
+'use client';
 
-export function LoginPage() {
-  const { session, loading } = useAuth();
+import { FormEvent, useState } from 'react';
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
+import { authErrorMessage, isEmailNotConfirmed } from '@/lib/authErrors';
+
+export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  if (!loading && session) {
-    return <Navigate to="/" replace />;
-  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -23,12 +18,13 @@ export function LoginPage() {
 
     if (!isSupabaseConfigured()) {
       setError(
-        'Configuration Supabase manquante. Créez web-app/.env à partir de web-app/.env.example.',
+        'Configuration Supabase manquante. Créez web-app/.env.local avec NEXT_PUBLIC_SUPABASE_*.',
       );
       return;
     }
 
     setSubmitting(true);
+    const supabase = createClient();
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
@@ -39,16 +35,19 @@ export function LoginPage() {
       setError(authErrorMessage(signInError));
       if (isEmailNotConfirmed(signInError)) {
         setInfo(
-          'Vous pouvez renvoyer l’e-mail de confirmation depuis Supabase (Authentication → Users).',
+          'Renvoyez l’e-mail de confirmation depuis Supabase (Authentication → Users).',
         );
       }
+      return;
     }
+
+    window.location.href = '/';
   }
 
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <span className="badge">PWA · Phase 0</span>
+        <span className="badge">PWA · Next.js · Phase 0</span>
         <h1>Pema Class</h1>
         <p className="subtitle">Connexion à votre établissement</p>
 
