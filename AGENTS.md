@@ -1,49 +1,73 @@
 # Contexte pour les agents (Cursor / IA)
 
+
+
 ## Produit
 
-- **Pema Class** : gestion scolaire (inscription, caisse, annuaire élèves, impayés, dashboard, paramètres).
-- **Frontend** : PWA **Next.js 15** dans `web-app/` (App Router, TypeScript, React).
-- **Backend** : Supabase (`supabase/migrations/`). Pas de Flutter / Dart dans ce dépôt.
 
-## Spécification métier
 
-Voir **`docs/domain-spec.md`** (logique ex-Flutter : outbox, MAT-P, sync, caisse).
+- **Pema Class** : gestion scolaire SaaS multi-établissements (RDC).
 
-## Roadmap PWA
+- **Frontend** : Next.js 15+ à la racine, code sous `src/` (App Router).
 
-| Phase | Objectif |
-|-------|----------|
-| 0 | Auth + dashboard + PWA (Serwist) — fait |
-| 1 | Annuaire élèves lecture seule (en ligne) |
-| 2 | Dexie + pull sync |
-| 3 | Caisse en ligne + reçu |
-| 4 | Inscription + outbox + hors ligne |
-| 5 | Impayés, paramètres, invitations |
+- **Auth** : Supabase (`signInWithPassword`), pas d’inscription publique. Onboarding directeur via `/register?invite=TOKEN` (72 h).
 
-## Langue
+- **UI** : shadcn/ui — `npx shadcn@latest add <nom>`.
+- **PWA** : Serwist (`src/app/sw.ts`, `SerwistProvider`, `src/app/manifest.ts`). SW actif en dev ; `SERWIST_DISABLE=true` pour couper. Icônes : `npm run gen:icons`.
 
-- UI et réponses en **français**.
+- **Backend** : `supabase/migrations/` + référence `supabase/sql/`.
 
-## Git
 
-- Pas de `commit` / `push` sans demande explicite de l’utilisateur.
 
-## Secrets
+## Rôles & routes
 
-- Ne pas committer `.env`, `web-app/.env.local`, clés Supabase.
+
+
+| Rôle | Accueil |
+
+|------|---------|
+
+| superadmin (`platform_admins`) | `/platform` |
+
+| `school_admin`, `admin` | `/school` |
+
+| personnel | `/app` |
+
+
+
+`post-login` redirige selon le profil. `/logout` déconnecte.
+
+
+
+## Secrets (`.env.local`)
+
+
+
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+
+- `SUPABASE_SERVICE_ROLE_KEY` (serveur uniquement)
+
+- `APP_BASE_URL`
+
+
 
 ## Commandes
 
+
+
 ```bash
-cd web-app && npm run dev    # http://localhost:3000
-# ou depuis la racine :
+
 npm run dev
+
+npm run build
+
 ```
 
-Variables : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` dans `web-app/.env.local`.
 
-## Style
 
-- `npm run lint` / `npm run build` dans `web-app/`.
-- Changements ciblés ; lire `docs/domain-spec.md` avant les features hors ligne.
+## Spécification métier
+
+
+
+`docs/domain-spec.md`
+

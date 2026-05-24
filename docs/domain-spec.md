@@ -1,6 +1,6 @@
 # Spécification métier (ex-Flutter → PWA Next.js)
 
-Référence pour réimplémenter les écrans dans `web-app/`. Backend inchangé : `supabase/migrations/`.
+Référence pour réimplémenter les écrans Next.js à la racine (`app/`). Backend inchangé : `supabase/migrations/`.
 
 ## Modules
 
@@ -29,7 +29,6 @@ Référence pour réimplémenter les écrans dans `web-app/`. Backend inchangé 
 - Fusionner paiements local + serveur par `receipt_number` (éviter double comptage).
 - Reçu PDF après chaque encaissement réussi.
 
-## Variables d’environnement
+## Variables d’environnement (fichier `.env` à la racine)
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_URL` et `SUPABASE_ANON_KEY` (ou `NEXT_PUBLIC_SUPABASE_*`)
