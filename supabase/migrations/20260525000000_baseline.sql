@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS classes (
   current_count integer NOT NULL DEFAULT 0,
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now(),
-  UNIQUE (school_id, academic_year_id, name)
+  UNIQUE (school_id, academic_year_id, level, name)
 );
 
 CREATE TABLE IF NOT EXISTS students (

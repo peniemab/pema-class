@@ -51,6 +51,13 @@ export function getRoleHomePath(role: StaffRole | 'superadmin'): string {
 
 export const SCHOOL_DIRECTION_ROLES: StaffRole[] = ['school_admin', 'admin'];
 
+/** Rôles autorisés à encaisser les frais. */
+export const FINANCE_ROLES: StaffRole[] = [
+  ...SCHOOL_DIRECTION_ROLES,
+  'comptabilite',
+  'secretaire',
+];
+
 /** Rôles invitables par la direction (/school/team) — pas le directeur. */
 export const INVITABLE_STAFF_ROLES = [
   'admin',

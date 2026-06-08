@@ -16,6 +16,7 @@ export type SchoolRow = {
   rccm: string | null;
   tax_number: string | null;
   national_id: string | null;
+  offered_cycles: string[] | null;
 };
 
 export function slugifySchoolName(name: string): string {
@@ -78,7 +79,7 @@ export async function getSchoolByIdForStaff(
   const { data, error } = await supabase
     .from('schools')
     .select(
-      'id, name, display_name, slug, address, phone, email, description, logo_url, school_type, status, rccm, tax_number, national_id',
+      'id, name, display_name, slug, address, phone, email, description, logo_url, school_type, status, rccm, tax_number, national_id, offered_cycles',
     )
     .eq('id', schoolId)
     .maybeSingle();
@@ -107,6 +108,18 @@ export async function updateSchoolSettings(
   const { error } = await supabase
     .from('schools')
     .update(patch)
+    .eq('id', schoolId);
+  if (error) throw new Error(error.message);
+}
+
+export async function updateSchoolOfferedCycles(
+  schoolId: string,
+  cycles: string[],
+): Promise<void> {
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from('schools')
+    .update({ offered_cycles: cycles })
     .eq('id', schoolId);
   if (error) throw new Error(error.message);
 }

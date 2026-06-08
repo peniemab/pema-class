@@ -7,6 +7,7 @@ import {
   acceptStaffInvitation,
   extractStaffInviteToken,
   getValidStaffInvitationByToken,
+  isAcceptStaffInvitationMissingError,
 } from '@/lib/db/invitations';
 import {
   getRoleHomePath,
@@ -133,6 +134,13 @@ export async function registerStaffFromInvitation(
     }
     if (message.includes('already_member')) {
       return { ok: false, error: 'Vous appartenez déjà à cet établissement.' };
+    }
+    if (isAcceptStaffInvitationMissingError(message)) {
+      return {
+        ok: false,
+        error:
+          'Fonction accept_staff_invitation absente. Exécutez la migration supabase/migrations/20260525000002_staff_invitation_rpc.sql sur Supabase.',
+      };
     }
     return { ok: false, error: message };
   }

@@ -1,8 +1,9 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { supabaseAnonKey, supabaseUrl } from '@/lib/env';
+import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from '@/lib/env';
 
-const PUBLIC_PATHS = ['/', '/register', '/logout', '/~offline'];
+/** Routes accessibles sans session (inscription par lien d'invitation incluse). */
+const PUBLIC_PATHS = ['/', '/register', '/join', '/logout', '/~offline'];
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.includes(pathname)) return true;
@@ -14,6 +15,11 @@ function isPublicPath(pathname: string): boolean {
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
+  const { pathname } = request.nextUrl;
+
+  if (!isSupabaseConfigured()) {
+    return supabaseResponse;
+  }
 
   const supabase = createServerClient(supabaseUrl(), supabaseAnonKey(), {
     cookies: {
@@ -38,11 +44,16 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { pathname } = request.nextUrl;
+  let user: { id: string } | null = null;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (!error) {
+      user = data.user;
+    }
+  } catch {
+    // Supabase injoignable (réseau coupé, projet pausé, DNS…) : pas de refresh token.
+    user = null;
+  }
 
   if (!user && !isPublicPath(pathname)) {
     const url = request.nextUrl.clone();

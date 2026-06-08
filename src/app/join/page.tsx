@@ -13,24 +13,25 @@ import {
 } from '@/lib/db/invitations';
 import { staffRoleLabel } from '@/lib/auth/types';
 import { brand } from '@/lib/brand';
-import { createAdminClient } from '@/lib/supabase/admin';
 
 type PageProps = {
   searchParams: Promise<{ invite?: string }>;
 };
 
-async function getStaffInviteEmail(token: string): Promise<string | null> {
-  try {
-    const admin = createAdminClient();
-    const { data } = await admin
-      .from('invitations')
-      .select('email')
-      .eq('token', token)
-      .eq('invite_type', 'staff_join')
-      .maybeSingle();
-    return data?.email ?? null;
-  } catch {
-    return null;
+function invalidInviteMessage(reason?: string): string {
+  switch (reason) {
+    case 'error':
+      return 'Impossible de vérifier l’invitation. Appliquez les migrations Supabase (000001 et 000002) ou contactez le support.';
+    case 'wrong_invite_type':
+      return 'Ce lien est réservé à la création du compte directeur. Utilisez la page d’inscription établissement (/register).';
+    case 'expired':
+      return 'Ce lien a expiré. Demandez à la direction un nouveau lien d’invitation (valable 7 jours).';
+    case 'invalid_token':
+      return 'Le code d’invitation est trop court ou mal formaté. Collez le lien complet reçu par e-mail.';
+    case 'not_found':
+      return 'Invitation introuvable ou déjà utilisée. Demandez un nouveau lien à la direction.';
+    default:
+      return 'Contactez la direction de votre établissement pour recevoir une nouvelle invitation.';
   }
 }
 
@@ -43,8 +44,6 @@ export default async function JoinPage({ searchParams }: PageProps) {
   const invitationValid = preview?.ok === true;
   const hasInvalidInvite = Boolean(inviteFromUrl && !invitationValid);
   const roleLabel = preview?.role ? staffRoleLabel(preview.role) : '';
-  const inviteEmail =
-    invitationValid && token ? await getStaffInviteEmail(token) : null;
 
   return (
     <main className="min-h-dvh bg-background px-5 py-6 sm:px-8">
@@ -74,7 +73,8 @@ export default async function JoinPage({ searchParams }: PageProps) {
               </h1>
               <p className="mx-auto max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
                 Créez votre compte collaborateur avec le lien transmis par la
-                direction.
+                direction. Votre rôle est fixé dans le lien et ne peut pas être
+                modifié.
               </p>
             </div>
           </div>
@@ -101,6 +101,15 @@ export default async function JoinPage({ searchParams }: PageProps) {
                     </span>
                     .
                   </p>
+                  {preview.email ? (
+                    <p className="text-xs text-muted-foreground">
+                      Utilisez l’e-mail{' '}
+                      <span className="font-medium text-foreground">
+                        {preview.email}
+                      </span>{' '}
+                      indiqué lors de l’invitation.
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -118,25 +127,37 @@ export default async function JoinPage({ searchParams }: PageProps) {
                     Lien d&apos;invitation invalide ou expiré
                   </p>
                   <p className="text-muted-foreground">
-                    {preview?.reason === 'error'
-                      ? 'Impossible de vérifier l’invitation. Contactez la direction ou réessayez plus tard.'
-                      : preview?.reason === 'wrong_invite_type'
-                        ? 'Ce lien est réservé à la création du compte directeur. Utilisez /register.'
-                        : 'Contactez la direction de votre établissement pour recevoir une nouvelle invitation.'}
+                    {invalidInviteMessage(preview?.reason)}
                   </p>
+                  {preview?.reason === 'expired' && preview.schoolName ? (
+                    <p className="text-xs text-muted-foreground">
+                      Établissement : {preview.schoolName}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </div>
           ) : null}
 
-          <StaffJoinForm
-            defaultInviteToken={token}
-            inviteReadonly={invitationValid && Boolean(inviteFromUrl)}
-            defaultEmail={inviteEmail ?? ''}
-            emailReadonly={Boolean(inviteEmail)}
-            roleLabel={roleLabel || '—'}
-            schoolName={preview?.schoolName}
-          />
+          {!hasInvalidInvite ? (
+            <StaffJoinForm
+              defaultInviteToken={token}
+              inviteReadonly={invitationValid && Boolean(inviteFromUrl)}
+              defaultEmail={preview?.email ?? ''}
+              emailReadonly={Boolean(preview?.email)}
+              roleLabel={roleLabel || '—'}
+              schoolName={preview?.schoolName}
+            />
+          ) : (
+            <p className="text-center text-sm text-muted-foreground">
+              <Link
+                href="/"
+                className="font-medium text-primary underline-offset-4 hover:underline"
+              >
+                Retour à la connexion
+              </Link>
+            </p>
+          )}
         </section>
       </div>
     </main>

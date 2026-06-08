@@ -3,11 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  BookOpen,
   Building2,
+  GraduationCap,
   LayoutDashboard,
   LogOut,
   Settings,
   Users,
+  Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BrandMark } from '@/components/brand-mark';
@@ -20,6 +23,9 @@ export type SidebarNavItem = {
 
 const SCHOOL_NAV: SidebarNavItem[] = [
   { href: '/school', label: 'Tableau de bord', icon: LayoutDashboard },
+  { href: '/school/referentiels', label: 'Référentiels', icon: BookOpen },
+  { href: '/school/eleves', label: 'Élèves', icon: GraduationCap },
+  { href: '/school/caisse', label: 'Caisse', icon: Wallet },
   { href: '/school/team', label: 'Équipe', icon: Users },
   { href: '/school/parametres', label: 'Paramètres', icon: Settings },
 ];
@@ -30,6 +36,7 @@ const PLATFORM_NAV: SidebarNavItem[] = [
 
 const APP_NAV: SidebarNavItem[] = [
   { href: '/app', label: 'Accueil', icon: LayoutDashboard },
+  { href: '/app/caisse', label: 'Caisse', icon: Wallet },
 ];
 
 type AppSidebarProps = {

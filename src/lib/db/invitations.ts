@@ -2,13 +2,14 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import type { InvitableStaffRole } from '@/lib/auth/types';
 import { generateOpaqueToken } from '@/lib/auth/tokens';
-import { appBaseUrl } from '@/lib/env';
+import { appBaseUrl, isAdminApiConfigured } from '@/lib/env';
 
 export type StaffInvitePreview = {
   ok: boolean;
   inviteType?: string;
   schoolName?: string | null;
   role?: string | null;
+  email?: string | null;
   reason?: string;
 };
 
@@ -22,33 +23,121 @@ export type StaffInvitationRow = {
   used_at: string | null;
 };
 
+const MIN_STAFF_TOKEN_LENGTH = 16;
+
+/** Aperçu invitation staff pour /join (RPC anon, repli service role). */
 export async function peekStaffInvitation(
   token: string,
 ): Promise<StaffInvitePreview> {
+  const raw = token.trim();
+  if (!raw || raw.length < MIN_STAFF_TOKEN_LENGTH) {
+    return { ok: false, reason: 'invalid_token' };
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('peek_invitation', {
-    p_token: token.trim(),
+    p_token: raw,
   });
-  if (error) return { ok: false, reason: 'error' };
-  const row = data as {
-    ok: boolean;
-    invite_type?: string;
-    school_name?: string | null;
-    role?: string | null;
-    reason?: string;
-  };
-  if (!row?.ok) {
-    return { ok: false, reason: row?.reason ?? 'not_found' };
+
+  if (!error && data) {
+    const row = data as {
+      ok: boolean;
+      invite_type?: string;
+      school_name?: string | null;
+      role?: string | null;
+      reason?: string;
+    };
+    if (!row.ok) {
+      return {
+        ok: false,
+        reason: row.reason ?? 'not_found',
+        schoolName: row.school_name ?? null,
+        role: row.role ?? null,
+      };
+    }
+    if (row.invite_type !== 'staff_join') {
+      return { ok: false, reason: 'wrong_invite_type' };
+    }
+
+    const email = isAdminApiConfigured()
+      ? await getStaffInviteEmailByToken(raw)
+      : null;
+
+    return {
+      ok: true,
+      inviteType: row.invite_type,
+      schoolName: row.school_name ?? null,
+      role: row.role ?? null,
+      email,
+    };
   }
-  if (row.invite_type !== 'staff_join') {
-    return { ok: false, reason: 'wrong_invite_type' };
+
+  if (isAdminApiConfigured()) {
+    return peekStaffInvitationViaAdmin(raw);
   }
-  return {
-    ok: true,
-    inviteType: row.invite_type,
-    schoolName: row.school_name ?? null,
-    role: row.role ?? null,
-  };
+
+  return { ok: false, reason: 'error' };
+}
+
+async function peekStaffInvitationViaAdmin(
+  raw: string,
+): Promise<StaffInvitePreview> {
+  try {
+    const admin = createAdminClient();
+    const { data: inv, error: invError } = await admin
+      .from('invitations')
+      .select(
+        'invite_type, role, email, expires_at, used_at, school_id, schools(name)',
+      )
+      .eq('token', raw)
+      .maybeSingle();
+
+    if (invError) return { ok: false, reason: 'error' };
+    if (!inv || inv.used_at) return { ok: false, reason: 'not_found' };
+
+    const inviteType = inv.invite_type as string;
+    const schoolJoin = inv.schools as { name?: string } | null;
+    const schoolName = schoolJoin?.name ?? null;
+
+    if (inviteType !== 'staff_join') {
+      return { ok: false, reason: 'wrong_invite_type', schoolName };
+    }
+
+    if (new Date(inv.expires_at as string) < new Date()) {
+      return {
+        ok: false,
+        reason: 'expired',
+        schoolName,
+        role: inv.role as string,
+        email: (inv.email as string | null) ?? null,
+      };
+    }
+
+    return {
+      ok: true,
+      inviteType,
+      schoolName,
+      role: inv.role as string,
+      email: (inv.email as string | null) ?? null,
+    };
+  } catch {
+    return { ok: false, reason: 'error' };
+  }
+}
+
+async function getStaffInviteEmailByToken(raw: string): Promise<string | null> {
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from('invitations')
+      .select('email')
+      .eq('token', raw)
+      .eq('invite_type', 'staff_join')
+      .maybeSingle();
+    return (data?.email as string | null) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getValidStaffInvitationByToken(
@@ -128,7 +217,17 @@ export function extractStaffInviteToken(rawInput: string): string {
       return url.searchParams.get('invite')?.trim() ?? trimmed;
     }
   } catch {
-    /* raw token */
+    /* token brut */
   }
   return trimmed;
+}
+
+/** Message utilisateur quand la RPC accept_staff_invitation est absente. */
+export function isAcceptStaffInvitationMissingError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('accept_staff_invitation') ||
+    (lower.includes('function') && lower.includes('does not exist')) ||
+    lower.includes('could not find the function')
+  );
 }

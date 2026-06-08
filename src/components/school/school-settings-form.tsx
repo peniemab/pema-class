@@ -175,9 +175,6 @@ export function SchoolSettingsForm({ school }: SchoolSettingsFormProps) {
               />
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Logo : téléversement fichier prévu prochainement (Supabase Storage).
-          </p>
           <Button type="button" onClick={handleSave} disabled={saving}>
             {saving ? 'Enregistrement…' : 'Enregistrer'}
           </Button>

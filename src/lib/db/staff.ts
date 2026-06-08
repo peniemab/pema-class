@@ -5,6 +5,7 @@ import {
   type AuthPrincipal,
   type StaffRole,
 } from '@/lib/auth/types';
+import { isAdminApiConfigured } from '@/lib/env';
 
 export type StaffRow = {
   id: string;
@@ -24,21 +25,25 @@ export type StaffRow = {
  * Utilise la session courante + RLS (pas besoin de service role pour post-login).
  */
 export async function isPlatformAdmin(userId: string): Promise<boolean> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  if (user?.id === userId) {
-    const { data, error } = await supabase
-      .from('platform_admins')
-      .select('user_id')
-      .eq('user_id', userId)
-      .maybeSingle();
-    return Boolean(data && !error);
+    if (user?.id === userId) {
+      const { data, error } = await supabase
+        .from('platform_admins')
+        .select('user_id')
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (!error && data) return true;
+    }
+  } catch {
+    /* session ou réseau indisponible */
   }
 
-  if (!user) return false;
+  if (!isAdminApiConfigured()) return false;
 
   try {
     const admin = createAdminClient();
@@ -53,18 +58,38 @@ export async function isPlatformAdmin(userId: string): Promise<boolean> {
   }
 }
 
+const staffSelect =
+  'id, school_id, user_id, first_name, last_name, role, phone, email, is_active, status';
+
 export async function getStaffByUserId(userId: string): Promise<StaffRow | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('staff')
-    .select(
-      'id, school_id, user_id, first_name, last_name, role, phone, email, is_active, status',
-    )
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .maybeSingle();
-  if (error || !data) return null;
-  return data as StaffRow;
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('staff')
+      .select(staffSelect)
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .maybeSingle();
+    if (!error && data) return data as StaffRow;
+  } catch {
+    /* ignore */
+  }
+
+  if (!isAdminApiConfigured()) return null;
+
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from('staff')
+      .select(staffSelect)
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .maybeSingle();
+    if (error || !data) return null;
+    return data as StaffRow;
+  } catch {
+    return null;
+  }
 }
 
 export async function getAuthPrincipal(userId: string): Promise<AuthPrincipal | null> {
