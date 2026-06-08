@@ -1,35 +1,73 @@
 # Contexte pour les agents (Cursor / IA)
 
+
+
 ## Produit
 
-- **School SaaS** : portail de gestion scolaire (inscription, caisse / paiements, liste élèves + filtre par classe, impayés, dashboard, paramètres).
-- **Backend** : Supabase (Auth, Postgres, Storage). Migrations SQL dans `supabase/migrations/`.
-- **App** : Flutter, Riverpod, GoRouter, Material 3.
 
-## Objectifs produit importants
 
-- **Résilience réseau** (ex. usage en RDC / connexion instable) : viser une app **local-first** (cache local, file d’attente des écritures, sync au retour en ligne). Milestones discutés : M1 (socle Drift + connexion + UX hors ligne) → M2 (pull sync, élèves en premier), etc.
-- Cibles **Web + Android + iOS** (Flutter multi-plateforme).
+- **Pema Class** : gestion scolaire SaaS multi-établissements (RDC).
 
-## Langue
+- **Frontend** : Next.js 15+ à la racine, code sous `src/` (App Router).
 
-- Réponses et messages UI en **français** sauf demande contraire.
+- **Auth** : Supabase (`signInWithPassword`), pas d’inscription publique. Onboarding directeur via `/register?invite=TOKEN` (72 h).
 
-## Git — règle stricte
+- **UI** : shadcn/ui — `npx shadcn@latest add <nom>`.
+- **PWA** : Serwist (`src/app/sw.ts`, `SerwistProvider`, `src/app/manifest.ts`). SW actif en dev ; `SERWIST_DISABLE=true` pour couper. Icônes : `npm run gen:icons`.
 
-- **Ne pas** exécuter `git commit`, `git push`, `git pull --rebase`, `git push --force` ni réécrire l’historique **sans demande explicite** de l’utilisateur.
-- Proposer les commandes ou les changements de fichiers ; **l’utilisateur** valide et pousse lui-même.
+- **Backend** : `supabase/migrations/` + référence `supabase/sql/`.
 
-## Secrets et fichiers locaux
 
-- Ne jamais committer `.env`, `test/.env.test`, clés Supabase, ni secrets CI.
-- `README` / doc : ne pas en ajouter si l’utilisateur ne le demande pas.
 
-## Style de travail
+## Rôles & routes
 
-- Lire le code existant avant de modifier ; rester **ciblé** sur la tâche (pas de refactor gratuit).
-- Après changements : `flutter analyze` / `dart analyze` sur les fichiers touchés quand c’est pertinent ; ne pas imposer de gros nettoyage global sans accord.
 
-## Copie de ce fichier
 
-Ce dépôt peut être une copie de travail : recopier **`AGENTS.md`** à la racine du dépôt principal (ex. **pema-class**) pour que le même contexte s’applique dans une nouvelle fenêtre Cursor.
+| Rôle | Accueil |
+
+|------|---------|
+
+| superadmin (`platform_admins`) | `/platform` |
+
+| `school_admin`, `admin` | `/school` |
+
+| personnel | `/app` |
+
+
+
+`post-login` redirige selon le profil. `/logout` déconnecte.
+
+
+
+## Secrets (`.env.local`)
+
+
+
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+
+- `SUPABASE_SERVICE_ROLE_KEY` (serveur uniquement)
+
+- `APP_BASE_URL`
+
+
+
+## Commandes
+
+
+
+```bash
+
+npm run dev
+
+npm run build
+
+```
+
+
+
+## Spécification métier
+
+
+
+`docs/domain-spec.md`
+
