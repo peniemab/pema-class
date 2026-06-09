@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import {
   getAuthPrincipal,
@@ -14,11 +15,16 @@ import {
   type StaffRole,
 } from '@/lib/auth/types';
 
-export async function requireSession(): Promise<{ userId: string; email: string }> {
+const getSessionUser = cache(async () => {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  return user;
+});
+
+export async function requireSession(): Promise<{ userId: string; email: string }> {
+  const user = await getSessionUser();
   if (!user) {
     redirect('/');
   }

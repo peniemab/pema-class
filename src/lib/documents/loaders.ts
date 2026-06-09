@@ -33,12 +33,30 @@ export async function getPaymentReceiptDocument(
 
   const { data: fee, error: feeError } = await admin
     .from('fees')
-    .select('name, academic_year, school_id')
+    .select('name, academic_year, school_id, amount')
     .eq('id', payment.fee_id as string)
     .eq('school_id', schoolId)
     .maybeSingle();
   if (feeError) throw new Error(feeError.message);
   if (!fee) return null;
+
+  const amountDue = Number(fee.amount);
+  const thisPayment = Number(payment.amount_paid);
+
+  const { data: priorRows, error: priorError } = await admin
+    .from('payments_history')
+    .select('amount_paid, created_at')
+    .eq('student_id', payment.student_id as string)
+    .eq('fee_id', payment.fee_id as string)
+    .order('created_at', { ascending: true });
+  if (priorError) throw new Error(priorError.message);
+
+  let totalPaidAfter = 0;
+  for (const row of priorRows ?? []) {
+    totalPaidAfter += Number((row as { amount_paid: number }).amount_paid);
+  }
+  const totalPaidBefore = totalPaidAfter - thisPayment;
+  const amountRemaining = Math.max(0, amountDue - totalPaidAfter);
 
   const school = await getSchoolByIdForStaff(schoolId);
   if (!school) return null;
@@ -71,6 +89,10 @@ export async function getPaymentReceiptDocument(
     fee: {
       name: fee.name as string,
       academic_year: fee.academic_year as string,
+      amount_due: amountDue,
+      total_paid_before: totalPaidBefore,
+      total_paid_after: totalPaidAfter,
+      amount_remaining: amountRemaining,
     },
     student: {
       last_name: student.last_name,

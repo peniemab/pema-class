@@ -122,7 +122,7 @@ export function EnrollStudentForm({ activeYearName, classes }: Props) {
       <Alert>
         <AlertDescription>
           Créez d&apos;abord des classes dans les{' '}
-          <a href="/school/referentiels" className="font-medium text-primary underline">
+          <a href="/school/parametres/referentiels" className="font-medium text-primary underline">
             référentiels
           </a>{' '}
           pour {activeYearName}.

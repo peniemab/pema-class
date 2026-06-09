@@ -5,7 +5,13 @@ import {
   getStudentById,
   getStudentEnrollmentForYear,
 } from '@/lib/db/students';
-import { getActiveAcademicYear } from '@/lib/db/academic-years';
+import { getActiveAcademicYearLite } from '@/lib/db/academic-years';
+import {
+  applyScolaritePoolToBalances,
+  buildRawStudentFeeBalances,
+  getPaymentLimitForFee,
+} from '@/lib/school/scolarite-balances';
+import type { ScolaritePoolSummary } from '@/lib/school/scolarite-balances';
 
 export type StudentFeeBalance = {
   fee_id: string;
@@ -28,45 +34,78 @@ export type PaymentHistoryRow = {
   created_at: string;
 };
 
+export async function getStudentFinanceForYear(
+  schoolId: string,
+  studentId: string,
+  academicYearLabel: string,
+): Promise<{
+  balances: StudentFeeBalance[];
+  payments: PaymentHistoryRow[];
+  scolariteSummary: ScolaritePoolSummary | null;
+}> {
+  const fees = await listFeesForAcademicYearLabel(schoolId, academicYearLabel);
+  if (fees.length === 0) {
+    return { balances: [], payments: [], scolariteSummary: null };
+  }
+
+  const admin = createAdminClient();
+  const feeIds = fees.map((f) => f.id);
+  const feeById = new Map(fees.map((f) => [f.id, f]));
+
+  const { data, error } = await admin
+    .from('payments_history')
+    .select(
+      'id, student_id, fee_id, amount_paid, currency, receipt_number, created_at',
+    )
+    .eq('student_id', studentId)
+    .in('fee_id', feeIds)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+
+  const paidByFee = new Map<string, number>();
+  const payments: PaymentHistoryRow[] = [];
+
+  for (const row of data ?? []) {
+    const raw = row as {
+      id: string;
+      student_id: string;
+      fee_id: string;
+      amount_paid: number;
+      currency: string;
+      receipt_number: string;
+      created_at: string;
+    };
+    const amount = Number(raw.amount_paid);
+    paidByFee.set(raw.fee_id, (paidByFee.get(raw.fee_id) ?? 0) + amount);
+    payments.push({
+      id: raw.id,
+      student_id: raw.student_id,
+      fee_id: raw.fee_id,
+      amount_paid: amount,
+      currency: raw.currency,
+      receipt_number: raw.receipt_number,
+      created_at: raw.created_at,
+      fee_name: feeById.get(raw.fee_id)?.name ?? '—',
+    });
+  }
+
+  const rawBalances = buildRawStudentFeeBalances(fees, paidByFee);
+  const { balances, scolariteSummary } = applyScolaritePoolToBalances(rawBalances);
+
+  return { balances, payments, scolariteSummary };
+}
+
 export async function listStudentFeeBalances(
   schoolId: string,
   studentId: string,
   academicYearLabel: string,
 ): Promise<StudentFeeBalance[]> {
-  const fees = await listFeesForAcademicYearLabel(schoolId, academicYearLabel);
-  if (fees.length === 0) return [];
-
-  const admin = createAdminClient();
-  const feeIds = fees.map((f) => f.id);
-
-  const { data: payments, error } = await admin
-    .from('payments_history')
-    .select('fee_id, amount_paid')
-    .eq('student_id', studentId)
-    .in('fee_id', feeIds);
-  if (error) throw new Error(error.message);
-
-  const paidByFee = new Map<string, number>();
-  for (const row of payments ?? []) {
-    const feeId = (row as { fee_id: string }).fee_id;
-    const amount = Number((row as { amount_paid: number }).amount_paid);
-    paidByFee.set(feeId, (paidByFee.get(feeId) ?? 0) + amount);
-  }
-
-  return fees.map((fee) => {
-    const amountPaid = paidByFee.get(fee.id) ?? 0;
-    const amountDue = Number(fee.amount);
-    const amountRemaining = Math.max(0, amountDue - amountPaid);
-    return {
-      fee_id: fee.id,
-      fee_name: fee.name,
-      amount_due: amountDue,
-      amount_paid: amountPaid,
-      amount_remaining: amountRemaining,
-      currency: fee.currency,
-      is_paid: amountRemaining <= 0,
-    };
-  });
+  const { balances } = await getStudentFinanceForYear(
+    schoolId,
+    studentId,
+    academicYearLabel,
+  );
+  return balances;
 }
 
 export async function listStudentPayments(
@@ -74,27 +113,12 @@ export async function listStudentPayments(
   studentId: string,
   academicYearLabel: string,
 ): Promise<PaymentHistoryRow[]> {
-  const fees = await listFeesForAcademicYearLabel(schoolId, academicYearLabel);
-  if (fees.length === 0) return [];
-
-  const feeById = new Map(fees.map((f) => [f.id, f]));
-  const admin = createAdminClient();
-
-  const { data, error } = await admin
-    .from('payments_history')
-    .select('id, student_id, fee_id, amount_paid, currency, receipt_number, created_at')
-    .eq('student_id', studentId)
-    .in(
-      'fee_id',
-      fees.map((f) => f.id),
-    )
-    .order('created_at', { ascending: false });
-  if (error) throw new Error(error.message);
-
-  return ((data ?? []) as Omit<PaymentHistoryRow, 'fee_name'>[]).map((row) => ({
-    ...row,
-    fee_name: feeById.get(row.fee_id)?.name ?? '—',
-  }));
+  const { payments } = await getStudentFinanceForYear(
+    schoolId,
+    studentId,
+    academicYearLabel,
+  );
+  return payments;
 }
 
 export async function recordPayment(input: {
@@ -102,17 +126,21 @@ export async function recordPayment(input: {
   studentId: string;
   feeId: string;
   userId: string;
+  amount: number;
 }): Promise<{
   paymentId: string;
   receiptNumber: string;
   amountPaid: number;
+  amountDue: number;
+  totalPaidAfter: number;
+  amountRemaining: number;
   currency: string;
   feeName: string;
 }> {
   const student = await getStudentById(input.schoolId, input.studentId);
   if (!student) throw new Error('Élève introuvable.');
 
-  const activeYear = await getActiveAcademicYear(input.schoolId);
+  const activeYear = await getActiveAcademicYearLite(input.schoolId);
   if (!activeYear) {
     throw new Error('Aucune année scolaire active.');
   }
@@ -127,6 +155,31 @@ export async function recordPayment(input: {
   }
 
   const admin = createAdminClient();
+  const fees = await listFeesForAcademicYearLabel(input.schoolId, activeYear.name);
+  const feeIds = fees.map((f) => f.id);
+
+  const { data: paymentRows, error: payFetchError } = await admin
+    .from('payments_history')
+    .select('fee_id, amount_paid')
+    .eq('student_id', input.studentId)
+    .in('fee_id', feeIds);
+  if (payFetchError) throw new Error(payFetchError.message);
+
+  const paidByFee = new Map<string, number>();
+  for (const row of paymentRows ?? []) {
+    const raw = row as { fee_id: string; amount_paid: number };
+    paidByFee.set(
+      raw.fee_id,
+      (paidByFee.get(raw.fee_id) ?? 0) + Number(raw.amount_paid),
+    );
+  }
+
+  const rawBalances = buildRawStudentFeeBalances(fees, paidByFee);
+  const paymentLimit = getPaymentLimitForFee(input.feeId, rawBalances);
+  if (paymentLimit <= 0.001) {
+    throw new Error('Ce frais est déjà entièrement payé.');
+  }
+
   const { data: fee, error: feeError } = await admin
     .from('fees')
     .select('id, school_id, name, amount, currency, academic_year')
@@ -145,13 +198,36 @@ export async function recordPayment(input: {
     activeYear.name,
   );
   const balance = balances.find((b) => b.fee_id === input.feeId);
-  if (!balance) throw new Error('Frais introuvable pour cet élève.');
-  if (balance.amount_remaining <= 0) {
-    throw new Error('Ce frais est déjà entièrement payé.');
+  if (!balance) {
+    const annualTarget = rawBalances.find((b) => b.fee_id === input.feeId);
+    if (!annualTarget) throw new Error('Frais introuvable pour cet élève.');
   }
 
-  const amountPaid = balance.amount_remaining;
+  const amountPaid = input.amount;
+  if (!Number.isFinite(amountPaid) || amountPaid <= 0) {
+    throw new Error('Le montant doit être supérieur à zéro.');
+  }
+  if (amountPaid > paymentLimit + 0.001) {
+    throw new Error(
+      `Le montant ne peut pas dépasser le reste dû (${paymentLimit} ${fee.currency as string}).`,
+    );
+  }
+
   const receiptNumber = `REC-${randomUUID()}`;
+  const displayBalance = balance ?? {
+    fee_id: input.feeId,
+    fee_name: fee.name as string,
+    amount_due: Number(fee.amount),
+    amount_paid: paidByFee.get(input.feeId) ?? 0,
+    amount_remaining: paymentLimit,
+    currency: fee.currency as string,
+    is_paid: false,
+  };
+  const totalPaidAfter = displayBalance.amount_paid + amountPaid;
+  const amountDueForReceipt =
+    balance?.amount_due ??
+    (paymentLimit + (paidByFee.get(input.feeId) ?? 0));
+  const amountRemaining = Math.max(0, amountDueForReceipt - totalPaidAfter);
 
   const { data: inserted, error: insertError } = await admin
     .from('payments_history')
@@ -173,6 +249,9 @@ export async function recordPayment(input: {
     paymentId: inserted.id as string,
     receiptNumber,
     amountPaid,
+    amountDue: amountDueForReceipt,
+    totalPaidAfter,
+    amountRemaining,
     currency: fee.currency as string,
     feeName: fee.name as string,
   };

@@ -21,6 +21,10 @@ export type PaymentReceiptDocument = {
   fee: {
     name: string;
     academic_year: string;
+    amount_due: number;
+    total_paid_before: number;
+    total_paid_after: number;
+    amount_remaining: number;
   };
   student: {
     last_name: string;

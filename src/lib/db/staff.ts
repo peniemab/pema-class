@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import {
@@ -61,7 +62,7 @@ export async function isPlatformAdmin(userId: string): Promise<boolean> {
 const staffSelect =
   'id, school_id, user_id, first_name, last_name, role, phone, email, is_active, status';
 
-export async function getStaffByUserId(userId: string): Promise<StaffRow | null> {
+async function fetchStaffByUserId(userId: string): Promise<StaffRow | null> {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -91,6 +92,9 @@ export async function getStaffByUserId(userId: string): Promise<StaffRow | null>
     return null;
   }
 }
+
+/** Dédupliqué par requête serveur (layout + page + actions). */
+export const getStaffByUserId = cache(fetchStaffByUserId);
 
 export async function getAuthPrincipal(userId: string): Promise<AuthPrincipal | null> {
   if (await isPlatformAdmin(userId)) {

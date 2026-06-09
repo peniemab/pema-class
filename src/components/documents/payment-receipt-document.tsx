@@ -59,12 +59,54 @@ export function PaymentReceiptDocumentView({ data }: Props) {
         <div className="sm:col-span-2 rounded border border-black/15 bg-black/[0.02] px-4 py-3">
           <dt className="text-xs uppercase tracking-wide text-black/50">Motif</dt>
           <dd className="mt-0.5 font-medium">{data.fee.name}</dd>
+          <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-black/50">
+                Montant dû
+              </dt>
+              <dd className="font-medium tabular-nums">
+                {formatFeeAmount(data.fee.amount_due, data.payment.currency)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-black/50">
+                Déjà payé avant
+              </dt>
+              <dd className="font-medium tabular-nums">
+                {formatFeeAmount(data.fee.total_paid_before, data.payment.currency)}
+              </dd>
+            </div> 
+          </dl>
           <dt className="mt-3 text-xs uppercase tracking-wide text-black/50">
-            Montant encaissé
+            Montant encaissé (ce versement)
           </dt>
           <dd className="mt-0.5 text-xl font-bold tabular-nums">
             {formatFeeAmount(data.payment.amount_paid, data.payment.currency)}
           </dd>
+          <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-black/50">
+                Total payé à ce jour
+              </dt>
+              <dd className="font-semibold tabular-nums">
+                {formatFeeAmount(data.fee.total_paid_after, data.payment.currency)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-black/50">
+                Reste à payer
+              </dt>
+              <dd
+                className={`font-semibold tabular-nums ${
+                  data.fee.amount_remaining > 0 ? 'text-black' : ''
+                }`}
+              >
+                {data.fee.amount_remaining > 0
+                  ? formatFeeAmount(data.fee.amount_remaining, data.payment.currency)
+                  : 'Soldé'}
+              </dd>
+            </div>
+          </dl>
         </div>
       </dl>
 

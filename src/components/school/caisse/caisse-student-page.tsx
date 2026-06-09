@@ -94,6 +94,7 @@ export async function CaisseStudentPage({
           activeYearName={data.activeYear.name}
           balances={data.balances}
           payments={data.payments}
+          scolariteSummary={data.scolariteSummary}
           caisseBasePath={caisseBasePath}
         />
       )}

@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  BookOpen,
   Building2,
+  CircleAlert,
   GraduationCap,
   LayoutDashboard,
   LogOut,
@@ -23,9 +23,9 @@ export type SidebarNavItem = {
 
 const SCHOOL_NAV: SidebarNavItem[] = [
   { href: '/school', label: 'Tableau de bord', icon: LayoutDashboard },
-  { href: '/school/referentiels', label: 'Référentiels', icon: BookOpen },
   { href: '/school/eleves', label: 'Élèves', icon: GraduationCap },
   { href: '/school/caisse', label: 'Caisse', icon: Wallet },
+  { href: '/school/impayes', label: 'Impayés', icon: CircleAlert },
   { href: '/school/team', label: 'Équipe', icon: Users },
   { href: '/school/parametres', label: 'Paramètres', icon: Settings },
 ];
@@ -53,7 +53,7 @@ export function AppSidebar({ variant }: AppSidebarProps) {
         : APP_NAV;
 
   return (
-    <aside className="flex w-56 shrink-0 flex-col border-r bg-card">
+    <aside className="no-print flex w-56 shrink-0 flex-col border-r bg-card">
       <div className="border-b px-4 py-4">
         <BrandMark size="sm" />
       </div>

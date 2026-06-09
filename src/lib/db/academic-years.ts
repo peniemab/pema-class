@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
   CYCLE_PERIOD_TYPE,
@@ -89,19 +90,19 @@ export async function getActiveAcademicYear(
 }
 
 /** Id + libellé uniquement — mutations référentiels (léger). */
-export async function getActiveAcademicYearLite(
-  schoolId: string,
-): Promise<{ id: string; name: string } | null> {
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from('academic_years')
-    .select('id, name')
-    .eq('school_id', schoolId)
-    .eq('is_active', true)
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  return data as { id: string; name: string } | null;
-}
+export const getActiveAcademicYearLite = cache(
+  async (schoolId: string): Promise<{ id: string; name: string } | null> => {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from('academic_years')
+      .select('id, name')
+      .eq('school_id', schoolId)
+      .eq('is_active', true)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data as { id: string; name: string } | null;
+  },
+);
 
 export async function listPeriodsForYear(
   academicYearId: string,

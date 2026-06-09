@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { FeeCurrency } from '@/lib/school/referentials/constants';
 import { normalizeFeeCurrency } from '@/lib/school/referentials/constants';
@@ -24,20 +25,22 @@ export async function listFeesForSchool(schoolId: string): Promise<FeeRow[]> {
   return (data ?? []) as FeeRow[];
 }
 
-export async function listFeesForAcademicYearLabel(
-  schoolId: string,
-  academicYearLabel: string,
-): Promise<FeeRow[]> {
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from('fees')
-    .select('id, school_id, name, amount, currency, academic_year, created_at')
-    .eq('school_id', schoolId)
-    .eq('academic_year', academicYearLabel)
-    .order('name', { ascending: true });
-  if (error) throw new Error(error.message);
-  return (data ?? []) as FeeRow[];
-}
+export const listFeesForAcademicYearLabel = cache(
+  async (
+    schoolId: string,
+    academicYearLabel: string,
+  ): Promise<FeeRow[]> => {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from('fees')
+      .select('id, school_id, name, amount, currency, academic_year, created_at')
+      .eq('school_id', schoolId)
+      .eq('academic_year', academicYearLabel)
+      .order('name', { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as FeeRow[];
+  },
+);
 
 export async function createFee(input: {
   schoolId: string;

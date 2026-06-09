@@ -12,6 +12,7 @@ import {
 import type { FeeRow } from '@/lib/db/fees';
 import type { AcademicYearRow } from '@/lib/db/academic-years';
 import {
+  FEE_ANNUAL_LUMP_LABEL,
   FEE_FIXED_PRESETS,
   formatFeeAmount,
   groupFeesForDisplay,
@@ -176,13 +177,25 @@ export function FeesSection({ activeYear, fees }: Props) {
     }
 
     setPending(true);
-    const result = await createFeesAction({
-      items: tranchePreview.map((item) => ({
-        name: item.label,
-        amount: String(item.amount),
+    const items = tranchePreview.map((item) => ({
+      name: item.label,
+      amount: String(item.amount),
+      currency: trancheCurrency,
+    }));
+    const annualKey = FEE_ANNUAL_LUMP_LABEL.toLowerCase();
+    if (
+      tranchePreviewTotal > 0 &&
+      !existingNames.has(annualKey) &&
+      !items.some((i) => i.name.toLowerCase() === annualKey)
+    ) {
+      items.push({
+        name: FEE_ANNUAL_LUMP_LABEL,
+        amount: String(tranchePreviewTotal),
         currency: trancheCurrency,
-      })),
-    });
+      });
+    }
+
+    const result = await createFeesAction({ items });
     setPending(false);
 
     if (!result.ok) {
@@ -501,6 +514,13 @@ export function FeesSection({ activeYear, fees }: Props) {
                             `${item.label} : ${formatFeeAmount(item.amount, trancheCurrency)}`,
                         )
                         .join(' · ')}
+                      {!existingNames.has(FEE_ANNUAL_LUMP_LABEL.toLowerCase()) ? (
+                        <>
+                          {' · '}
+                          {FEE_ANNUAL_LUMP_LABEL} :{' '}
+                          {formatFeeAmount(tranchePreviewTotal, trancheCurrency)} (lié)
+                        </>
+                      ) : null}
                     </p>
                   </div>
                 ) : null}

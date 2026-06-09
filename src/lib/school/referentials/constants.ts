@@ -162,6 +162,15 @@ export function isScolariteFeeName(name: string): boolean {
   return n.startsWith('scolarité') || n.startsWith('scolarite');
 }
 
+export function isAnnualScolariteFee(name: string): boolean {
+  const n = name.trim().toLowerCase();
+  return n.includes('annuelle') || name.trim() === FEE_ANNUAL_LUMP_LABEL;
+}
+
+export function isTrancheScolariteFee(name: string): boolean {
+  return isScolariteFeeName(name) && !isAnnualScolariteFee(name);
+}
+
 export function feeTrancheSortOrder(name: string): number {
   const n = name.toLowerCase();
   const match = n.match(/\b([tsm])(\d+)\b/);
@@ -189,20 +198,30 @@ export function groupFeesForDisplay<
     if (isScolariteFeeName(fee.name)) scolarite.push(fee);
     else fixed.push(fee);
   }
-  scolarite.sort(
+  const tranches = scolarite.filter((f) => isTrancheScolariteFee(f.name));
+  const hasTranches = tranches.length > 0;
+  const annual = scolarite.find((f) => isAnnualScolariteFee(f.name));
+  const displayScolarite = hasTranches
+    ? scolarite.filter((f) => !isAnnualScolariteFee(f.name))
+    : scolarite;
+  displayScolarite.sort(
     (a, b) =>
       feeTrancheSortOrder(a.name) - feeTrancheSortOrder(b.name) ||
       a.name.localeCompare(b.name, 'fr'),
   );
+
   fixed.sort((a, b) => a.name.localeCompare(b.name, 'fr'));
 
   const groups: FeeDisplayGroup[] = [];
-  if (scolarite.length > 0) {
+  if (displayScolarite.length > 0) {
+    const trancheTotal = tranches.reduce((s, f) => s + f.amount, 0);
     groups.push({
       id: 'scolarite',
       label: 'Scolarité (tranches)',
-      hint: 'Paiements échelonnés par trimestre, semestre ou mois.',
-      fees: scolarite,
+      hint: hasTranches && annual
+        ? `Tranches + paiement annuel lié (total ${formatFeeAmount(trancheTotal, normalizeFeeCurrency(annual.currency))}).`
+        : 'Paiements échelonnés par trimestre, semestre ou mois.',
+      fees: displayScolarite,
     });
   }
   if (fixed.length > 0) {

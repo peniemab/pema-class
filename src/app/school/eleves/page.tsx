@@ -39,7 +39,7 @@ export default async function SchoolElevesPage({ searchParams }: Props) {
         <Alert>
           <AlertDescription>
             Configurez d&apos;abord une{' '}
-            <Link href="/school/referentiels" className="font-medium text-primary underline">
+            <Link href="/school/parametres/referentiels" className="font-medium text-primary underline">
               année scolaire active
             </Link>{' '}
             et des classes.

@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { StudentGender, StudentStatus } from '@/lib/school/students/constants';
 import { normalizeStudentNamePart } from '@/lib/school/students/constants';
@@ -103,6 +104,10 @@ function matchesSearch(row: StudentDirectoryRow, term: string): boolean {
   });
 }
 
+function escapeIlikePattern(raw: string): string {
+  return raw.replace(/[%_\\]/g, '\\$&');
+}
+
 export async function suggestStudents(
   schoolId: string,
   academicYearId: string,
@@ -111,14 +116,82 @@ export async function suggestStudents(
 ): Promise<StudentDirectoryRow[]> {
   const q = term.trim();
   if (q.length < 2) return [];
-  const { rows } = await listStudentsDirectory(
-    schoolId,
-    academicYearId,
-    { search: q },
-    1,
-    limit,
-  );
-  return rows;
+
+  const admin = createAdminClient();
+  const pattern = `%${escapeIlikePattern(q)}%`;
+
+  const { data: students, error } = await admin
+    .from('students')
+    .select('id, first_name, last_name, matricule, gender, birth_date, status')
+    .eq('school_id', schoolId)
+    .eq('status', 'active')
+    .or(
+      `last_name.ilike.${pattern},first_name.ilike.${pattern},matricule.ilike.${pattern}`,
+    )
+    .order('last_name', { ascending: true })
+    .order('first_name', { ascending: true })
+    .limit(Math.min(limit * 4, 32));
+  if (error) throw new Error(error.message);
+  if (!students?.length) return [];
+
+  const studentIds = students.map((s) => (s as { id: string }).id);
+  const { data: enrollments, error: enrollError } = await admin
+    .from('student_classes')
+    .select('student_id, class_id, classes!inner(id, name, level, cycle)')
+    .eq('academic_year_id', academicYearId)
+    .in('student_id', studentIds);
+  if (enrollError) throw new Error(enrollError.message);
+
+  const enrollmentByStudent = new Map<
+    string,
+    { class_id: string; name: string; level: string; cycle: string | null }
+  >();
+  for (const row of enrollments ?? []) {
+    const raw = row as {
+      student_id: string;
+      class_id: string;
+      classes:
+        | { id: string; name: string; level: string; cycle: string | null }
+        | { id: string; name: string; level: string; cycle: string | null }[];
+    };
+    const cls = Array.isArray(raw.classes) ? raw.classes[0] : raw.classes;
+    if (!cls) continue;
+    enrollmentByStudent.set(raw.student_id, {
+      class_id: raw.class_id,
+      name: cls.name,
+      level: cls.level,
+      cycle: cls.cycle,
+    });
+  }
+
+  let rows: StudentDirectoryRow[] = students.map((s) => {
+    const st = s as {
+      id: string;
+      first_name: string;
+      last_name: string;
+      matricule: string | null;
+      gender: string | null;
+      birth_date: string | null;
+      status: string;
+    };
+    const en = enrollmentByStudent.get(st.id);
+    return {
+      id: st.id,
+      first_name: st.first_name,
+      last_name: st.last_name,
+      matricule: st.matricule,
+      gender: st.gender,
+      birth_date: st.birth_date,
+      status: st.status,
+      class_id: en?.class_id ?? null,
+      class_name: en?.name ?? null,
+      class_level: en?.level ?? null,
+      class_cycle: en?.cycle ?? null,
+    };
+  });
+
+  rows = rows.filter((r) => matchesSearch(r, q.toLowerCase()));
+  return rows.slice(0, limit);
 }
 
 /** Matricule unique par établissement (SaaS) — ex. LYCEE1-0042 */
@@ -303,7 +376,7 @@ export async function countStudentsForYear(
   };
 }
 
-export async function getStudentById(
+async function fetchStudentById(
   schoolId: string,
   studentId: string,
 ): Promise<StudentRow | null> {
@@ -317,6 +390,8 @@ export async function getStudentById(
   if (error) throw new Error(error.message);
   return (data as StudentRow | null) ?? null;
 }
+
+export const getStudentById = cache(fetchStudentById);
 
 export async function getStudentEnrollmentForYear(
   schoolId: string,

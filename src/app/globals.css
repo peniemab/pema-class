@@ -140,6 +140,22 @@
     margin: 12mm;
   }
 
+  body.receipt-print-active > *:not(#receipt-print-portal) {
+    display: none !important;
+  }
+
+  body.receipt-print-active #receipt-print-portal {
+    display: block !important;
+    position: static !important;
+    inset: auto !important;
+    background: white !important;
+    padding: 0 !important;
+  }
+
+  body.receipt-print-active .receipt-print-portal-toolbar {
+    display: none !important;
+  }
+
   .no-print {
     display: none !important;
   }
@@ -161,5 +177,18 @@
   .document-signatures {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  .recouvrement-view table {
+    font-size: 11pt;
+  }
+
+  .recouvrement-view table a {
+    color: black !important;
+    text-decoration: none !important;
   }
 }
