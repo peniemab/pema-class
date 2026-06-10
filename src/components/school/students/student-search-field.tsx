@@ -143,7 +143,7 @@ export function StudentSearchField({
           aria-autocomplete="list"
           autoComplete="off"
           placeholder="Nom, post-nom ou matricule…"
-          className="h-10 pl-9"
+          className="h-10 border-wa-divider bg-wa-bg pl-9"
         />
         {loading ? (
           <Loader2
@@ -157,10 +157,10 @@ export function StudentSearchField({
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border bg-popover py-1 shadow-md"
+          className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto border-wa-divider bg-wa-panel py-0 shadow-md md:rounded-lg md:py-1"
         >
           {suggestions.length === 0 && !loading ? (
-            <li className="px-3 py-2 text-sm text-muted-foreground">
+            <li className="px-4 py-3 text-sm text-wa-text-secondary">
               Aucun élève pour « {value.trim()} »
             </li>
           ) : (
@@ -174,8 +174,8 @@ export function StudentSearchField({
                   <button
                     type="button"
                     className={cn(
-                      'flex w-full flex-col gap-0.5 px-3 py-2 text-left text-sm hover:bg-muted/60',
-                      index === activeIndex && 'bg-muted/60',
+                      'flex w-full flex-col gap-0.5 border-b border-wa-divider px-4 py-3 text-left text-sm last:border-b-0 hover:bg-wa-row-hover active:bg-wa-row-active',
+                      index === activeIndex && 'bg-wa-row-hover',
                     )}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => selectSuggestion(row)}

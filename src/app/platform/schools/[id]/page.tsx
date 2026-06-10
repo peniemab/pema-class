@@ -111,7 +111,7 @@ export default async function PlatformSchoolDetailPage({ params }: PageProps) {
           <CardTitle>Personnel</CardTitle>
           <CardDescription>
             Lecture seule — les invitations staff se font côté école (
-            /school/team).
+            Paramètres → Équipe).
           </CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">

@@ -58,7 +58,14 @@ export const FINANCE_ROLES: StaffRole[] = [
   'secretaire',
 ];
 
-/** Rôles invitables par la direction (/school/team) — pas le directeur. */
+/** Rôles autorisés à marquer les présences élèves. */
+export const ATTENDANCE_ROLES: StaffRole[] = [
+  ...SCHOOL_DIRECTION_ROLES,
+  'enseignant',
+  'secretaire',
+];
+
+/** Rôles invitables par la direction (Paramètres → Équipe) — pas le directeur. */
 export const INVITABLE_STAFF_ROLES = [
   'admin',
   'enseignant',

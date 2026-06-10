@@ -58,7 +58,7 @@ export function StudentFeesSection({
         {balances.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Aucun frais configuré.{' '}
-            <Link href="/school/parametres/referentiels" className="text-primary underline">
+            <Link href="/school/parametres#referentiels" className="text-primary underline">
               Référentiels
             </Link>
           </p>

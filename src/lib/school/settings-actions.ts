@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { requireSchoolDirection } from '@/lib/auth/require-role';
 import { getSchoolByIdForStaff, updateSchoolSettings } from '@/lib/db/schools';
 
@@ -38,6 +39,8 @@ export async function saveSchoolSettings(
       tax_number: input.taxNumber.trim() || null,
       national_id: input.nationalId.trim() || null,
     });
+    revalidatePath('/school/parametres');
+    revalidatePath('/school');
     return { ok: true };
   } catch (e) {
     return {

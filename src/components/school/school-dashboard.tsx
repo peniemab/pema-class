@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import type { DashboardPageData } from '@/lib/db/dashboard-page';
 import { formatFeeAmount } from '@/lib/school/referentials/constants';
+import { WaBusinessProfileCard } from '@/components/school/mobile/wa-business-profile-card';
 import {
   SettingsGroup,
   SettingsRow,
@@ -29,23 +30,23 @@ export function SchoolDashboard({ data }: Props) {
   const upToDate = data.enrolledCount - data.studentsWithDebt;
 
   return (
-    <SettingsScreen className="max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{data.schoolName}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {data.activeYear
-            ? `Année scolaire ${data.activeYear.name}`
-            : 'Configurez une année active pour commencer'}
-        </p>
-      </div>
+    <SettingsScreen className="max-w-3xl">
+      <WaBusinessProfileCard
+        schoolName={data.schoolName}
+        activeYearName={data.activeYear?.name ?? null}
+        enrolledCount={data.enrolledCount}
+        classCount={data.classCount}
+        totalCollectedCdf={data.totalCollectedCdf}
+        studentsWithDebt={data.studentsWithDebt}
+      />
 
       {!data.activeYear ? (
-        <Alert>
+        <Alert className="mx-4">
           <AlertDescription>
             Activez une année scolaire dans{' '}
             <Link
-              href="/school/parametres/referentiels"
-              className="font-medium text-primary underline"
+              href="/school/parametres#referentiels"
+              className="font-medium text-wa-accent underline"
             >
               Paramètres → Référentiels
             </Link>
@@ -54,34 +55,32 @@ export function SchoolDashboard({ data }: Props) {
         </Alert>
       ) : (
         <>
-          <div className="overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/8 via-card to-muted/30 p-5">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <div className="overflow-hidden border-y border-wa-divider bg-gradient-to-br from-primary/8 via-wa-panel to-wa-bg p-5">
+            <p className="text-xs font-medium uppercase tracking-wide text-wa-text-secondary">
               Trésorerie · {data.activeYear.name}
             </p>
             <p className="mt-2 text-3xl font-semibold tabular-nums tracking-tight text-secondary">
               {formatFeeAmount(data.totalCollectedCdf, 'CDF')}
             </p>
-            <p className="text-sm text-muted-foreground">Total encaissé</p>
+            <p className="text-sm text-wa-text-secondary">Total encaissé</p>
 
             {data.totalExpectedCdf > 0 ? (
               <div className="mt-4 space-y-2">
-                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div className="h-2 overflow-hidden rounded-full bg-wa-bg">
                   <div
                     className="h-full rounded-full bg-secondary transition-all"
                     style={{ width: `${recoveryCdf}%` }}
                   />
                 </div>
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-wa-text-secondary">
                   <span>{recoveryLabel(data.recoveryRateCdf)} recouvré</span>
-                  <span>
-                    {formatFeeAmount(data.totalExpectedCdf, 'CDF')} attendu
-                  </span>
+                  <span>{formatFeeAmount(data.totalExpectedCdf, 'CDF')} attendu</span>
                 </div>
               </div>
             ) : null}
 
             {hasUsd ? (
-              <p className="mt-3 text-sm tabular-nums text-muted-foreground">
+              <p className="mt-3 text-sm tabular-nums text-wa-text-secondary">
                 {formatFeeAmount(data.totalCollectedUsd, 'USD')} encaissé USD
                 {data.totalExpectedUsd > 0
                   ? ` · ${recoveryLabel(data.recoveryRateUsd)} recouvré`
@@ -90,7 +89,7 @@ export function SchoolDashboard({ data }: Props) {
             ) : null}
           </div>
 
-          <SettingsGroup title="Finances">
+          <SettingsGroup title="Raccourcis">
             <SettingsRow
               href="/school/impayes"
               icon={<CircleAlert aria-hidden />}
@@ -103,6 +102,12 @@ export function SchoolDashboard({ data }: Props) {
               icon={<Wallet aria-hidden />}
               label="Caisse"
               detail="Encaisser"
+            />
+            <SettingsRow
+              href="/school/outils"
+              icon={<Settings aria-hidden />}
+              label="Outils"
+              detail="Rapports & admin"
             />
           </SettingsGroup>
 
@@ -125,16 +130,7 @@ export function SchoolDashboard({ data }: Props) {
               href="/school/eleves"
               label="Élèves à jour"
               detail={String(upToDate)}
-              detailClassName="text-emerald-600 dark:text-emerald-400 font-medium"
-            />
-          </SettingsGroup>
-
-          <SettingsGroup title="Configuration">
-            <SettingsRow
-              href="/school/parametres"
-              icon={<Settings aria-hidden />}
-              label="Paramètres"
-              detail={`${data.classCount} classe${data.classCount > 1 ? 's' : ''}`}
+              detailClassName="text-emerald-600 font-medium"
             />
           </SettingsGroup>
         </>

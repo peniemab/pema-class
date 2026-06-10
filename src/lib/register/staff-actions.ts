@@ -9,6 +9,9 @@ import {
   getValidStaffInvitationByToken,
   isAcceptStaffInvitationMissingError,
 } from '@/lib/db/invitations';
+import { getActiveAcademicYear } from '@/lib/db/academic-years';
+import { getStaffByUserId } from '@/lib/db/staff';
+import { applyInvitationTeacherClasses } from '@/lib/db/teacher-classes';
 import {
   getRoleHomePath,
   normalizeStaffRole,
@@ -124,6 +127,21 @@ export async function registerStaffFromInvitation(
       firstName,
       lastName,
     });
+
+    const staff = await getStaffByUserId(userId);
+    if (
+      staff &&
+      normalizeStaffRole(invitation.role) === 'enseignant'
+    ) {
+      const activeYear = await getActiveAcademicYear(invitation.school_id);
+      if (activeYear) {
+        await applyInvitationTeacherClasses({
+          invitationId: invitation.id,
+          staffId: staff.id,
+          academicYearId: activeYear.id,
+        });
+      }
+    }
   } catch (e) {
     await admin.auth.admin.deleteUser(userId);
     await supabase.auth.signOut();

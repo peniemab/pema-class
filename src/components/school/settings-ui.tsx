@@ -16,7 +16,9 @@ export function SettingsGroup({ title, children, className }: SettingsGroupProps
           {title}
         </p>
       ) : null}
-      <div className="overflow-hidden rounded-xl border bg-card divide-y">{children}</div>
+      <div className="wa-settings-group overflow-hidden divide-y border-y border-wa-divider bg-wa-panel">
+        {children}
+      </div>
     </div>
   );
 }
@@ -41,7 +43,7 @@ export function SettingsRow({
   return (
     <Link
       href={href}
-      className="flex min-h-[52px] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40 active:bg-muted/60"
+      className="flex min-h-[4.5rem] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-wa-row-hover active:bg-wa-row-active"
     >
       {icon ? (
         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary [&>svg]:size-4">
@@ -105,6 +107,37 @@ export function SettingsScreen({
   className?: string;
 }) {
   return (
-    <div className={cn('mx-auto max-w-2xl space-y-6 pb-8', className)}>{children}</div>
+    <div className={cn('mx-auto w-full max-w-2xl space-y-2 pb-8', className)}>
+      {children}
+    </div>
+  );
+}
+
+type SettingsSectionProps = {
+  id: string;
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+  className?: string;
+};
+
+/** Bloc d’une page Paramètres unique (ancres #etablissement, #referentiels, #equipe). */
+export function SettingsSection({
+  id,
+  title,
+  description,
+  children,
+  className,
+}: SettingsSectionProps) {
+  return (
+    <section id={id} className={cn('scroll-mt-6 space-y-4', className)}>
+      <div>
+        <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+        {description ? (
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        ) : null}
+      </div>
+      {children}
+    </section>
   );
 }

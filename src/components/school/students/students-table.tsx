@@ -1,8 +1,9 @@
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
+import { WaAvatar } from '@/components/school/mobile/wa-avatar';
+import { WaLabel } from '@/components/school/mobile/wa-label';
+import { WaList, WaListRow } from '@/components/school/mobile/wa-list-row';
 import {
   classDisplayLabel,
-  formatStudentGender,
   formatStudentStatus,
   studentFullName,
 } from '@/lib/school/students/constants';
@@ -13,75 +14,68 @@ type Props = {
   rows: StudentDirectoryRow[];
 };
 
+function classLabel(row: StudentDirectoryRow): string {
+  if (!row.class_id) return 'Sans classe';
+  const base = classDisplayLabel(row.class_level, row.class_name);
+  if (row.class_cycle) {
+    const cycle =
+      SCHOOL_CYCLE_LABELS[row.class_cycle as SchoolCycle] ?? row.class_cycle;
+    return `${base} · ${cycle}`;
+  }
+  return base;
+}
+
+function studentLabels(row: StudentDirectoryRow) {
+  const labels: React.ReactNode[] = [];
+  if (!row.class_id) {
+    labels.push(
+      <WaLabel key="unassigned" tone="amber">
+        Sans classe
+      </WaLabel>,
+    );
+  }
+  if (row.status !== 'active') {
+    labels.push(
+      <WaLabel key="status" tone="red">
+        {formatStudentStatus(row.status)}
+      </WaLabel>,
+    );
+  }
+  return labels.length > 0 ? (
+    <span className="mt-1 flex flex-wrap gap-1">{labels}</span>
+  ) : null;
+}
+
 export function StudentsTable({ rows }: Props) {
   if (rows.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
+      <p className="px-4 py-10 text-center text-sm text-wa-text-secondary">
         Aucun élève ne correspond à votre recherche.
       </p>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border">
-      <table className="w-full text-sm">
-        <thead className="border-b bg-muted/40 text-left text-muted-foreground">
-          <tr>
-            <th className="px-3 py-2 font-medium">Matricule</th>
-            <th className="px-3 py-2 font-medium">Élève</th>
-            <th className="px-3 py-2 font-medium">Classe</th>
-            <th className="px-3 py-2 font-medium">Sexe</th>
-            <th className="px-3 py-2 font-medium">Statut</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {rows.map((row) => (
-            <tr key={row.id} className="hover:bg-muted/30">
-              <td className="px-3 py-2.5 tabular-nums text-muted-foreground">
-                {row.matricule ?? '—'}
-              </td>
-              <td className="px-3 py-2.5">
-                <Link
-                  href={`/school/eleves/${row.id}`}
-                  className="font-medium text-primary hover:underline"
-                >
-                  {studentFullName(row.last_name, row.first_name)}
-                </Link>
-              </td>
-              <td className="px-3 py-2.5">
-                {row.class_id ? (
-                  <span>
-                    {classDisplayLabel(row.class_level, row.class_name)}
-                    {row.class_cycle ? (
-                      <span className="ml-1.5 text-xs text-muted-foreground">
-                        (
-                        {SCHOOL_CYCLE_LABELS[row.class_cycle as SchoolCycle] ??
-                          row.class_cycle}
-                        )
-                      </span>
-                    ) : null}
-                  </span>
-                ) : (
-                  <Badge variant="outline" className="font-normal">
-                    Sans classe
-                  </Badge>
-                )}
-              </td>
-              <td className="px-3 py-2.5 text-muted-foreground">
-                {formatStudentGender(row.gender)}
-              </td>
-              <td className="px-3 py-2.5">
-                <Badge
-                  variant={row.status === 'active' ? 'secondary' : 'outline'}
-                  className="font-normal"
-                >
-                  {formatStudentStatus(row.status)}
-                </Badge>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <WaList>
+      {rows.map((row) => {
+        const name = studentFullName(row.last_name, row.first_name);
+        return (
+          <WaListRow
+            key={row.id}
+            href={`/school/eleves/${row.id}`}
+            avatar={<WaAvatar name={name} size="md" />}
+            title={name}
+            subtitle={
+              <>
+                <span className="block truncate">
+                  {row.matricule ?? '—'} · {classLabel(row)}
+                </span>
+                {studentLabels(row)}
+              </>
+            }
+          />
+        );
+      })}
+    </WaList>
   );
 }

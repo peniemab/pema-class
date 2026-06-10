@@ -34,7 +34,6 @@ export async function loadReferentialsPageData(): Promise<ReferentialsPageData> 
 
 function revalidateReferentials() {
   revalidatePath('/school/parametres');
-  revalidatePath('/school/parametres/referentiels');
   revalidatePath('/school');
 }
 

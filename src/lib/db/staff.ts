@@ -96,6 +96,36 @@ async function fetchStaffByUserId(userId: string): Promise<StaffRow | null> {
 /** Dédupliqué par requête serveur (layout + page + actions). */
 export const getStaffByUserId = cache(fetchStaffByUserId);
 
+export async function listStaffForSchool(schoolId: string): Promise<StaffRow[]> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('staff')
+    .select(staffSelect)
+    .eq('school_id', schoolId)
+    .eq('status', 'active')
+    .order('last_name', { ascending: true })
+    .order('first_name', { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return (data ?? []) as StaffRow[];
+}
+
+export async function getStaffById(
+  schoolId: string,
+  staffId: string,
+): Promise<StaffRow | null> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('staff')
+    .select(staffSelect)
+    .eq('school_id', schoolId)
+    .eq('id', staffId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return (data as StaffRow | null) ?? null;
+}
+
 export async function getAuthPrincipal(userId: string): Promise<AuthPrincipal | null> {
   if (await isPlatformAdmin(userId)) {
     return { kind: 'superadmin', userId };

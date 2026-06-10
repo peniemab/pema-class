@@ -29,11 +29,13 @@ function toFormState(school: SchoolRow): SchoolSettingsInput {
 
 type SchoolSettingsFormProps = {
   school: SchoolRow;
+  /** Panneau Paramètres : formulaire toujours visible, sans carte englobante. */
+  embedded?: boolean;
 };
 
-export function SchoolSettingsForm({ school }: SchoolSettingsFormProps) {
+export function SchoolSettingsForm({ school, embedded = false }: SchoolSettingsFormProps) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(embedded);
   const [form, setForm] = useState<SchoolSettingsInput>(() => toFormState(school));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -54,13 +56,105 @@ export function SchoolSettingsForm({ school }: SchoolSettingsFormProps) {
       setError(result.error);
       return;
     }
-    setOpen(false);
+    if (!embedded) setOpen(false);
     router.refresh();
   }
 
   const configured = Boolean(
     school.name && (school.phone || school.email || school.address),
   );
+
+  const fields = (
+    <>
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="name">Nom officiel</Label>
+          <Input
+            id="name"
+            value={form.name}
+            onChange={(e) => update('name', e.target.value)}
+          />
+        </div>
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="displayName">Nom affiché</Label>
+          <Input
+            id="displayName"
+            value={form.displayName}
+            onChange={(e) => update('displayName', e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="phone">Téléphone</Label>
+          <Input
+            id="phone"
+            value={form.phone}
+            onChange={(e) => update('phone', e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="email">E-mail</Label>
+          <Input
+            id="email"
+            type="email"
+            value={form.email}
+            onChange={(e) => update('email', e.target.value)}
+          />
+        </div>
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="address">Adresse</Label>
+          <Input
+            id="address"
+            value={form.address}
+            onChange={(e) => update('address', e.target.value)}
+          />
+        </div>
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="description">Description</Label>
+          <Input
+            id="description"
+            value={form.description}
+            onChange={(e) => update('description', e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="rccm">RCCM (optionnel)</Label>
+          <Input
+            id="rccm"
+            value={form.rccm}
+            onChange={(e) => update('rccm', e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="taxNumber">N° impôt fiscal (optionnel)</Label>
+          <Input
+            id="taxNumber"
+            value={form.taxNumber}
+            onChange={(e) => update('taxNumber', e.target.value)}
+          />
+        </div>
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="nationalId">Identification nationale (optionnel)</Label>
+          <Input
+            id="nationalId"
+            value={form.nationalId}
+            onChange={(e) => update('nationalId', e.target.value)}
+          />
+        </div>
+      </div>
+      <Button type="button" onClick={handleSave} disabled={saving}>
+        {saving ? 'Enregistrement…' : 'Enregistrer'}
+      </Button>
+    </>
+  );
+
+  if (embedded) {
+    return <div className="space-y-4 px-1">{fields}</div>;
+  }
 
   return (
     <div className="rounded-xl border bg-card ring-1 ring-foreground/10">
@@ -93,93 +187,7 @@ export function SchoolSettingsForm({ school }: SchoolSettingsFormProps) {
         )}
       </div>
 
-      {open && (
-        <div className="space-y-4 border-t px-4 py-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="name">Nom officiel</Label>
-              <Input
-                id="name"
-                value={form.name}
-                onChange={(e) => update('name', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="displayName">Nom affiché</Label>
-              <Input
-                id="displayName"
-                value={form.displayName}
-                onChange={(e) => update('displayName', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Téléphone</Label>
-              <Input
-                id="phone"
-                value={form.phone}
-                onChange={(e) => update('phone', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                type="email"
-                value={form.email}
-                onChange={(e) => update('email', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="address">Adresse</Label>
-              <Input
-                id="address"
-                value={form.address}
-                onChange={(e) => update('address', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="description">Description</Label>
-              <Input
-                id="description"
-                value={form.description}
-                onChange={(e) => update('description', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rccm">RCCM (optionnel)</Label>
-              <Input
-                id="rccm"
-                value={form.rccm}
-                onChange={(e) => update('rccm', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="taxNumber">N° impôt fiscal (optionnel)</Label>
-              <Input
-                id="taxNumber"
-                value={form.taxNumber}
-                onChange={(e) => update('taxNumber', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="nationalId">Identification nationale (optionnel)</Label>
-              <Input
-                id="nationalId"
-                value={form.nationalId}
-                onChange={(e) => update('nationalId', e.target.value)}
-              />
-            </div>
-          </div>
-          <Button type="button" onClick={handleSave} disabled={saving}>
-            {saving ? 'Enregistrement…' : 'Enregistrer'}
-          </Button>
-        </div>
-      )}
+      {open ? <div className="space-y-4 border-t px-4 py-4">{fields}</div> : null}
     </div>
   );
 }

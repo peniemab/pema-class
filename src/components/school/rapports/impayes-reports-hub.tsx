@@ -1,0 +1,51 @@
+import Link from 'next/link';
+import { ChevronRight, BarChart3, List } from 'lucide-react';
+import {
+  SettingsIcon,
+  SettingsLargeTitle,
+  SettingsPanelGroup,
+} from '@/components/school/settings-panel';
+
+export function ImpayesReportsHub() {
+  return (
+    <div className="mx-auto max-w-2xl space-y-4 pb-8">
+      <SettingsLargeTitle
+        title="Rapports impayés"
+        subtitle="Recouvrement et soldes dus"
+      />
+
+      <SettingsPanelGroup>
+        <Link
+          href="/school/rapports/impayes/synthese"
+          className="flex w-full min-h-[4.25rem] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50 active:bg-muted/70"
+        >
+          <SettingsIcon tone="orange">
+            <BarChart3 aria-hidden />
+          </SettingsIcon>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[0.9375rem] font-medium">Synthèse</span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              KPIs et répartition par frais
+            </span>
+          </span>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground/50" aria-hidden />
+        </Link>
+        <Link
+          href="/school/rapports/impayes/liste"
+          className="flex w-full min-h-[4.25rem] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50 active:bg-muted/70"
+        >
+          <SettingsIcon tone="pink">
+            <List aria-hidden />
+          </SettingsIcon>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[0.9375rem] font-medium">Liste impayés</span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              Élèves avec reste à payer, filtres classe/frais
+            </span>
+          </span>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground/50" aria-hidden />
+        </Link>
+      </SettingsPanelGroup>
+    </div>
+  );
+}

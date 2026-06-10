@@ -162,28 +162,33 @@ export async function createStaffInvitation(input: {
   email: string;
   role: InvitableStaffRole;
   createdByUserId: string;
-}): Promise<{ token: string; inviteUrl: string; expiresAt: string }> {
+}): Promise<{ token: string; inviteUrl: string; expiresAt: string; invitationId: string }> {
   const admin = createAdminClient();
   const { raw } = generateOpaqueToken();
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-  const { error } = await admin.from('invitations').insert({
-    invite_type: 'staff_join',
-    token: raw,
-    expires_at: expiresAt.toISOString(),
-    school_id: input.schoolId,
-    role: input.role,
-    email: input.email.toLowerCase(),
-    created_by: input.createdByUserId,
-  });
+  const { data, error } = await admin
+    .from('invitations')
+    .insert({
+      invite_type: 'staff_join',
+      token: raw,
+      expires_at: expiresAt.toISOString(),
+      school_id: input.schoolId,
+      role: input.role,
+      email: input.email.toLowerCase(),
+      created_by: input.createdByUserId,
+    })
+    .select('id')
+    .single();
 
-  if (error) throw new Error(error.message);
+  if (error || !data) throw new Error(error?.message ?? 'Invitation impossible.');
 
   const base = appBaseUrl().replace(/\/$/, '');
   return {
     token: raw,
     inviteUrl: `${base}/join?invite=${raw}`,
     expiresAt: expiresAt.toISOString(),
+    invitationId: data.id as string,
   };
 }
 

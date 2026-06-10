@@ -482,7 +482,10 @@ async function fetchImpayesPageData(
 
   const total = studentRows.length;
   const start = (filters.page - 1) * PAGE_SIZE;
-  const rows = studentRows.slice(start, start + PAGE_SIZE);
+  const allRows = searchParams.all === '1';
+  const rows = allRows
+    ? studentRows
+    : studentRows.slice(start, start + PAGE_SIZE);
 
   return {
     activeYear: { id: activeYear.id, name: activeYear.name },

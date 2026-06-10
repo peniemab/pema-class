@@ -259,7 +259,7 @@ export function CaisseStudentPanel({
       <Alert>
         <AlertDescription>
           Aucun frais configuré pour {activeYearName}. Ajoutez des frais dans les{' '}
-          <a href="/school/parametres/referentiels" className="font-medium text-primary underline">
+          <a href="/school/parametres#referentiels" className="font-medium text-primary underline">
             référentiels
           </a>
           .
