@@ -15,6 +15,10 @@ import {
 } from '@/lib/school/referentials/constants';
 import { getSchoolByIdForStaff } from '@/lib/db/schools';
 import type { FeeRow } from '@/lib/db/fees';
+import {
+  getSchoolFeeCurrencies,
+  type FeeCurrency,
+} from '@/lib/school/fee-currencies';
 
 export function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -49,6 +53,7 @@ export type CashJournalRow = {
 export type CashJournalReportData = {
   activeYear: { id: string; name: string };
   selectedDate: string;
+  feeCurrencies: FeeCurrency[];
   totals: { count: number; cdf: number; usd: number };
   rows: CashJournalRow[];
 };
@@ -84,7 +89,9 @@ export type EnrollmentReportData = {
 };
 
 export type RapportsHubPreview = {
+  feeCurrencies: FeeCurrency[];
   cashTodayCdf: number | null;
+  cashTodayUsd: number | null;
   cashTodayCount: number | null;
   studentsWithDebt: number | null;
   totalEnrolled: number | null;
@@ -110,6 +117,7 @@ async function fetchCashJournalReport(
     return {
       activeYear: { id: activeYear.id, name: activeYear.name },
       selectedDate,
+      feeCurrencies: getSchoolFeeCurrencies(fees),
       totals: { count: 0, cdf: 0, usd: 0 },
       rows: [],
     };
@@ -169,6 +177,7 @@ async function fetchCashJournalReport(
   return {
     activeYear: { id: activeYear.id, name: activeYear.name },
     selectedDate,
+    feeCurrencies: getSchoolFeeCurrencies(fees),
     totals: { count: rows.length, cdf, usd },
     rows,
   };
@@ -270,7 +279,9 @@ async function fetchRapportsHubPreview(
   ]);
 
   return {
+    feeCurrencies: cash?.feeCurrencies ?? getSchoolFeeCurrencies(impayes?.fees ?? []),
     cashTodayCdf: cash?.totals.cdf ?? null,
+    cashTodayUsd: cash?.totals.usd ?? null,
     cashTodayCount: cash?.totals.count ?? null,
     studentsWithDebt: impayes?.stats.studentsWithDebt ?? null,
     totalEnrolled: enrollment?.totals.enrolled ?? null,

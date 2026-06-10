@@ -7,7 +7,10 @@ import type { ImpayesReportData } from '@/lib/db/finance-reports';
 import { ImpayesReportFilters } from '@/components/school/rapports/impayes-report-filters';
 import { ReportPageShell } from '@/components/school/rapports/report-page-shell';
 import { ImpayesTable } from '@/components/school/impayes/impayes-table';
-import { formatFeeAmount } from '@/lib/school/referentials/constants';
+import {
+  formatDualMoney,
+  getSchoolFeeCurrencies,
+} from '@/lib/school/fee-currencies';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 type Props = {
@@ -16,6 +19,8 @@ type Props = {
 };
 
 export function ImpayesListeReportView({ data, search }: Props) {
+  const feeCurrencies = data ? getSchoolFeeCurrencies(data.fees) : [];
+
   return (
     <ReportPageShell
       title="Liste des impayés"
@@ -54,7 +59,13 @@ export function ImpayesListeReportView({ data, search }: Props) {
             <p className="text-sm text-muted-foreground">
               {data.stats.studentsWithDebt} élève
               {data.stats.studentsWithDebt > 1 ? 's' : ''} ·{' '}
-              {formatFeeAmount(data.stats.totalUnpaidCdf, 'CDF')}
+              {formatDualMoney(
+                {
+                  cdf: data.stats.totalUnpaidCdf,
+                  usd: data.stats.totalUnpaidUsd,
+                },
+                feeCurrencies,
+              )}
             </p>
           </div>
 
@@ -83,10 +94,14 @@ export function ImpayesListeReportView({ data, search }: Props) {
               </span>
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Total CDF : {formatFeeAmount(data.stats.totalUnpaidCdf, 'CDF')}
-              {data.stats.totalUnpaidUsd > 0
-                ? ` · USD : ${formatFeeAmount(data.stats.totalUnpaidUsd, 'USD')}`
-                : ''}
+              Total impayé :{' '}
+              {formatDualMoney(
+                {
+                  cdf: data.stats.totalUnpaidCdf,
+                  usd: data.stats.totalUnpaidUsd,
+                },
+                feeCurrencies,
+              )}
             </p>
           </div>
 
@@ -101,7 +116,7 @@ export function ImpayesListeReportView({ data, search }: Props) {
               </p>
             </div>
           ) : (
-            <ImpayesTable rows={data.rows} />
+            <ImpayesTable rows={data.rows} feeCurrencies={feeCurrencies} />
           )}
         </>
       )}

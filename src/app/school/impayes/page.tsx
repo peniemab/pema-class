@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { CheckCircle2 } from 'lucide-react';
 import { loadImpayesPage } from '@/lib/school/load-impayes-page';
+import { getSchoolFeeCurrencies } from '@/lib/school/fee-currencies';
 import { ImpayesStatsCards } from '@/components/school/impayes/impayes-stats';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -10,6 +11,7 @@ type Props = {
 
 export default async function SchoolImpayesPage(_props: Props) {
   const data = await loadImpayesPage({});
+  const feeCurrencies = getSchoolFeeCurrencies(data.fees);
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-0 pb-8">
@@ -36,7 +38,9 @@ export default async function SchoolImpayesPage(_props: Props) {
       ) : (
         <>
           <div className="border-b border-wa-divider bg-wa-panel p-4">
-            {data.stats ? <ImpayesStatsCards stats={data.stats} /> : null}
+            {data.stats ? (
+              <ImpayesStatsCards stats={data.stats} feeCurrencies={feeCurrencies} />
+            ) : null}
           </div>
 
           {data.stats && data.stats.studentsWithDebt === 0 ? (

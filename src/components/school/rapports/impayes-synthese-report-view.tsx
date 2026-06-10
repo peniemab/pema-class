@@ -5,6 +5,7 @@ import { CheckCircle2 } from 'lucide-react';
 import type { ImpayesReportData } from '@/lib/db/finance-reports';
 import { ImpayesStatsCards } from '@/components/school/impayes/impayes-stats';
 import { ReportPageShell } from '@/components/school/rapports/report-page-shell';
+import { getSchoolFeeCurrencies } from '@/lib/school/fee-currencies';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 type Props = {
@@ -12,6 +13,8 @@ type Props = {
 };
 
 export function ImpayesSyntheseReportView({ data }: Props) {
+  const feeCurrencies = data ? getSchoolFeeCurrencies(data.fees) : [];
+
   return (
     <ReportPageShell
       title="Synthèse impayés"
@@ -56,7 +59,7 @@ export function ImpayesSyntheseReportView({ data }: Props) {
             <p className="text-sm text-muted-foreground">Année {data.activeYear.name}</p>
           </div>
 
-          <ImpayesStatsCards stats={data.stats} />
+          <ImpayesStatsCards stats={data.stats} feeCurrencies={feeCurrencies} />
 
           {data.stats.studentsWithDebt === 0 ? (
             <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/40 px-6 py-10 text-center dark:border-emerald-900/40 dark:bg-emerald-950/20">

@@ -1,14 +1,19 @@
 import Link from 'next/link';
 import { BadgeCheck, ChevronRight } from 'lucide-react';
 import { WaAvatar } from '@/components/school/mobile/wa-avatar';
-import { formatFeeAmount } from '@/lib/school/referentials/constants';
+import {
+  formatDualMoney,
+  type FeeCurrency,
+} from '@/lib/school/fee-currencies';
 
 type Props = {
   schoolName: string;
   activeYearName: string | null;
   enrolledCount: number;
   classCount: number;
+  feeCurrencies: FeeCurrency[];
   totalCollectedCdf: number;
+  totalCollectedUsd: number;
   studentsWithDebt: number;
 };
 
@@ -17,9 +22,17 @@ export function WaBusinessProfileCard({
   activeYearName,
   enrolledCount,
   classCount,
+  feeCurrencies,
   totalCollectedCdf,
+  totalCollectedUsd,
   studentsWithDebt,
 }: Props) {
+  const collectedLabel = formatDualMoney(
+    { cdf: totalCollectedCdf, usd: totalCollectedUsd },
+    feeCurrencies,
+    { skipZero: false },
+  );
+
   return (
     <section className="border-b border-wa-divider bg-wa-panel px-4 py-5">
       <div className="flex items-start gap-4">
@@ -51,12 +64,12 @@ export function WaBusinessProfileCard({
         </div>
       </div>
 
-      {activeYearName ? (
+      {activeYearName && feeCurrencies.length > 0 ? (
         <div className="mt-4 flex items-center justify-between rounded-lg bg-wa-bg px-3 py-2.5">
           <div>
             <p className="text-xs text-wa-text-secondary">Encaissé cette année</p>
             <p className="text-base font-semibold tabular-nums text-secondary">
-              {formatFeeAmount(totalCollectedCdf, 'CDF')}
+              {collectedLabel}
             </p>
           </div>
           <Link

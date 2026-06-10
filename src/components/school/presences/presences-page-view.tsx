@@ -20,7 +20,7 @@ export function PresencesPageView({ data, basePath }: Props) {
             Configurez d&apos;abord une{' '}
             <Link
               href="/school/parametres#referentiels"
-              className="font-medium text-wa-accent underline"
+              className="font-medium text-primary underline"
             >
               année scolaire active
             </Link>{' '}
@@ -43,10 +43,18 @@ export function PresencesPageView({ data, basePath }: Props) {
               <StatCard
                 label="Présents"
                 value={data.stats.present}
-                className="text-emerald-700"
+                valueClassName="text-emerald-700"
               />
-              <StatCard label="Absents" value={data.stats.absent} className="text-destructive" />
-              <StatCard label="Retards" value={data.stats.late} className="text-amber-600" />
+              <StatCard
+                label="Absents"
+                value={data.stats.absent}
+                valueClassName="text-destructive"
+              />
+              <StatCard
+                label="Retards"
+                value={data.stats.late}
+                valueClassName="text-amber-600"
+              />
             </div>
           ) : null}
 
@@ -83,16 +91,16 @@ export function PresencesPageView({ data, basePath }: Props) {
 function StatCard({
   label,
   value,
-  className,
+  valueClassName,
 }: {
   label: string;
   value: number;
-  className?: string;
+  valueClassName?: string;
 }) {
   return (
-    <div className="bg-wa-panel px-2 py-3 text-center">
-      <p className={cn('text-lg font-semibold tabular-nums', className)}>{value}</p>
-      <p className="text-[0.625rem] text-wa-text-secondary">{label}</p>
+    <div className="bg-wa-panel px-2 py-2.5 text-center sm:py-3">
+      <p className={cn('type-stat-value', valueClassName)}>{value}</p>
+      <p className="type-stat-label mt-1">{label}</p>
     </div>
   );
 }

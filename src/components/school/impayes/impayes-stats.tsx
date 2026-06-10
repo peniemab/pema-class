@@ -1,40 +1,54 @@
 import Link from 'next/link';
 import type { ImpayesStats } from '@/lib/db/impayes-page';
 import { formatFeeAmount } from '@/lib/school/referentials/constants';
+import {
+  unpaidTotalLabel,
+  type FeeCurrency,
+} from '@/lib/school/fee-currencies';
 import { cn } from '@/lib/utils';
 
 type Props = {
   stats: ImpayesStats;
+  feeCurrencies: FeeCurrency[];
 };
 
 function feeRecouvrementHref(feeId: string): string {
   return `/school/impayes/recouvrement?frais=${feeId}`;
 }
 
-export function ImpayesStatsCards({ stats }: Props) {
+export function ImpayesStatsCards({ stats, feeCurrencies }: Props) {
+  const moneyCards = feeCurrencies.map((currency) => {
+    const amount =
+      currency === 'USD' ? stats.totalUnpaidUsd : stats.totalUnpaidCdf;
+    return (
+      <div key={currency} className="rounded-lg border bg-muted/20 px-4 py-3">
+        <p className="text-2xl font-semibold tabular-nums">
+          {formatFeeAmount(amount, currency)}
+        </p>
+        <p className="text-xs text-muted-foreground">{unpaidTotalLabel(currency)}</p>
+      </div>
+    );
+  });
+
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div
+        className={cn(
+          'grid gap-3',
+          feeCurrencies.length === 0
+            ? 'sm:grid-cols-2 lg:grid-cols-2'
+            : feeCurrencies.length === 1
+              ? 'sm:grid-cols-2 lg:grid-cols-3'
+              : 'sm:grid-cols-2 lg:grid-cols-4',
+        )}
+      >
         <div className="rounded-lg border bg-muted/20 px-4 py-3">
           <p className="text-2xl font-semibold tabular-nums text-destructive">
             {stats.studentsWithDebt}
           </p>
           <p className="text-xs text-muted-foreground">Élèves avec impayé</p>
         </div>
-        <div className="rounded-lg border bg-muted/20 px-4 py-3">
-          <p className="text-2xl font-semibold tabular-nums">
-            {formatFeeAmount(stats.totalUnpaidCdf, 'CDF')}
-          </p>
-          <p className="text-xs text-muted-foreground">Total impayé CDF</p>
-        </div>
-        {stats.totalUnpaidUsd > 0 ? (
-          <div className="rounded-lg border bg-muted/20 px-4 py-3">
-            <p className="text-2xl font-semibold tabular-nums">
-              {formatFeeAmount(stats.totalUnpaidUsd, 'USD')}
-            </p>
-            <p className="text-xs text-muted-foreground">Total impayé USD</p>
-          </div>
-        ) : null}
+        {moneyCards}
         <div className="rounded-lg border border-emerald-200/60 bg-emerald-50/50 px-4 py-3 dark:border-emerald-900/40 dark:bg-emerald-950/20">
           <p className="text-2xl font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
             {stats.studentsUpToDate}

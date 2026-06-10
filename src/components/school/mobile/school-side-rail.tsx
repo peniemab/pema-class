@@ -16,12 +16,12 @@ export function SchoolSideRail() {
 
   return (
     <aside
-      className="no-print hidden w-[4.5rem] shrink-0 flex-col items-center border-r border-primary/20 bg-primary-dark py-3 md:flex"
+      className="no-print hidden h-dvh w-[4.5rem] shrink-0 flex-col items-center border-r border-white/10 bg-wa-header py-3 md:flex"
       aria-label="Navigation principale"
     >
       <Link
         href="/school"
-        className="mb-4 flex size-10 items-center justify-center rounded-xl bg-primary text-lg font-bold text-primary-foreground shadow-sm"
+        className="mb-4 flex size-10 items-center justify-center rounded-xl bg-white text-lg font-bold text-primary shadow-sm"
         aria-label={brand.name}
       >
         {brand.initial}
@@ -41,8 +41,8 @@ export function SchoolSideRail() {
               className={cn(
                 'flex size-11 items-center justify-center rounded-xl transition-colors',
                 active
-                  ? 'bg-primary/25 text-primary-light'
-                  : 'text-primary-light/70 hover:bg-primary/15 hover:text-primary-light',
+                  ? 'bg-white/20 text-white'
+                  : 'text-white/70 hover:bg-white/10 hover:text-white',
               )}
             >
               <Icon className="size-[1.375rem]" aria-hidden />
@@ -55,7 +55,7 @@ export function SchoolSideRail() {
         href={SCHOOL_LOGOUT_ITEM.href}
         title={SCHOOL_LOGOUT_ITEM.label}
         aria-label={SCHOOL_LOGOUT_ITEM.label}
-        className="mt-2 flex size-11 items-center justify-center rounded-xl text-primary-light/70 transition-colors hover:bg-primary/15 hover:text-primary-light"
+        className="mt-2 flex size-11 items-center justify-center rounded-xl text-white/70 transition-colors hover:bg-white/10 hover:text-white"
       >
         <LogOut className="size-5" aria-hidden />
       </Link>

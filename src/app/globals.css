@@ -170,6 +170,32 @@
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+
+  /* Typographie sémantique — mobile 16px body, tablette/PC légèrement densifié */
+  .type-body {
+    @apply text-base leading-normal md:text-[0.9375rem] md:leading-snug;
+  }
+  .type-list-title {
+    @apply text-base font-medium leading-tight tracking-tight md:text-[0.9375rem];
+  }
+  .type-list-meta {
+    @apply text-xs leading-none text-muted-foreground md:text-[0.8125rem];
+  }
+  .type-toolbar {
+    @apply text-sm font-medium leading-none;
+  }
+  .type-caption {
+    @apply text-xs leading-snug text-muted-foreground md:text-[0.8125rem];
+  }
+  .type-stat-value {
+    @apply text-lg font-semibold tabular-nums leading-none md:text-xl;
+  }
+  .type-stat-label {
+    @apply text-[0.625rem] font-medium uppercase tracking-wide text-muted-foreground md:text-xs md:normal-case md:tracking-normal;
+  }
+  .type-label {
+    @apply text-sm font-medium leading-none md:text-[0.8125rem];
+  }
 }
 
 /* Mobile-first page content inside school shell */

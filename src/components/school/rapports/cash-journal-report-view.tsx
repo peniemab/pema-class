@@ -6,6 +6,7 @@ import type { CashJournalReportData } from '@/lib/db/finance-reports';
 import { CashDateFilters } from '@/components/school/rapports/cash-date-filters';
 import { ReportPageShell } from '@/components/school/rapports/report-page-shell';
 import { formatFeeAmount } from '@/lib/school/referentials/constants';
+import { cashTotalLabel } from '@/lib/school/fee-currencies';
 import {
   classDisplayLabel,
   studentFullName,
@@ -88,20 +89,20 @@ export function CashJournalReportView({ data }: Props) {
                   </span>
                 </p>
               </div>
-              <div>
-                <p className="text-2xl font-semibold tabular-nums">
-                  {formatFeeAmount(data.totals.cdf, 'CDF')}
-                </p>
-                <p className="text-xs text-muted-foreground">Total CDF</p>
-              </div>
-              {data.totals.usd > 0 ? (
-                <div>
-                  <p className="text-2xl font-semibold tabular-nums">
-                    {formatFeeAmount(data.totals.usd, 'USD')}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Total USD</p>
-                </div>
-              ) : null}
+              {data.feeCurrencies.map((currency) => {
+                const amount =
+                  currency === 'USD' ? data.totals.usd : data.totals.cdf;
+                return (
+                  <div key={currency}>
+                    <p className="text-2xl font-semibold tabular-nums">
+                      {formatFeeAmount(amount, currency)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {cashTotalLabel(currency)}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

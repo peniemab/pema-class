@@ -7,6 +7,10 @@ import {
 } from 'lucide-react';
 import type { DashboardPageData } from '@/lib/db/dashboard-page';
 import { formatFeeAmount } from '@/lib/school/referentials/constants';
+import {
+  formatDualMoney,
+  type FeeCurrency,
+} from '@/lib/school/fee-currencies';
 import { WaBusinessProfileCard } from '@/components/school/mobile/wa-business-profile-card';
 import {
   SettingsGroup,
@@ -24,9 +28,26 @@ function recoveryLabel(rate: number): string {
   return `${Math.round(rate)} %`;
 }
 
+function treasuryAmounts(data: DashboardPageData, currency: FeeCurrency) {
+  if (currency === 'USD') {
+    return {
+      collected: data.totalCollectedUsd,
+      expected: data.totalExpectedUsd,
+      recovery: data.recoveryRateUsd,
+    };
+  }
+  return {
+    collected: data.totalCollectedCdf,
+    expected: data.totalExpectedCdf,
+    recovery: data.recoveryRateCdf,
+  };
+}
+
 export function SchoolDashboard({ data }: Props) {
-  const hasUsd = data.totalExpectedUsd > 0 || data.totalCollectedUsd > 0;
-  const recoveryCdf = Math.min(100, Math.max(0, data.recoveryRateCdf));
+  const currencies = data.feeCurrencies;
+  const primaryCurrency = currencies[0] ?? 'CDF';
+  const primary = treasuryAmounts(data, primaryCurrency);
+  const recoveryPrimary = Math.min(100, Math.max(0, primary.recovery));
   const upToDate = data.enrolledCount - data.studentsWithDebt;
 
   return (
@@ -36,7 +57,9 @@ export function SchoolDashboard({ data }: Props) {
         activeYearName={data.activeYear?.name ?? null}
         enrolledCount={data.enrolledCount}
         classCount={data.classCount}
+        feeCurrencies={currencies}
         totalCollectedCdf={data.totalCollectedCdf}
+        totalCollectedUsd={data.totalCollectedUsd}
         studentsWithDebt={data.studentsWithDebt}
       />
 
@@ -60,31 +83,40 @@ export function SchoolDashboard({ data }: Props) {
               Trésorerie · {data.activeYear.name}
             </p>
             <p className="mt-2 text-3xl font-semibold tabular-nums tracking-tight text-secondary">
-              {formatFeeAmount(data.totalCollectedCdf, 'CDF')}
+              {formatFeeAmount(primary.collected, primaryCurrency)}
             </p>
             <p className="text-sm text-wa-text-secondary">Total encaissé</p>
 
-            {data.totalExpectedCdf > 0 ? (
+            {primary.expected > 0 ? (
               <div className="mt-4 space-y-2">
                 <div className="h-2 overflow-hidden rounded-full bg-wa-bg">
                   <div
                     className="h-full rounded-full bg-secondary transition-all"
-                    style={{ width: `${recoveryCdf}%` }}
+                    style={{ width: `${recoveryPrimary}%` }}
                   />
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-wa-text-secondary">
-                  <span>{recoveryLabel(data.recoveryRateCdf)} recouvré</span>
-                  <span>{formatFeeAmount(data.totalExpectedCdf, 'CDF')} attendu</span>
+                  <span>{recoveryLabel(primary.recovery)} recouvré</span>
+                  <span>
+                    {formatFeeAmount(primary.expected, primaryCurrency)} attendu
+                  </span>
                 </div>
               </div>
             ) : null}
 
-            {hasUsd ? (
+            {currencies.length > 1 ? (
               <p className="mt-3 text-sm tabular-nums text-wa-text-secondary">
-                {formatFeeAmount(data.totalCollectedUsd, 'USD')} encaissé USD
-                {data.totalExpectedUsd > 0
-                  ? ` · ${recoveryLabel(data.recoveryRateUsd)} recouvré`
-                  : ''}
+                {currencies
+                  .filter((c) => c !== primaryCurrency)
+                  .map((currency) => {
+                    const amounts = treasuryAmounts(data, currency);
+                    return `${formatFeeAmount(amounts.collected, currency)} encaissé ${currency}${
+                      amounts.expected > 0
+                        ? ` · ${recoveryLabel(amounts.recovery)} recouvré`
+                        : ''
+                    }`;
+                  })
+                  .join(' · ')}
               </p>
             ) : null}
           </div>
@@ -94,7 +126,13 @@ export function SchoolDashboard({ data }: Props) {
               href="/school/impayes"
               icon={<CircleAlert aria-hidden />}
               label="Impayés"
-              detail={formatFeeAmount(data.totalUnpaidCdf, 'CDF')}
+              detail={formatDualMoney(
+                {
+                  cdf: data.totalUnpaidCdf,
+                  usd: data.totalUnpaidUsd,
+                },
+                currencies,
+              )}
               detailClassName="text-destructive font-medium"
             />
             <SettingsRow

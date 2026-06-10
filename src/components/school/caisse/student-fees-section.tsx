@@ -1,5 +1,12 @@
 import Link from 'next/link';
-import { formatFeeAmount } from '@/lib/school/referentials/constants';
+import {
+  formatFeeAmount,
+  normalizeFeeCurrency,
+} from '@/lib/school/referentials/constants';
+import {
+  formatDualMoney,
+  getSchoolFeeCurrencies,
+} from '@/lib/school/fee-currencies';
 import type { StudentFeeBalance } from '@/lib/db/payments';
 import { ButtonLink } from '@/components/ui/button-link';
 import { Badge } from '@/components/ui/badge';
@@ -36,10 +43,17 @@ export function StudentFeesSection({
   }
 
   const unpaid = balances.filter((b) => !b.is_paid);
-  const totalUnpaid = unpaid.reduce((sum, b) => {
-    if (b.currency === 'USD') return sum;
-    return sum + b.amount_remaining;
-  }, 0);
+  const feeCurrencies = getSchoolFeeCurrencies(balances);
+  const totalUnpaidCdf = unpaid
+    .filter((b) => normalizeFeeCurrency(b.currency) === 'CDF')
+    .reduce((sum, b) => sum + b.amount_remaining, 0);
+  const totalUnpaidUsd = unpaid
+    .filter((b) => normalizeFeeCurrency(b.currency) === 'USD')
+    .reduce((sum, b) => sum + b.amount_remaining, 0);
+  const totalUnpaidLabel = formatDualMoney(
+    { cdf: totalUnpaidCdf, usd: totalUnpaidUsd },
+    feeCurrencies,
+  );
 
   return (
     <Card>
@@ -79,9 +93,9 @@ export function StudentFeesSection({
                 </li>
               ))}
             </ul>
-            {totalUnpaid > 0 ? (
+            {totalUnpaidLabel !== '—' ? (
               <p className="text-xs text-muted-foreground">
-                Total impayé CDF (hors USD) : {formatFeeAmount(totalUnpaid, 'CDF')}
+                Total impayé : {totalUnpaidLabel}
               </p>
             ) : null}
           </>

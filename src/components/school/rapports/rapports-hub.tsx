@@ -11,12 +11,14 @@ import {
   SettingsLargeTitle,
   SettingsPanelGroup,
 } from '@/components/school/settings-panel';
-import { formatFeeAmount } from '@/lib/school/referentials/constants';
+import { formatDualMoney, type FeeCurrency } from '@/lib/school/fee-currencies';
 import { cn } from '@/lib/utils';
 
 type Preview = {
   presencesIssues: number | null;
+  feeCurrencies: FeeCurrency[];
   cashTodayCdf: number | null;
+  cashTodayUsd: number | null;
   cashTodayCount: number | null;
   studentsWithDebt: number | null;
   totalEnrolled: number | null;
@@ -54,7 +56,12 @@ const SECTIONS = [
     badge: (p: Preview) => {
       if (p.cashTodayCount === null) return null;
       if (p.cashTodayCount === 0) return 'Aucun encaissement aujourd\'hui';
-      return `${p.cashTodayCount} encaissement${p.cashTodayCount > 1 ? 's' : ''} · ${formatFeeAmount(p.cashTodayCdf ?? 0, 'CDF')}`;
+      const total = formatDualMoney(
+        { cdf: p.cashTodayCdf ?? 0, usd: p.cashTodayUsd ?? 0 },
+        p.feeCurrencies,
+        { skipZero: false },
+      );
+      return `${p.cashTodayCount} encaissement${p.cashTodayCount > 1 ? 's' : ''} · ${total}`;
     },
     badgeTone: () => 'neutral' as const,
   },

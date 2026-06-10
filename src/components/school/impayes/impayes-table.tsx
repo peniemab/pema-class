@@ -3,7 +3,10 @@ import { ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ButtonLink } from '@/components/ui/button-link';
 import type { UnpaidStudentRow } from '@/lib/db/impayes-page';
-import { formatFeeAmount } from '@/lib/school/referentials/constants';
+import {
+  formatStudentRemaining,
+  type FeeCurrency,
+} from '@/lib/school/fee-currencies';
 import {
   classDisplayLabel,
   studentFullName,
@@ -11,20 +14,10 @@ import {
 
 type Props = {
   rows: UnpaidStudentRow[];
+  feeCurrencies: FeeCurrency[];
 };
 
-function formatStudentBalance(row: UnpaidStudentRow): string {
-  const parts: string[] = [];
-  if (row.remaining_cdf > 0) {
-    parts.push(formatFeeAmount(row.remaining_cdf, 'CDF'));
-  }
-  if (row.remaining_usd > 0) {
-    parts.push(formatFeeAmount(row.remaining_usd, 'USD'));
-  }
-  return parts.length > 0 ? parts.join(' + ') : '—';
-}
-
-export function ImpayesTable({ rows = [] }: Props) {
+export function ImpayesTable({ rows = [], feeCurrencies }: Props) {
   if (rows.length === 0) {
     return (
       <p className="rounded-lg border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
@@ -72,7 +65,7 @@ export function ImpayesTable({ rows = [] }: Props) {
                 </Badge>
               </td>
               <td className="px-3 py-2.5 text-right font-medium tabular-nums text-destructive">
-                {formatStudentBalance(row)}
+                {formatStudentRemaining(row, feeCurrencies)}
               </td>
               <td className="px-3 py-2.5 text-right">
                 <ButtonLink

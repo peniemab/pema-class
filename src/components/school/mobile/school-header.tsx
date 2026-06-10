@@ -26,7 +26,7 @@ export function SchoolHeader({ title, backHref, actions, showPrint }: Props) {
   const isReportDetail = pathname.startsWith('/school/rapports/') && pathname !== '/school/rapports';
 
   return (
-    <header className="no-print sticky top-0 z-40 bg-wa-header text-wa-header-foreground safe-top">
+    <header className="no-print sticky top-0 z-40 shrink-0 bg-wa-header text-wa-header-foreground safe-top md:static">
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-1 px-2 md:px-4">
         {showBack && back ? (
           <Link

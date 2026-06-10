@@ -8,6 +8,10 @@ import {
   applyScolaritePoolToBalances,
   buildRawStudentFeeBalances,
 } from '@/lib/school/scolarite-balances';
+import {
+  getSchoolFeeCurrencies,
+  type FeeCurrency,
+} from '@/lib/school/fee-currencies';
 
 export type DashboardPageData = {
   schoolName: string;
@@ -15,6 +19,7 @@ export type DashboardPageData = {
   enrolledCount: number;
   classCount: number;
   studentsWithDebt: number;
+  feeCurrencies: FeeCurrency[];
   totalCollectedCdf: number;
   totalCollectedUsd: number;
   totalExpectedCdf: number;
@@ -62,6 +67,7 @@ async function fetchDashboardPageData(
     totalUnpaidUsd: 0,
     recoveryRateCdf: 0,
     recoveryRateUsd: 0,
+    feeCurrencies: [],
   };
 
   if (!activeYear) return empty;
@@ -74,6 +80,7 @@ async function fetchDashboardPageData(
 
   empty.enrolledCount = enrolled.length;
   empty.classCount = classes.length;
+  empty.feeCurrencies = getSchoolFeeCurrencies(fees);
 
   if (fees.length === 0 || enrolled.length === 0) return empty;
 
