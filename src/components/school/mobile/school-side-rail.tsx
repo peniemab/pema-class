@@ -21,6 +21,7 @@ export function SchoolSideRail() {
     >
       <Link
         href="/school"
+        prefetch={false}
         className="mb-4 flex size-10 items-center justify-center rounded-xl bg-white text-lg font-bold text-primary shadow-sm"
         aria-label={brand.name}
       >
@@ -35,6 +36,7 @@ export function SchoolSideRail() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               title={item.label}
               aria-label={item.label}
               aria-current={active ? 'page' : undefined}

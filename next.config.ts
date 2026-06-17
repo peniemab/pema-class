@@ -24,6 +24,13 @@ const withSerwist = withSerwistInit({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  experimental: {
+    /** Évite de réutiliser une vieille réponse RSC (redirect login) entre onglets. */
+    staleTimes: {
+      dynamic: 0,
+      static: 180,
+    },
+  },
   images: {
     remotePatterns: [
       {

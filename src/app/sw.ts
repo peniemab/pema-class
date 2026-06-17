@@ -46,7 +46,6 @@ const serwist = new Serwist({
         sameOrigin &&
         isAuthSensitivePath(url.pathname) &&
         !url.pathname.startsWith('/api/'),
-      method: 'GET',
       handler: new NetworkOnly(),
     },
     ...defaultCache,

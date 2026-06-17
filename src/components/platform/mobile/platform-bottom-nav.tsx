@@ -24,6 +24,7 @@ export function PlatformBottomNav() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               className={cn(
                 'flex flex-1 flex-col items-center justify-center gap-0.5 text-[0.625rem] font-medium transition-colors',
                 active ? 'text-wa-accent' : 'text-wa-text-secondary',

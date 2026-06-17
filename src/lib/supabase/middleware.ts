@@ -22,6 +22,10 @@ function isPublicPath(pathname: string): boolean {
   return false;
 }
 
+function hasSupabaseAuthCookie(request: NextRequest): boolean {
+  return request.cookies.getAll().some((cookie) => cookie.name.includes('-auth-token'));
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
   const { pathname } = request.nextUrl;
@@ -60,7 +64,14 @@ export async function updateSession(request: NextRequest) {
       user = data.user;
     }
   } catch {
-    // Supabase injoignable (réseau coupé, projet pausé, DNS…) : pas de refresh token.
+    // Réseau lent (mobile) : ne pas envoyer au login si le cookie session est encore là.
+    if (hasSupabaseAuthCookie(request) && !isPublicPath(pathname)) {
+      supabaseResponse.headers.set(
+        'Cache-Control',
+        'no-store, no-cache, must-revalidate, private',
+      );
+      return supabaseResponse;
+    }
     user = null;
   }
 
@@ -68,6 +79,13 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
     return NextResponse.redirect(url);
+  }
+
+  if (user && !isPublicPath(pathname)) {
+    supabaseResponse.headers.set(
+      'Cache-Control',
+      'no-store, no-cache, must-revalidate, private',
+    );
   }
 
   if (user && pathname === '/') {
