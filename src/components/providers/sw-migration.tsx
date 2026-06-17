@@ -2,25 +2,25 @@
 
 import { useEffect } from 'react';
 
-const SW_CLEARED_KEY = 'pema-sw-cleared-v1';
+/** Bump à chaque changement majeur de stratégie SW (une seule migration par appareil). */
+const SW_STRATEGY_VERSION = 'pema-sw-v4-assets-only';
 
 /**
- * Désinstalle les SW obsolètes (une seule fois par session) pour éviter faux logout.
+ * Remplace l'ancien SW (cache auth cassé) par la stratégie assets-only, une fois.
  */
 export function ServiceWorkerMigration() {
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
-
-    const serwistEnabled = process.env.NEXT_PUBLIC_SERWIST_ENABLE === 'true';
-    if (serwistEnabled) return;
-
-    if (sessionStorage.getItem(SW_CLEARED_KEY) === '1') return;
+    if (localStorage.getItem('pema-sw-version') === SW_STRATEGY_VERSION) return;
 
     void navigator.serviceWorker.getRegistrations().then(async (regs) => {
-      sessionStorage.setItem(SW_CLEARED_KEY, '1');
-      if (regs.length === 0) return;
-      await Promise.all(regs.map((r) => r.unregister()));
-      window.location.reload();
+      if (regs.length > 0) {
+        await Promise.all(regs.map((r) => r.unregister()));
+      }
+      localStorage.setItem('pema-sw-version', SW_STRATEGY_VERSION);
+      if (regs.length > 0) {
+        window.location.reload();
+      }
     });
   }, []);
 

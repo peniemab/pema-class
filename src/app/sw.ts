@@ -1,13 +1,11 @@
-import { defaultCache } from '@serwist/next/worker';
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist';
-import { NetworkOnly, Serwist } from 'serwist';
+import { CacheFirst, NetworkOnly, Serwist, StaleWhileRevalidate } from 'serwist';
 
 /**
- * Routes applicatives (session Supabase) : jamais en cache SW.
- * Couvre navigations document ET soft-nav Next.js (en-tête RSC).
- * Sans cela, la PWA sert une vieille réponse (souvent redirect login) sur Élèves, Écoles, etc.
+ * Stratégie PWA « Schoolap » : installer l'app + assets en cache,
+ * mais JAMAIS les pages HTML / RSC / session (évite les faux logout).
  */
-const AUTH_PATH_PREFIXES = [
+const APP_PATH_PREFIXES = [
   '/platform',
   '/school',
   '/app',
@@ -17,13 +15,23 @@ const AUTH_PATH_PREFIXES = [
   '/join',
   '/auth',
   '/print',
+  '/presentation',
 ] as const;
 
-function isAuthSensitivePath(pathname: string): boolean {
+function isAppPath(pathname: string): boolean {
   if (pathname === '/') return true;
-  return AUTH_PATH_PREFIXES.some(
+  return APP_PATH_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
+}
+
+function isAppRequest(url: URL, request: Request, sameOrigin: boolean): boolean {
+  if (!sameOrigin) return false;
+  if (url.pathname.startsWith('/api/')) return true;
+  if (isAppPath(url.pathname)) return true;
+  if (request.headers.get('RSC') === '1') return true;
+  if (request.mode === 'navigate') return true;
+  return false;
 }
 
 declare global {
@@ -38,17 +46,33 @@ const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: true,
   clientsClaim: true,
-  /** navigationPreload + redirects middleware cassent la session en PWA mobile. */
   navigationPreload: false,
   runtimeCaching: [
     {
-      matcher: ({ url, sameOrigin }) =>
-        sameOrigin &&
-        isAuthSensitivePath(url.pathname) &&
-        !url.pathname.startsWith('/api/'),
+      matcher: ({ url, request, sameOrigin }) =>
+        isAppRequest(url, request, sameOrigin),
       handler: new NetworkOnly(),
     },
-    ...defaultCache,
+    {
+      matcher: /\/_next\/static\/.*/i,
+      handler: new CacheFirst({ cacheName: 'pema-next-static' }),
+    },
+    {
+      matcher: /\/icons\/.*/i,
+      handler: new CacheFirst({ cacheName: 'pema-icons' }),
+    },
+    {
+      matcher: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/i,
+      handler: new StaleWhileRevalidate({ cacheName: 'pema-images' }),
+    },
+    {
+      matcher: /\.(?:woff2?|ttf)$/i,
+      handler: new CacheFirst({ cacheName: 'pema-fonts' }),
+    },
+    {
+      matcher: /\/manifest\.webmanifest$/i,
+      handler: new StaleWhileRevalidate({ cacheName: 'pema-manifest' }),
+    },
   ],
   fallbacks: {
     entries: [

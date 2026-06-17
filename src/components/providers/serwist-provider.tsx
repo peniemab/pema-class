@@ -6,13 +6,14 @@ type Props = {
   children: React.ReactNode;
 };
 
-/** En dev : pas de SW (évite le cache de chunks webpack obsolètes). Prod : PWA active. */
+/**
+ * PWA active en production (comme Schoolap).
+ * Désactiver : NEXT_PUBLIC_SERWIST_DISABLE=true
+ */
 export function SerwistProviderWrapper({ children }: Props) {
   const disabled = useMemo(() => {
     if (process.env.NODE_ENV === 'development') return true;
-    if (process.env.NEXT_PUBLIC_SERWIST_DISABLE === 'true') return true;
-    if (process.env.NEXT_PUBLIC_SERWIST_ENABLE !== 'true') return true;
-    return false;
+    return process.env.NEXT_PUBLIC_SERWIST_DISABLE === 'true';
   }, []);
 
   type SerwistProviderComponent = React.ComponentType<{
@@ -33,7 +34,6 @@ export function SerwistProviderWrapper({ children }: Props) {
         setSerwistProvider(() => mod.SerwistProvider as SerwistProviderComponent);
       })
       .catch(() => {
-        // Si Serwist casse en runtime, on préfère ne pas bloquer l'app.
         setSerwistProvider(null);
       });
     return () => {

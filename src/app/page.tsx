@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import { BrandMark } from '@/components/brand-mark';
 import { ProfessionalLoginForm } from '@/components/auth/professional-login-form';
-import { PwaDownloadLink } from '@/components/auth/pwa-download-link';
+import { PwaInstallButton } from '@/components/pwa/pwa-install-button';
 import { LoginLegalFooter } from '@/components/auth/login-legal-footer';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { brand } from '@/lib/brand';
@@ -86,7 +86,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
             </p>
 
             <div className="text-center lg:text-left">
-              <PwaDownloadLink />
+              <PwaInstallButton variant="banner" />
             </div>
           </div>
         </div>
@@ -117,7 +117,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
             {brand.login.offersCard}
           </p>
           <Link
-            href="/offres"
+            href="/presentation"
             className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary-foreground underline-offset-4 hover:underline"
           >
             {brand.login.offersLinkLabel}

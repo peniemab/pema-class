@@ -25,7 +25,7 @@ export const brand = {
       'Élèves, classes, notes, présences, facturation et rapports dans un environnement privé.',
     offersCard:
       'Une solution complète pour la direction, le secrétariat et les enseignants.',
-    offersLinkLabel: 'Découvrir nos offres',
+    offersLinkLabel: 'Découvrir la plateforme',
   },
   texts: {
     logoutButton: 'Se déconnecter',
