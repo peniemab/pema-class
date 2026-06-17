@@ -8,11 +8,16 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { brand } from '@/lib/brand';
 
 type PageProps = {
-  searchParams: Promise<{ error?: string; password_reset?: string; reason?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    password_reset?: string;
+    reason?: string;
+    ck?: string;
+  }>;
 };
 
 export default async function LoginPage({ searchParams }: PageProps) {
-  const { error, password_reset, reason } = await searchParams;
+  const { error, password_reset, reason, ck } = await searchParams;
   const noProfile = error === 'no_profile';
   const sessionError = error === 'session';
   const resetOk = password_reset === '1';
@@ -67,6 +72,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
                   {reason ? (
                     <span className="mt-1 block font-mono text-xs opacity-70">
                       diag: {reason}
+                      {ck ? ` · cookies: ${ck}` : ''}
                     </span>
                   ) : null}
                 </AlertDescription>

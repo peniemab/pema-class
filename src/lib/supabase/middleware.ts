@@ -111,15 +111,18 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublicPath(pathname)) {
     const hasCookie = hasSupabaseAuthCookie(request);
     if (!hasCookie) reason = 'nocookie';
+    const cookieNames = request.cookies.getAll().map((c) => c.name);
+    const ck = cookieNames.join(',').slice(0, 200) || 'EMPTY';
     // Diagnostic : visible dans Vercel → Runtime Logs.
     console.warn(
-      `[auth-redirect] path=${pathname} reason=${reason} hasCookie=${hasCookie}`,
+      `[auth-redirect] path=${pathname} reason=${reason} hasCookie=${hasCookie} cookies=${ck}`,
     );
     const url = request.nextUrl.clone();
     url.pathname = '/';
     url.search = '';
     url.searchParams.set('error', 'session');
     url.searchParams.set('reason', reason);
+    url.searchParams.set('ck', ck);
     return redirectWithSession(url, supabaseResponse);
   }
 
