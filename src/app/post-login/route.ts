@@ -1,10 +1,10 @@
-import { redirect } from 'next/navigation';
+import { NextResponse } from 'next/server';
 import { resolvePostLoginPath } from '@/lib/auth/require-role';
 import { createClient } from '@/lib/supabase/server';
 
-export const dynamic = 'force-dynamic';
+export async function GET(request: Request) {
+  const origin = new URL(request.url).origin;
 
-export default async function PostLoginPage() {
   try {
     const supabase = await createClient();
     const {
@@ -13,12 +13,12 @@ export default async function PostLoginPage() {
     } = await supabase.auth.getUser();
 
     if (error || !user) {
-      redirect('/');
+      return NextResponse.redirect(new URL('/?error=session', origin));
     }
 
     const path = await resolvePostLoginPath(user.id);
-    redirect(path);
+    return NextResponse.redirect(new URL(path, origin));
   } catch {
-    redirect('/?error=auth_unavailable');
+    return NextResponse.redirect(new URL('/?error=auth_unavailable', origin));
   }
 }

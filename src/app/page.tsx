@@ -12,6 +12,7 @@ type PageProps = { searchParams: Promise<{ error?: string; password_reset?: stri
 export default async function LoginPage({ searchParams }: PageProps) {
   const { error, password_reset } = await searchParams;
   const noProfile = error === 'no_profile';
+  const sessionError = error === 'session';
   const resetOk = password_reset === '1';
 
   return (
@@ -53,6 +54,14 @@ export default async function LoginPage({ searchParams }: PageProps) {
                   Compte connecté sans profil établissement. Contactez
                   l&apos;administrateur plateforme ou utilisez votre lien
                   d&apos;invitation.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {sessionError && (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  Session expirée ou invalide. Reconnectez-vous.
                 </AlertDescription>
               </Alert>
             )}

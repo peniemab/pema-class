@@ -53,7 +53,8 @@ export function ProfessionalLoginForm() {
       }
 
       setPhase('redirecting');
-      // Navigation complète : cookies session fiables sur mobile / PWA (pas de soft-nav).
+      // Laisse le temps aux cookies Supabase d'être écrits avant la navigation serveur.
+      await new Promise((r) => setTimeout(r, 150));
       window.location.assign('/post-login');
     } catch {
       setError('Connexion impossible. Vérifiez votre réseau et réessayez.');

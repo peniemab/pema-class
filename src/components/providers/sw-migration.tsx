@@ -2,30 +2,24 @@
 
 import { useEffect } from 'react';
 
+const SW_CLEARED_KEY = 'pema-sw-cleared-v1';
+
 /**
- * Désinstalle les SW obsolètes qui provoquaient des faux logout en prod.
- * Tant que NEXT_PUBLIC_SERWIST_ENABLE !== 'true', aucun SW ne doit rester actif.
+ * Désinstalle les SW obsolètes (une seule fois par session) pour éviter faux logout.
  */
 export function ServiceWorkerMigration() {
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
 
     const serwistEnabled = process.env.NEXT_PUBLIC_SERWIST_ENABLE === 'true';
+    if (serwistEnabled) return;
+
+    if (sessionStorage.getItem(SW_CLEARED_KEY) === '1') return;
 
     void navigator.serviceWorker.getRegistrations().then(async (regs) => {
+      sessionStorage.setItem(SW_CLEARED_KEY, '1');
       if (regs.length === 0) return;
-
-      if (!serwistEnabled) {
-        await Promise.all(regs.map((r) => r.unregister()));
-        window.location.reload();
-        return;
-      }
-
-      const version = 'auth-cache-v3';
-      if (localStorage.getItem('pema-sw-version') === version) return;
-
       await Promise.all(regs.map((r) => r.unregister()));
-      localStorage.setItem('pema-sw-version', version);
       window.location.reload();
     });
   }, []);

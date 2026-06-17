@@ -43,7 +43,7 @@ export async function requireAuthPrincipal(): Promise<AuthPrincipal> {
 export async function requireSuperadmin(): Promise<{ userId: string }> {
   const { userId } = await requireSession();
   if (!(await isPlatformAdmin(userId))) {
-    redirect('/post-login');
+    redirect('/');
   }
   return { userId };
 }
