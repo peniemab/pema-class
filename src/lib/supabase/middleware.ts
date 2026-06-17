@@ -91,23 +91,35 @@ export async function updateSession(request: NextRequest) {
   });
 
   let user: { id: string } | null = null;
+  let reason = 'nouser';
   try {
     const { data, error } = await supabase.auth.getUser();
     if (!error && data.user) {
       user = data.user;
     } else if (error) {
+      reason = `err_${(error.message || 'unknown').slice(0, 40).replace(/[^a-zA-Z0-9_]+/g, '-')}`;
       const passthrough = allowSessionCookieThrough(request, pathname, supabaseResponse);
       if (passthrough) return passthrough;
     }
-  } catch {
+  } catch (e) {
+    reason = `throw_${(e instanceof Error ? e.message : 'unknown').slice(0, 40).replace(/[^a-zA-Z0-9_]+/g, '-')}`;
     const passthrough = allowSessionCookieThrough(request, pathname, supabaseResponse);
     if (passthrough) return passthrough;
     user = null;
   }
 
   if (!user && !isPublicPath(pathname)) {
+    const hasCookie = hasSupabaseAuthCookie(request);
+    if (!hasCookie) reason = 'nocookie';
+    // Diagnostic : visible dans Vercel → Runtime Logs.
+    console.warn(
+      `[auth-redirect] path=${pathname} reason=${reason} hasCookie=${hasCookie}`,
+    );
     const url = request.nextUrl.clone();
     url.pathname = '/';
+    url.search = '';
+    url.searchParams.set('error', 'session');
+    url.searchParams.set('reason', reason);
     return redirectWithSession(url, supabaseResponse);
   }
 
