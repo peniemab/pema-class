@@ -5,13 +5,6 @@ import { generateOnboardingLink } from '@/lib/platform/actions';
 import { formatDateTime } from '@/lib/platform/format';
 import { CopyLinkButton } from '@/components/platform/copy-link-button';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -25,15 +18,15 @@ export function OnboardingLinkForm() {
   >(null);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Nouvel établissement</CardTitle>
-        <CardDescription>
-          Génère un lien valable 72h. L&apos;école et le compte directeur sont
-          créés lorsque le lien est utilisé.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+    <div className="rounded-2xl border border-wa-divider bg-wa-panel p-4 shadow-sm">
+      <div className="mb-4">
+        <p className="text-sm font-semibold text-wa-text-primary">Générer un lien</p>
+        <p className="mt-1 text-sm text-wa-text-secondary">
+          Lien valable 72h. L&apos;école et le compte directeur sont créés lorsque le lien est utilisé.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-4">
         <div className="grid gap-2">
           <Label htmlFor="school-name">Nom de l&apos;établissement</Label>
           <Input
@@ -53,7 +46,7 @@ export function OnboardingLinkForm() {
             onChange={(e) => setInternalNote(e.target.value)}
             rows={3}
             className={cn(
-              'border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-[80px] w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+              'border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-[80px] w-full rounded-xl border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
             )}
           />
         </div>
@@ -77,13 +70,15 @@ export function OnboardingLinkForm() {
           <p className="text-sm text-destructive">{result.error}</p>
         )}
         {result?.ok === true && (
-          <div className="rounded-md border border-border bg-muted/40 p-4 text-sm">
-            <p className="font-medium">Lien à transmettre</p>
-            <p className="mt-1 break-all font-mono text-xs">{result.onboardingUrl}</p>
-            <p className="mt-2 text-muted-foreground">
+          <div className="rounded-xl border border-wa-divider bg-wa-bg p-4 text-sm">
+            <p className="font-medium text-wa-text-primary">Lien à transmettre</p>
+            <p className="mt-1 break-all font-mono text-xs text-wa-text-secondary">
+              {result.onboardingUrl}
+            </p>
+            <p className="mt-2 text-wa-text-secondary">
               Expire le {formatDateTime(result.expiresAt)}
             </p>
-            <p className="mt-2 text-xs text-muted-foreground">
+            <p className="mt-2 text-xs text-wa-text-secondary">
               Ce lien reste recopiable depuis{' '}
               <span className="font-medium">Liens onboarding</span>.
             </p>
@@ -92,7 +87,7 @@ export function OnboardingLinkForm() {
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

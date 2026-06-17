@@ -38,33 +38,28 @@ export default async function PlatformSchoolDetailPage({ params }: PageProps) {
   const director = school.director;
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <ButtonLink
-            variant="ghost"
-            size="sm"
-            className="mb-2 -ml-2 w-fit"
-            href="/platform/schools"
-          >
-            ← Retour à la liste
-          </ButtonLink>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {school.name}
-          </h1>
-          <p className="font-mono text-sm text-muted-foreground">
-            {school.slug ?? '—'}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <SchoolStatusBadge status={school.status} />
-          <SchoolStatusActions
-            schoolId={school.id}
-            status={school.status}
-          />
+    <div className="mx-auto w-full max-w-5xl pb-8">
+      <div className="border-b border-wa-divider bg-wa-panel px-4 py-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <ButtonLink variant="ghost" size="sm" className="-ml-2 w-fit" href="/platform/schools">
+              ← Retour à la liste
+            </ButtonLink>
+            <h1 className="mt-2 text-lg font-semibold tracking-tight text-wa-text-primary">
+              {school.name}
+            </h1>
+            <p className="font-mono text-xs text-wa-text-secondary">
+              {school.slug ?? '—'}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <SchoolStatusBadge status={school.status} />
+            <SchoolStatusActions schoolId={school.id} status={school.status} />
+          </div>
         </div>
       </div>
 
+      <div className="px-4 pt-5">
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -106,7 +101,7 @@ export default async function PlatformSchoolDetailPage({ params }: PageProps) {
         </Card>
       </div>
 
-      <Card>
+      <Card className="mt-6">
         <CardHeader>
           <CardTitle>Personnel</CardTitle>
           <CardDescription>
@@ -116,7 +111,7 @@ export default async function PlatformSchoolDetailPage({ params }: PageProps) {
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <table className="w-full min-w-[520px] text-left text-sm">
-            <thead className="border-b border-border">
+            <thead className="border-b border-wa-divider bg-wa-bg text-wa-text-secondary">
               <tr>
                 <th className="pb-2 font-medium">Nom</th>
                 <th className="pb-2 font-medium">Rôle</th>
@@ -126,17 +121,17 @@ export default async function PlatformSchoolDetailPage({ params }: PageProps) {
             <tbody>
               {staff.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="py-6 text-muted-foreground">
+                  <td colSpan={3} className="py-6 text-wa-text-secondary">
                     Aucun membre du personnel.
                   </td>
                 </tr>
               ) : (
                 staff.map((member) => (
-                  <tr key={member.id} className="border-t border-border">
+                  <tr key={member.id} className="border-t border-wa-divider hover:bg-wa-row-hover">
                     <td className="py-2">
                       <div className="flex flex-col">
                         <span>{staffDisplayName(member)}</span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-wa-text-secondary">
                           {member.email}
                         </span>
                       </div>
@@ -150,7 +145,8 @@ export default async function PlatformSchoolDetailPage({ params }: PageProps) {
           </table>
         </CardContent>
       </Card>
-    </main>
+      </div>
+    </div>
   );
 }
 
@@ -163,7 +159,7 @@ function Row({
 }) {
   return (
     <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
-      <span className="w-36 shrink-0 text-muted-foreground">{label}</span>
+      <span className="w-36 shrink-0 text-wa-text-secondary">{label}</span>
       <span>{children}</span>
     </div>
   );

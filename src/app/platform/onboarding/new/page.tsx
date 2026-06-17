@@ -3,26 +3,24 @@ import { ButtonLink } from '@/components/ui/button-link';
 
 export default function PlatformOnboardingNewPage() {
   return (
-    <main className="flex flex-1 flex-col gap-6 p-6">
-      <div>
-        <ButtonLink
-          variant="ghost"
-          size="sm"
-          className="mb-2 -ml-2 w-fit"
-          href="/platform/onboarding"
-        >
+    <div className="mx-auto w-full max-w-3xl pb-8">
+      <div className="border-b border-wa-divider bg-wa-panel px-4 py-4">
+        <ButtonLink variant="ghost" size="sm" className="-ml-2 w-fit" href="/platform/onboarding">
           ← Historique des liens
         </ButtonLink>
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="mt-2 text-lg font-semibold tracking-tight text-wa-text-primary">
           Nouvel établissement
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-wa-text-secondary">
           Générer un lien d&apos;onboarding pour le futur directeur.
         </p>
       </div>
-      <div className="max-w-xl">
-        <OnboardingLinkForm />
+
+      <div className="px-4 pt-5">
+        <div className="max-w-xl">
+          <OnboardingLinkForm />
+        </div>
       </div>
-    </main>
+    </div>
   );
 }
