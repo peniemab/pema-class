@@ -18,7 +18,6 @@ export function SerwistProviderWrapper({ children }: Props) {
     swUrl: string;
     register?: boolean;
     reloadOnOnline?: boolean;
-    cacheOnNavigation?: boolean;
   }>;
 
   const [SerwistProvider, setSerwistProvider] = useState<SerwistProviderComponent | null>(null);
@@ -46,7 +45,7 @@ export function SerwistProviderWrapper({ children }: Props) {
 
   return (
     <Suspense fallback={children}>
-      <SerwistProvider swUrl="/sw.js" register reloadOnOnline cacheOnNavigation>
+      <SerwistProvider swUrl="/sw.js" register reloadOnOnline>
         {children}
       </SerwistProvider>
     </Suspense>
