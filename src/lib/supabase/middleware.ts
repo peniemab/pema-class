@@ -12,6 +12,7 @@ const PUBLIC_PATHS = [
   '/auth/forgot-password',
   '/auth/reset-password',
   '/auth/callback',
+  '/post-login',
 ];
 
 function isPublicPath(pathname: string): boolean {
@@ -24,6 +25,19 @@ function isPublicPath(pathname: string): boolean {
 
 function hasSupabaseAuthCookie(request: NextRequest): boolean {
   return request.cookies.getAll().some((cookie) => cookie.name.includes('-auth-token'));
+}
+
+function allowSessionCookieThrough(
+  request: NextRequest,
+  pathname: string,
+  supabaseResponse: NextResponse,
+): NextResponse | null {
+  if (!hasSupabaseAuthCookie(request) || isPublicPath(pathname)) return null;
+  supabaseResponse.headers.set(
+    'Cache-Control',
+    'no-store, no-cache, must-revalidate, private',
+  );
+  return supabaseResponse;
 }
 
 export async function updateSession(request: NextRequest) {
@@ -60,18 +74,15 @@ export async function updateSession(request: NextRequest) {
   let user: { id: string } | null = null;
   try {
     const { data, error } = await supabase.auth.getUser();
-    if (!error) {
+    if (!error && data.user) {
       user = data.user;
+    } else if (error) {
+      const passthrough = allowSessionCookieThrough(request, pathname, supabaseResponse);
+      if (passthrough) return passthrough;
     }
   } catch {
-    // Réseau lent (mobile) : ne pas envoyer au login si le cookie session est encore là.
-    if (hasSupabaseAuthCookie(request) && !isPublicPath(pathname)) {
-      supabaseResponse.headers.set(
-        'Cache-Control',
-        'no-store, no-cache, must-revalidate, private',
-      );
-      return supabaseResponse;
-    }
+    const passthrough = allowSessionCookieThrough(request, pathname, supabaseResponse);
+    if (passthrough) return passthrough;
     user = null;
   }
 

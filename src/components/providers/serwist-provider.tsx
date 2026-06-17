@@ -10,7 +10,9 @@ type Props = {
 export function SerwistProviderWrapper({ children }: Props) {
   const disabled = useMemo(() => {
     if (process.env.NODE_ENV === 'development') return true;
-    return process.env.NEXT_PUBLIC_SERWIST_DISABLE === 'true';
+    if (process.env.NEXT_PUBLIC_SERWIST_DISABLE === 'true') return true;
+    if (process.env.NEXT_PUBLIC_SERWIST_ENABLE !== 'true') return true;
+    return false;
   }, []);
 
   type SerwistProviderComponent = React.ComponentType<{
