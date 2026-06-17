@@ -2,8 +2,12 @@ import { defaultCache } from '@serwist/next/worker';
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist';
 import { NetworkOnly, Serwist } from 'serwist';
 
-/** Pages authentifiées / redirections : jamais en cache SW (sinon déconnexion fantôme en PWA). */
-const AUTH_NAV_PREFIXES = [
+/**
+ * Routes applicatives (session Supabase) : jamais en cache SW.
+ * Couvre navigations document ET soft-nav Next.js (en-tête RSC).
+ * Sans cela, la PWA sert une vieille réponse (souvent redirect login) sur Élèves, Écoles, etc.
+ */
+const AUTH_PATH_PREFIXES = [
   '/platform',
   '/school',
   '/app',
@@ -12,13 +16,12 @@ const AUTH_NAV_PREFIXES = [
   '/register',
   '/join',
   '/auth',
+  '/print',
 ] as const;
 
-function isAuthSensitiveNavigation(url: URL, request: Request): boolean {
-  if (request.mode !== 'navigate') return false;
-  const { pathname } = url;
+function isAuthSensitivePath(pathname: string): boolean {
   if (pathname === '/') return true;
-  return AUTH_NAV_PREFIXES.some(
+  return AUTH_PATH_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
 }
@@ -39,7 +42,11 @@ const serwist = new Serwist({
   navigationPreload: false,
   runtimeCaching: [
     {
-      matcher: ({ url, request }) => isAuthSensitiveNavigation(url, request),
+      matcher: ({ url, sameOrigin }) =>
+        sameOrigin &&
+        isAuthSensitivePath(url.pathname) &&
+        !url.pathname.startsWith('/api/'),
+      method: 'GET',
       handler: new NetworkOnly(),
     },
     ...defaultCache,
