@@ -1,6 +1,6 @@
 'use client';
 
-import { SerwistProvider } from '@serwist/next/react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 
 type Props = {
   children: React.ReactNode;
@@ -8,18 +8,47 @@ type Props = {
 
 /** En dev : pas de SW (évite le cache de chunks webpack obsolètes). Prod : PWA active. */
 export function SerwistProviderWrapper({ children }: Props) {
-  if (process.env.NODE_ENV === 'development') {
+  const disabled = useMemo(() => {
+    if (process.env.NODE_ENV === 'development') return true;
+    return process.env.NEXT_PUBLIC_SERWIST_DISABLE === 'true';
+  }, []);
+
+  type SerwistProviderComponent = React.ComponentType<{
+    children: React.ReactNode;
+    swUrl: string;
+    register?: boolean;
+    reloadOnOnline?: boolean;
+    cacheOnNavigation?: boolean;
+  }>;
+
+  const [SerwistProvider, setSerwistProvider] = useState<SerwistProviderComponent | null>(null);
+
+  useEffect(() => {
+    if (disabled) return;
+    let mounted = true;
+    import('@serwist/next/react')
+      .then((mod) => {
+        if (!mounted) return;
+        setSerwistProvider(() => mod.SerwistProvider as SerwistProviderComponent);
+      })
+      .catch(() => {
+        // Si Serwist casse en runtime, on préfère ne pas bloquer l'app.
+        setSerwistProvider(null);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [disabled]);
+
+  if (disabled || !SerwistProvider) {
     return children;
   }
 
   return (
-    <SerwistProvider
-      swUrl="/sw.js"
-      register
-      reloadOnOnline
-      cacheOnNavigation
-    >
-      {children}
-    </SerwistProvider>
+    <Suspense fallback={children}>
+      <SerwistProvider swUrl="/sw.js" register reloadOnOnline cacheOnNavigation>
+        {children}
+      </SerwistProvider>
+    </Suspense>
   );
 }

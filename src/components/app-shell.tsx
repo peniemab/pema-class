@@ -1,5 +1,6 @@
 import { AppSidebar } from '@/components/app-sidebar';
 import { SchoolShellMain } from '@/components/school/mobile/school-shell-main';
+import { PlatformShellMain } from '@/components/platform/mobile/platform-shell-main';
 
 type AppShellProps = {
   variant: 'platform' | 'school' | 'app';
@@ -10,6 +11,9 @@ type AppShellProps = {
 export function AppShell({ variant, title, children }: AppShellProps) {
   if (variant === 'school') {
     return <SchoolShellMain>{children}</SchoolShellMain>;
+  }
+  if (variant === 'platform') {
+    return <PlatformShellMain>{children}</PlatformShellMain>;
   }
 
   return (

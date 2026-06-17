@@ -1,5 +1,5 @@
-import { PlatformShell } from '@/components/platform/platform-shell';
-import { requireSuperadmin, requireSession } from '@/lib/auth/require-role';
+import { requireSuperadmin } from '@/lib/auth/require-role';
+import { AppShell } from '@/components/app-shell';
 
 export default async function PlatformLayout({
   children,
@@ -7,11 +7,6 @@ export default async function PlatformLayout({
   children: React.ReactNode;
 }>) {
   await requireSuperadmin();
-  const { email } = await requireSession();
 
-  return (
-    <PlatformShell user={{ email }}>
-      {children}
-    </PlatformShell>
-  );
+  return <AppShell variant="platform">{children}</AppShell>;
 }
