@@ -3,7 +3,16 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from '@/lib/env';
 
 /** Routes accessibles sans session (inscription par lien d'invitation incluse). */
-const PUBLIC_PATHS = ['/', '/register', '/join', '/logout', '/~offline'];
+const PUBLIC_PATHS = [
+  '/',
+  '/register',
+  '/join',
+  '/logout',
+  '/~offline',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+  '/auth/callback',
+];
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.includes(pathname)) return true;

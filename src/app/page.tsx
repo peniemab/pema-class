@@ -7,11 +7,12 @@ import { LoginLegalFooter } from '@/components/auth/login-legal-footer';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { brand } from '@/lib/brand';
 
-type PageProps = { searchParams: Promise<{ error?: string }> };
+type PageProps = { searchParams: Promise<{ error?: string; password_reset?: string }> };
 
 export default async function LoginPage({ searchParams }: PageProps) {
-  const { error } = await searchParams;
+  const { error, password_reset } = await searchParams;
   const noProfile = error === 'no_profile';
+  const resetOk = password_reset === '1';
 
   return (
     <main className="grid min-h-dvh bg-background lg:grid-cols-2">
@@ -52,6 +53,14 @@ export default async function LoginPage({ searchParams }: PageProps) {
                   Compte connecté sans profil établissement. Contactez
                   l&apos;administrateur plateforme ou utilisez votre lien
                   d&apos;invitation.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {resetOk && (
+              <Alert>
+                <AlertDescription>
+                  Mot de passe mis à jour. Connectez-vous avec votre e-mail et votre nouveau mot de passe.
                 </AlertDescription>
               </Alert>
             )}

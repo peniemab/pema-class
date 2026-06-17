@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PasswordInput } from '@/components/ui/password-input';
+import Link from 'next/link';
 
 export function ProfessionalLoginForm() {
   const router = useRouter();
@@ -79,6 +80,15 @@ export function ProfessionalLoginForm() {
         {submitting ? 'Connexion…' : 'Se connecter'}
         {!submitting && <ArrowRight className="size-4" aria-hidden />}
       </Button>
+
+      <div className="text-center text-sm">
+        <Link
+          href="/auth/forgot-password"
+          className="font-medium text-primary underline-offset-4 hover:underline"
+        >
+          Mot de passe oublié ?
+        </Link>
+      </div>
     </form>
   );
 }
