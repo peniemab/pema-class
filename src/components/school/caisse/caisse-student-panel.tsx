@@ -36,6 +36,23 @@ type Props = {
   payments: PaymentHistoryRow[];
   scolariteSummary?: ScolaritePoolSummary | null;
   caisseBasePath: '/school/caisse' | '/app/caisse';
+  onRecordPayment?: (input: {
+    feeId: string;
+    amount: number;
+  }) => Promise<
+    | {
+        ok: true;
+        paymentId: string;
+        receiptNumber: string;
+        amountPaid: number;
+        currency: string;
+        feeName: string;
+        amountRemaining: number;
+        pendingSync?: boolean;
+      }
+    | { ok: false; error: string }
+  >;
+  pendingPaymentIds?: Set<string>;
 };
 
 type LastReceipt = {
@@ -45,6 +62,7 @@ type LastReceipt = {
   remainingLabel: string | null;
   feeName: string;
   document?: PaymentReceiptDocument | null;
+  pendingSync?: boolean;
 };
 
 function defaultAmountForFee(fee: StudentFeeBalance): string {
@@ -62,6 +80,8 @@ export function CaisseStudentPanel({
   payments,
   scolariteSummary = null,
   caisseBasePath,
+  onRecordPayment,
+  pendingPaymentIds,
 }: Props) {
   const { refresh } = useSchoolRefresh();
   const [pendingFeeId, setPendingFeeId] = useState<string | null>(null);
@@ -151,12 +171,17 @@ export function CaisseStudentPanel({
     }
 
     setPendingFeeId(fee.fee_id);
-    const result = await recordPaymentAction({
-      studentId,
-      feeId: fee.fee_id,
-      amount,
-      caisseBasePath,
-    });
+    const result = onRecordPayment
+      ? await onRecordPayment({
+          feeId: fee.fee_id,
+          amount,
+        })
+      : await recordPaymentAction({
+          studentId,
+          feeId: fee.fee_id,
+          amount,
+          caisseBasePath,
+        });
     setPendingFeeId(null);
     if (!result.ok) {
       setError(result.error);
@@ -167,15 +192,21 @@ export function CaisseStudentPanel({
         ? formatFeeAmount(result.amountPaid, result.currency)
         : '';
     const remainingAfter =
-      result.amountPaid != null && result.currency
-        ? Math.max(0, fee.amount_remaining - result.amountPaid)
-        : 0;
+      'amountRemaining' in result && result.amountRemaining != null
+        ? result.amountRemaining
+        : result.amountPaid != null && result.currency
+          ? Math.max(0, fee.amount_remaining - result.amountPaid)
+          : 0;
     const remainingLabel =
       remainingAfter > 0.001 && result.currency
         ? formatFeeAmount(remainingAfter, result.currency)
         : null;
     if (result.paymentId && result.receiptNumber) {
-      const receiptDoc = await loadPaymentReceiptDocument(result.paymentId);
+      const pendingSync =
+        'pendingSync' in result ? result.pendingSync : false;
+      const receiptDoc = pendingSync
+        ? null
+        : await loadPaymentReceiptDocument(result.paymentId);
       setLastReceipt({
         paymentId: result.paymentId,
         receiptNumber: result.receiptNumber,
@@ -183,9 +214,12 @@ export function CaisseStudentPanel({
         remainingLabel,
         feeName: result.feeName ?? '',
         document: receiptDoc,
+        pendingSync,
       });
     }
-    refresh();
+    if (!onRecordPayment) {
+      refresh();
+    }
   }
 
   function renderFeeRowActions(fee: StudentFeeBalance) {
@@ -296,13 +330,20 @@ export function CaisseStudentPanel({
                     <span className="mt-1 block font-mono text-xs">
                       {lastReceipt.receiptNumber}
                     </span>
+                    {lastReceipt.pendingSync ? (
+                      <span className="mt-1 block text-xs text-amber-600">
+                        Reçu imprimable après synchronisation.
+                      </span>
+                    ) : null}
                   </p>
                 </div>
               </div>
-              <ReceiptPrintButton
-                paymentId={lastReceipt.paymentId}
-                preloaded={lastReceipt.document}
-              />
+              {lastReceipt.pendingSync ? null : (
+                <ReceiptPrintButton
+                  paymentId={lastReceipt.paymentId}
+                  preloaded={lastReceipt.document}
+                />
+              )}
             </div>
           </AlertDescription>
         </Alert>
@@ -434,11 +475,17 @@ export function CaisseStudentPanel({
                         {p.receipt_number}
                       </td>
                       <td className="px-3 py-2.5">
-                        <ReceiptPrintButton
-                          paymentId={p.id}
-                          label="Imprimer"
-                          variant="outline"
-                        />
+                        {pendingPaymentIds?.has(p.id) ? (
+                          <span className="text-xs text-muted-foreground">
+                            À synchroniser
+                          </span>
+                        ) : (
+                          <ReceiptPrintButton
+                            paymentId={p.id}
+                            label="Imprimer"
+                            variant="outline"
+                          />
+                        )}
                       </td>
                     </tr>
                   ))}

@@ -393,6 +393,21 @@ async function fetchStudentById(
 
 export const getStudentById = cache(fetchStudentById);
 
+export async function getStudentByMatricule(
+  schoolId: string,
+  matricule: string,
+): Promise<StudentRow | null> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('students')
+    .select(STUDENT_COLUMNS)
+    .eq('school_id', schoolId)
+    .eq('matricule', matricule.trim().toUpperCase())
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data as StudentRow | null) ?? null;
+}
+
 export async function getStudentEnrollmentForYear(
   schoolId: string,
   studentId: string,

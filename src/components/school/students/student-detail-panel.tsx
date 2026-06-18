@@ -250,23 +250,13 @@ export function StudentDetailPanel({
               </section>
 
               <Link
-                href={`/school/eleves/${studentId}`}
-                className="flex items-center justify-center gap-2 rounded-xl border border-wa-divider bg-wa-panel px-4 py-3 text-sm font-medium text-wa-accent transition-colors hover:bg-wa-row-hover aria-disabled:pointer-events-none aria-disabled:opacity-50"
-                aria-disabled={!online || isPending}
-                title={
-                  !online
-                    ? 'Nécessite une connexion'
-                    : isPending
-                      ? 'Synchronisez d’abord cet élève'
-                      : 'Caisse, impression'
-                }
+                href={`/school/caisse/${studentId}`}
+                className="flex items-center justify-center gap-2 rounded-xl border border-wa-divider bg-wa-panel px-4 py-3 text-sm font-medium text-wa-accent transition-colors hover:bg-wa-row-hover"
               >
                 <ExternalLink className="size-4" aria-hidden />
-                {!online
-                  ? 'Fiche complète — connexion requise'
-                  : isPending
-                    ? 'Caisse — après synchronisation'
-                    : 'Caisse et impression'}
+                {isPending
+                  ? 'Encaisser (sync en arrière-plan)'
+                  : 'Caisse et impression'}
               </Link>
             </div>
           )}

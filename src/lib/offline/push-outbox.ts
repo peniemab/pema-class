@@ -5,23 +5,36 @@ import {
   saveMutationServerId,
   updateOutboxMutation,
 } from '@/lib/offline/outbox-repo';
+import { saveCaisseSnapshot } from '@/lib/offline/caisse-repo';
 import { saveStudentsSnapshot } from '@/lib/offline/students-repo';
+import type { CaisseSnapshot } from '@/lib/offline/caisse-snapshot';
 import type { StudentsSnapshot } from '@/lib/offline/students-snapshot';
 import type {
   EnrollPushResult,
   MutationPushResult,
   OutboxMutation,
+  PayPushResult,
 } from '@/lib/offline/outbox-types';
 import { getOfflineDb } from '@/lib/offline/db';
 
 const MAX_ATTEMPTS = 8;
 
-async function pullSnapshot(): Promise<void> {
+async function pullCaisseSnapshot(): Promise<void> {
+  const res = await fetch('/api/sync/caisse', {
+    cache: 'no-store',
+    credentials: 'same-origin',
+  });
+  if (!res.ok) throw new Error(`Pull caisse HTTP ${res.status}`);
+  const snapshot = (await res.json()) as CaisseSnapshot;
+  await saveCaisseSnapshot(snapshot);
+}
+
+async function pullStudentsSnapshot(): Promise<void> {
   const res = await fetch('/api/sync/students', {
     cache: 'no-store',
     credentials: 'same-origin',
   });
-  if (!res.ok) throw new Error(`Pull HTTP ${res.status}`);
+  if (!res.ok) return;
   const snapshot = (await res.json()) as StudentsSnapshot;
   await saveStudentsSnapshot(snapshot);
 }
@@ -75,6 +88,29 @@ async function pushUpdateMutation(
   return body;
 }
 
+async function pushPayMutation(
+  mutation: OutboxMutation,
+  studentId: string,
+): Promise<PayPushResult> {
+  if (mutation.type !== 'pay_fee') {
+    throw new Error('Type mutation invalide.');
+  }
+  const res = await fetch('/api/sync/pay', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      mutationId: mutation.id,
+      payload: { ...mutation.payload, studentId },
+    }),
+  });
+  const body = (await res.json()) as PayPushResult & { error?: string };
+  if (!res.ok) {
+    throw new Error(body.error ?? `Push HTTP ${res.status}`);
+  }
+  return body;
+}
+
 /** Supprime les brouillons locaux (MAT-P / id mutation) après sync réussie. */
 async function purgeOptimisticStudent(mutationId: string): Promise<void> {
   const db = getOfflineDb();
@@ -87,6 +123,22 @@ async function purgeOptimisticStudent(mutationId: string): Promise<void> {
       .primaryKeys();
     await db.contacts.bulkDelete(contactIds);
   });
+}
+
+async function purgeOptimisticPayment(mutationId: string): Promise<void> {
+  await getOfflineDb().payments.delete(mutationId);
+}
+
+async function resolveStudentIdForPay(
+  localStudentId: string,
+): Promise<string> {
+  const mapped = await getMutationServerId(localStudentId);
+  if (mapped) return mapped;
+
+  const student = await getOfflineDb().students.get(localStudentId);
+  if (student?.sync_status === 'synced') return localStudentId;
+
+  return localStudentId;
 }
 
 async function processMutation(mutation: OutboxMutation): Promise<void> {
@@ -106,6 +158,15 @@ async function processMutation(mutation: OutboxMutation): Promise<void> {
     return;
   }
 
+  if (mutation.type === 'pay_fee') {
+    await updateOutboxMutation(mutation.id, { status: 'processing' });
+    const studentId = await resolveStudentIdForPay(mutation.payload.studentId);
+    await pushPayMutation(mutation, studentId);
+    await purgeOptimisticPayment(mutation.id);
+    await removeOutboxMutation(mutation.id);
+    return;
+  }
+
   await updateOutboxMutation(mutation.id, { status: 'processing' });
   await pushUpdateMutation(mutation);
   await removeOutboxMutation(mutation.id);
@@ -113,7 +174,7 @@ async function processMutation(mutation: OutboxMutation): Promise<void> {
 
 /**
  * Pousse les mutations outbox vers le cloud (retry + idempotence mapping).
- * Puis pull snapshot pour réconciliation.
+ * Puis pull snapshot caisse pour réconciliation.
  */
 export async function pushOutbox(schoolId: string): Promise<{
   pushed: number;
@@ -127,10 +188,12 @@ export async function pushOutbox(schoolId: string): Promise<{
   let pushed = 0;
   let failed = 0;
 
-  // Inscriptions d'abord (les mises à jour fusionnées dans le brouillon suivent).
   const ordered = [
     ...pending.filter((m) => m.type === 'register_student'),
-    ...pending.filter((m) => m.type !== 'register_student'),
+    ...pending.filter(
+      (m) => m.type !== 'register_student' && m.type !== 'pay_fee',
+    ),
+    ...pending.filter((m) => m.type === 'pay_fee'),
   ];
 
   for (const mutation of ordered) {
@@ -151,7 +214,8 @@ export async function pushOutbox(schoolId: string): Promise<{
 
   if (pushed > 0) {
     try {
-      await pullSnapshot();
+      await pullCaisseSnapshot();
+      await pullStudentsSnapshot();
     } catch {
       // Le push a réussi ; le pull suivra au prochain cycle.
     }

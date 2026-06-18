@@ -160,7 +160,7 @@ export function OfflineEnrollStudentForm({
     setSuccess(
       `Élève enregistré hors ligne (${result.matricule}). Synchronisation à la reconnexion.`,
     );
-    router.push('/school/eleves');
+    router.push(`/school/caisse/${result.studentId}?nouveau=1`);
   }
 
   if (classes.length === 0) {

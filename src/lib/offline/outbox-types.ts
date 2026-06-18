@@ -89,17 +89,40 @@ export type TransferClassMutation = OutboxMutationBase & {
   payload: TransferClassPayload;
 };
 
+export type PayFeePayload = {
+  studentId: string;
+  studentMatricule: string | null;
+  feeId: string;
+  amount: number;
+  currency: string;
+  receiptNumber: string;
+};
+
+export type PayFeeMutation = OutboxMutationBase & {
+  type: 'pay_fee';
+  payload: PayFeePayload;
+};
+
 export type OutboxMutation =
   | RegisterStudentMutation
   | UpdateStudentMutation
   | UpdateContactsMutation
-  | TransferClassMutation;
+  | TransferClassMutation
+  | PayFeeMutation;
 
 export type EnrollPushResult = {
   studentId: string;
   matricule: string;
   className: string;
   classLevel: string;
+};
+
+export type PayPushResult = {
+  paymentId: string;
+  receiptNumber: string;
+  amountPaid: number;
+  currency: string;
+  feeName: string;
 };
 
 export type MutationPushResult = {

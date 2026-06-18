@@ -121,12 +121,57 @@ export async function listStudentPayments(
   return payments;
 }
 
+export async function listPaymentsForYearFees(
+  schoolId: string,
+  academicYearLabel: string,
+): Promise<PaymentHistoryRow[]> {
+  const fees = await listFeesForAcademicYearLabel(schoolId, academicYearLabel);
+  if (fees.length === 0) return [];
+
+  const feeIds = fees.map((f) => f.id);
+  const feeById = new Map(fees.map((f) => [f.id, f]));
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('payments_history')
+    .select(
+      'id, student_id, fee_id, amount_paid, currency, receipt_number, created_at',
+    )
+    .in('fee_id', feeIds)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+
+  return (data ?? []).map((row) => {
+    const raw = row as {
+      id: string;
+      student_id: string;
+      fee_id: string;
+      amount_paid: number;
+      currency: string;
+      receipt_number: string;
+      created_at: string;
+    };
+    return {
+      id: raw.id,
+      student_id: raw.student_id,
+      fee_id: raw.fee_id,
+      amount_paid: Number(raw.amount_paid),
+      currency: raw.currency,
+      receipt_number: raw.receipt_number,
+      created_at: raw.created_at,
+      fee_name: feeById.get(raw.fee_id)?.name ?? '—',
+    };
+  });
+}
+
 export async function recordPayment(input: {
   schoolId: string;
   studentId: string;
   feeId: string;
   userId: string;
   amount: number;
+  /** Idempotence sync hors ligne (spec : fusion par receipt_number). */
+  receiptNumber?: string;
 }): Promise<{
   paymentId: string;
   receiptNumber: string;
@@ -213,7 +258,7 @@ export async function recordPayment(input: {
     );
   }
 
-  const receiptNumber = `REC-${randomUUID()}`;
+  const receiptNumber = input.receiptNumber ?? `REC-${randomUUID()}`;
   const displayBalance = balance ?? {
     fee_id: input.feeId,
     fee_name: fee.name as string,

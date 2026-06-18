@@ -1,4 +1,8 @@
-import { CaisseStudentPage } from '@/components/school/caisse/caisse-student-page';
+import { requireSchoolFinance } from '@/lib/auth/require-role';
+import { getCaisseSnapshot } from '@/lib/offline/caisse-snapshot';
+import { OfflineCaisseStudentView } from '@/components/school/caisse/offline-caisse-student-view';
+
+export const dynamic = 'force-dynamic';
 
 type Props = {
   params: Promise<{ studentId: string }>;
@@ -9,13 +13,24 @@ export default async function SchoolCaisseStudentPage({
   params,
   searchParams,
 }: Props) {
+  const { schoolId } = await requireSchoolFinance();
   const { studentId } = await params;
   const { nouveau } = await searchParams;
+
+  let initialSnapshot = null;
+  try {
+    initialSnapshot = await getCaisseSnapshot(schoolId);
+  } catch {
+    initialSnapshot = null;
+  }
+
   return (
-    <CaisseStudentPage
+    <OfflineCaisseStudentView
+      schoolId={schoolId}
       studentId={studentId}
       caisseBasePath="/school/caisse"
       isNewEnrollment={nouveau === '1'}
+      initialSnapshot={initialSnapshot}
     />
   );
 }
