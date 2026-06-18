@@ -162,6 +162,7 @@ export async function enrollStudentLocally(
   const mutation: OutboxMutation = {
     id: mutationId,
     school_id: input.schoolId,
+    entity_id: mutationId,
     type: 'register_student',
     payload,
     created_at: now,

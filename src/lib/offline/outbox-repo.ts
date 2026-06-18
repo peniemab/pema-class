@@ -48,6 +48,38 @@ export async function getMutationServerId(
   return (row?.value as string | undefined) ?? null;
 }
 
+export async function findPendingMutation(
+  schoolId: string,
+  entityId: string,
+  type: OutboxMutation['type'],
+): Promise<OutboxMutation | undefined> {
+  const rows = await getOfflineDb()
+    .outbox.where('school_id')
+    .equals(schoolId)
+    .filter(
+      (m) =>
+        m.entity_id === entityId &&
+        m.type === type &&
+        (m.status === 'pending' || m.status === 'error'),
+    )
+    .toArray();
+  return rows[0];
+}
+
+export async function replaceOrAddMutation(
+  mutation: OutboxMutation,
+): Promise<void> {
+  const existing = await findPendingMutation(
+    mutation.school_id,
+    mutation.entity_id,
+    mutation.type,
+  );
+  if (existing && existing.type === mutation.type) {
+    await getOfflineDb().outbox.delete(existing.id);
+  }
+  await getOfflineDb().outbox.put(mutation);
+}
+
 export async function saveMutationServerId(
   mutationId: string,
   serverStudentId: string,

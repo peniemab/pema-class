@@ -105,6 +105,33 @@ export class PemaOfflineDB extends Dexie {
       contacts: 'id, student_id, school_id, sync_status',
       outbox: 'id, school_id, type, status, created_at',
     });
+    this.version(4)
+      .stores({
+        students: 'id, school_id, last_name, status, class_id, sync_status',
+        classes: 'id, school_id, academic_year_id, level',
+        meta: 'key, school_id, scope',
+        studentDetails: 'id, school_id, sync_status',
+        contacts: 'id, student_id, school_id, sync_status',
+        outbox: 'id, school_id, entity_id, type, status, created_at',
+      })
+      .upgrade((tx) =>
+        tx
+          .table('outbox')
+          .toCollection()
+          .modify((m: OutboxMutation & { entity_id?: string }) => {
+            if (!m.entity_id) {
+              if (m.type === 'register_student') {
+                m.entity_id = m.id;
+              } else if (
+                m.type === 'update_student' ||
+                m.type === 'update_student_contacts' ||
+                m.type === 'transfer_student_class'
+              ) {
+                m.entity_id = m.payload.studentId;
+              }
+            }
+          }),
+      );
   }
 }
 

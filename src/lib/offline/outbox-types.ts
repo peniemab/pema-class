@@ -17,7 +17,6 @@ export type RegisterStudentPayload = {
   student: {
     first_name: string;
     last_name: string;
-    /** MAT-P-… en local si auto ; matricule saisi sinon. */
     matricule: string | null;
     autoMatricule: boolean;
     birth_date: string | null;
@@ -29,21 +28,81 @@ export type RegisterStudentPayload = {
   contacts: RegisterStudentContact[];
 };
 
-export type OutboxMutation = {
-  /** UUID — sert aussi d'id optimiste de l'élève en local. */
+export type UpdateStudentPayload = {
+  studentId: string;
+  first_name: string;
+  last_name: string;
+  matricule: string | null;
+  birth_date: string | null;
+  lieu_naissance: string | null;
+  ecole_provenance: string | null;
+  gender: string | null;
+  address: string | null;
+  status: 'active' | 'inactive';
+};
+
+export type UpdateContactsPayload = {
+  studentId: string;
+  contacts: RegisterStudentContact[];
+};
+
+export type TransferClassPayload = {
+  studentId: string;
+  academicYearId: string;
+  classId: string;
+  className: string;
+  classLevel: string;
+  classCycle: string | null;
+  previousClassId: string | null;
+};
+
+export type OutboxStatus = 'pending' | 'processing' | 'done' | 'error';
+
+export type OutboxMutationBase = {
   id: string;
   school_id: string;
-  type: 'register_student';
-  payload: RegisterStudentPayload;
+  /** Élève concerné (coalescence des mises à jour). */
+  entity_id: string;
   created_at: string;
   attempts: number;
   last_error: string | null;
-  status: 'pending' | 'processing' | 'done' | 'error';
+  status: OutboxStatus;
 };
+
+export type RegisterStudentMutation = OutboxMutationBase & {
+  type: 'register_student';
+  payload: RegisterStudentPayload;
+};
+
+export type UpdateStudentMutation = OutboxMutationBase & {
+  type: 'update_student';
+  payload: UpdateStudentPayload;
+};
+
+export type UpdateContactsMutation = OutboxMutationBase & {
+  type: 'update_student_contacts';
+  payload: UpdateContactsPayload;
+};
+
+export type TransferClassMutation = OutboxMutationBase & {
+  type: 'transfer_student_class';
+  payload: TransferClassPayload;
+};
+
+export type OutboxMutation =
+  | RegisterStudentMutation
+  | UpdateStudentMutation
+  | UpdateContactsMutation
+  | TransferClassMutation;
 
 export type EnrollPushResult = {
   studentId: string;
   matricule: string;
   className: string;
   classLevel: string;
+};
+
+export type MutationPushResult = {
+  ok: true;
+  studentId?: string;
 };

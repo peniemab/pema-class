@@ -1,10 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ExternalLink, Phone, X } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Pencil, Phone, X } from 'lucide-react';
 import { WaAvatar } from '@/components/school/mobile/wa-avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { StudentDetailEditForm } from '@/components/school/students/student-detail-edit-form';
+import type { LocalClass } from '@/lib/offline/db';
 import { useStudentDetail } from '@/lib/offline/use-student-detail';
 import {
   classDisplayLabel,
@@ -16,9 +19,13 @@ import { SCHOOL_CYCLE_LABELS, type SchoolCycle } from '@/lib/school/referentials
 
 type Props = {
   studentId: string;
+  schoolId: string;
+  academicYearId: string | null;
   activeYearName: string | null;
+  classes: LocalClass[];
   online: boolean;
   onClose: () => void;
+  onSync: () => void;
 };
 
 function classText(level: string | null, name: string | null, cycle: string | null) {
@@ -32,19 +39,31 @@ function classText(level: string | null, name: string | null, cycle: string | nu
 
 export function StudentDetailPanel({
   studentId,
+  schoolId,
+  academicYearId,
   activeYearName,
+  classes,
   online,
   onClose,
+  onSync,
 }: Props) {
   const { detail, directory, contacts, loading } = useStudentDetail(studentId);
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    setEditing(false);
+  }, [studentId]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        if (editing) setEditing(false);
+        else onClose();
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [onClose, editing]);
 
   const lastName = detail?.last_name ?? directory?.last_name ?? '';
   const firstName = detail?.first_name ?? directory?.first_name ?? '';
@@ -56,6 +75,8 @@ export function StudentDetailPanel({
     directory?.class_cycle ?? null,
   );
   const notFound = !loading && !detail && !directory;
+  const isPending =
+    directory?.sync_status === 'pending' || detail?.sync_status === 'pending';
 
   return (
     <div
@@ -72,14 +93,28 @@ export function StudentDetailPanel({
         <header className="flex items-center gap-2 bg-wa-header px-2 py-3 text-wa-header-foreground safe-top">
           <button
             type="button"
-            onClick={onClose}
+            onClick={editing ? () => setEditing(false) : onClose}
             className="flex size-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10 active:bg-white/20"
-            aria-label="Fermer"
+            aria-label={editing ? 'Retour à la fiche' : 'Fermer'}
           >
             <ArrowLeft className="size-5 md:hidden" aria-hidden />
             <X className="hidden size-5 md:block" aria-hidden />
           </button>
-          <h2 className="min-w-0 flex-1 truncate text-lg font-medium">Fiche élève</h2>
+          <h2 className="min-w-0 flex-1 truncate text-lg font-medium">
+            {editing ? 'Modifier' : 'Fiche élève'}
+          </h2>
+          {!editing && !notFound && !loading ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-10 shrink-0 text-wa-header-foreground hover:bg-white/10"
+              onClick={() => setEditing(true)}
+              aria-label="Modifier la fiche"
+            >
+              <Pencil className="size-4" aria-hidden />
+            </Button>
+          ) : null}
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -91,6 +126,23 @@ export function StudentDetailPanel({
             <p className="px-4 py-10 text-center text-sm text-wa-text-secondary">
               Fiche introuvable dans le cache local.
             </p>
+          ) : editing ? (
+            <StudentDetailEditForm
+              schoolId={schoolId}
+              studentId={studentId}
+              academicYearId={academicYearId}
+              activeYearName={activeYearName}
+              classes={classes}
+              directory={directory}
+              detail={detail}
+              contacts={contacts}
+              online={online}
+              onCancel={() => setEditing(false)}
+              onSaved={() => {
+                setEditing(false);
+                onSync();
+              }}
+            />
           ) : (
             <div className="space-y-5 p-4">
               <div className="flex flex-col items-center gap-3 pb-2 pt-2 text-center">
@@ -101,9 +153,16 @@ export function StudentDetailPanel({
                     {matricule ?? 'Sans matricule'}
                   </p>
                 </div>
-                <Badge variant="secondary" className="font-normal">
-                  {formatStudentStatus(detail?.status ?? directory?.status)}
-                </Badge>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <Badge variant="secondary" className="font-normal">
+                    {formatStudentStatus(detail?.status ?? directory?.status)}
+                  </Badge>
+                  {isPending ? (
+                    <Badge variant="outline" className="font-normal">
+                      À synchroniser
+                    </Badge>
+                  ) : null}
+                </div>
               </div>
 
               <section className="rounded-xl border border-wa-divider bg-wa-panel">
@@ -193,17 +252,21 @@ export function StudentDetailPanel({
               <Link
                 href={`/school/eleves/${studentId}`}
                 className="flex items-center justify-center gap-2 rounded-xl border border-wa-divider bg-wa-panel px-4 py-3 text-sm font-medium text-wa-accent transition-colors hover:bg-wa-row-hover aria-disabled:pointer-events-none aria-disabled:opacity-50"
-                aria-disabled={!online}
+                aria-disabled={!online || isPending}
                 title={
-                  online
-                    ? 'Modifier, caisse, impression'
-                    : 'Nécessite une connexion'
+                  !online
+                    ? 'Nécessite une connexion'
+                    : isPending
+                      ? 'Synchronisez d’abord cet élève'
+                      : 'Caisse, impression'
                 }
               >
                 <ExternalLink className="size-4" aria-hidden />
-                {online
-                  ? 'Fiche complète (modifier, caisse, imprimer)'
-                  : 'Fiche complète — connexion requise'}
+                {!online
+                  ? 'Fiche complète — connexion requise'
+                  : isPending
+                    ? 'Caisse — après synchronisation'
+                    : 'Caisse et impression'}
               </Link>
             </div>
           )}

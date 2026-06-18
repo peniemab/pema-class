@@ -7,7 +7,11 @@ import {
 } from '@/lib/offline/outbox-repo';
 import { saveStudentsSnapshot } from '@/lib/offline/students-repo';
 import type { StudentsSnapshot } from '@/lib/offline/students-snapshot';
-import type { EnrollPushResult, OutboxMutation } from '@/lib/offline/outbox-types';
+import type {
+  EnrollPushResult,
+  MutationPushResult,
+  OutboxMutation,
+} from '@/lib/offline/outbox-types';
 import { getOfflineDb } from '@/lib/offline/db';
 
 const MAX_ATTEMPTS = 8;
@@ -25,6 +29,9 @@ async function pullSnapshot(): Promise<void> {
 async function pushEnrollMutation(
   mutation: OutboxMutation,
 ): Promise<EnrollPushResult> {
+  if (mutation.type !== 'register_student') {
+    throw new Error('Type mutation invalide.');
+  }
   const res = await fetch('/api/sync/enroll', {
     method: 'POST',
     credentials: 'same-origin',
@@ -35,6 +42,33 @@ async function pushEnrollMutation(
     }),
   });
   const body = (await res.json()) as EnrollPushResult & { error?: string };
+  if (!res.ok) {
+    throw new Error(body.error ?? `Push HTTP ${res.status}`);
+  }
+  return body;
+}
+
+async function pushUpdateMutation(
+  mutation: OutboxMutation,
+): Promise<MutationPushResult> {
+  if (
+    mutation.type !== 'update_student' &&
+    mutation.type !== 'update_student_contacts' &&
+    mutation.type !== 'transfer_student_class'
+  ) {
+    throw new Error('Type mutation invalide.');
+  }
+  const res = await fetch('/api/sync/mutation', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      type: mutation.type,
+      mutationId: mutation.id,
+      payload: mutation.payload,
+    }),
+  });
+  const body = (await res.json()) as MutationPushResult & { error?: string };
   if (!res.ok) {
     throw new Error(body.error ?? `Push HTTP ${res.status}`);
   }
@@ -55,9 +89,31 @@ async function purgeOptimisticStudent(mutationId: string): Promise<void> {
   });
 }
 
+async function processMutation(mutation: OutboxMutation): Promise<void> {
+  if (mutation.type === 'register_student') {
+    const existingServerId = await getMutationServerId(mutation.id);
+    if (existingServerId) {
+      await purgeOptimisticStudent(mutation.id);
+      await removeOutboxMutation(mutation.id);
+      return;
+    }
+
+    await updateOutboxMutation(mutation.id, { status: 'processing' });
+    const result = await pushEnrollMutation(mutation);
+    await saveMutationServerId(mutation.id, result.studentId);
+    await purgeOptimisticStudent(mutation.id);
+    await removeOutboxMutation(mutation.id);
+    return;
+  }
+
+  await updateOutboxMutation(mutation.id, { status: 'processing' });
+  await pushUpdateMutation(mutation);
+  await removeOutboxMutation(mutation.id);
+}
+
 /**
  * Pousse les mutations outbox vers le cloud (retry + idempotence mapping).
- * Puis pull snapshot pour réconciliation (spec : purge MAT-P-…).
+ * Puis pull snapshot pour réconciliation.
  */
 export async function pushOutbox(schoolId: string): Promise<{
   pushed: number;
@@ -71,24 +127,15 @@ export async function pushOutbox(schoolId: string): Promise<{
   let pushed = 0;
   let failed = 0;
 
-  for (const mutation of pending) {
-    if (mutation.type !== 'register_student') continue;
+  // Inscriptions d'abord (les mises à jour fusionnées dans le brouillon suivent).
+  const ordered = [
+    ...pending.filter((m) => m.type === 'register_student'),
+    ...pending.filter((m) => m.type !== 'register_student'),
+  ];
 
-    const existingServerId = await getMutationServerId(mutation.id);
-    if (existingServerId) {
-      await purgeOptimisticStudent(mutation.id);
-      await removeOutboxMutation(mutation.id);
-      pushed += 1;
-      continue;
-    }
-
-    await updateOutboxMutation(mutation.id, { status: 'processing' });
-
+  for (const mutation of ordered) {
     try {
-      const result = await pushEnrollMutation(mutation);
-      await saveMutationServerId(mutation.id, result.studentId);
-      await purgeOptimisticStudent(mutation.id);
-      await removeOutboxMutation(mutation.id);
+      await processMutation(mutation);
       pushed += 1;
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Erreur de synchronisation';

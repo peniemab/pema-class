@@ -283,9 +283,13 @@ export function OfflineStudentsView({ schoolId, initialSnapshot }: Props) {
       {selectedId ? (
         <StudentDetailPanel
           studentId={selectedId}
+          schoolId={schoolId}
+          academicYearId={activeYear?.id ?? null}
           activeYearName={activeYear?.name ?? null}
+          classes={sortedClasses}
           online={online}
           onClose={closeStudent}
+          onSync={refresh}
         />
       ) : null}
     </div>
