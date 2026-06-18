@@ -8,6 +8,8 @@ import {
   saveStudentsSnapshot,
   type StudentsSyncState,
 } from '@/lib/offline/students-repo';
+import { countPendingOutbox } from '@/lib/offline/outbox-repo';
+import { pushOutbox } from '@/lib/offline/push-outbox';
 import type { LocalStudent, LocalClass } from '@/lib/offline/db';
 import type { StudentsSnapshot } from '@/lib/offline/students-snapshot';
 
@@ -19,6 +21,7 @@ export type StudentsSyncResult = {
   state: StudentsSyncState | null | undefined;
   phase: SyncPhase;
   online: boolean;
+  pendingCount: number;
   refresh: () => void;
 };
 
@@ -33,8 +36,7 @@ async function pullSnapshot(): Promise<void> {
 }
 
 /**
- * Lecture locale (instantanée) + pull cloud en arrière-plan.
- * Façon Contacts : l'écran s'affiche depuis IndexedDB, la sync suit.
+ * Pull cloud + push outbox + lecture locale (instantanée).
  */
 export function useStudentsSync(schoolId: string): StudentsSyncResult {
   const [phase, setPhase] = useState<SyncPhase>('idle');
@@ -49,6 +51,10 @@ export function useStudentsSync(schoolId: string): StudentsSyncResult {
     [schoolId],
   );
   const state = useLiveQuery(() => readStudentsSyncState(schoolId), [schoolId]);
+  const pendingCount = useLiveQuery(
+    () => countPendingOutbox(schoolId),
+    [schoolId],
+  );
 
   const refresh = useCallback(() => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -56,10 +62,11 @@ export function useStudentsSync(schoolId: string): StudentsSyncResult {
       return;
     }
     setPhase('syncing');
-    pullSnapshot()
+    pushOutbox(schoolId)
+      .then(() => pullSnapshot())
       .then(() => setPhase('idle'))
       .catch(() => setPhase('error'));
-  }, []);
+  }, [schoolId]);
 
   useEffect(() => {
     setOnline(navigator.onLine);
@@ -80,5 +87,13 @@ export function useStudentsSync(schoolId: string): StudentsSyncResult {
     refresh();
   }, [refresh]);
 
-  return { students, classes, state, phase, online, refresh };
+  return {
+    students,
+    classes,
+    state,
+    phase,
+    online,
+    pendingCount: pendingCount ?? 0,
+    refresh,
+  };
 }

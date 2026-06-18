@@ -24,7 +24,7 @@ type Props = {
 };
 
 export function OfflineStudentsView({ schoolId, initialSnapshot }: Props) {
-  const { students, classes, state, phase, online, refresh } =
+  const { students, classes, state, phase, online, pendingCount, refresh } =
     useStudentsSync(schoolId);
 
   const [search, setSearch] = useState('');
@@ -55,6 +55,14 @@ export function OfflineStudentsView({ schoolId, initialSnapshot }: Props) {
     () => filterLocalStudents(allStudents, filters),
     [allStudents, filters],
   );
+
+  const pendingIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of allStudents) {
+      if (s.sync_status === 'pending') set.add(s.id);
+    }
+    return set;
+  }, [allStudents]);
 
   const stats = useMemo(() => {
     const active = allStudents.filter((s) => s.status === 'active');
@@ -119,6 +127,7 @@ export function OfflineStudentsView({ schoolId, initialSnapshot }: Props) {
           phase={phase}
           online={online}
           lastSyncAt={state?.lastSyncAt}
+          pendingCount={pendingCount}
           onRefresh={refresh}
         />
       </div>
@@ -265,6 +274,7 @@ export function OfflineStudentsView({ schoolId, initialSnapshot }: Props) {
             <StudentsTable
               rows={filtered.map(toDirectoryRow)}
               onSelect={openStudent}
+              pendingIds={pendingIds}
             />
           )}
         </>

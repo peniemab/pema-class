@@ -1,4 +1,5 @@
 import Dexie, { type Table } from 'dexie';
+import type { OutboxMutation } from '@/lib/offline/outbox-types';
 
 /**
  * Base locale (IndexedDB) — cache hors ligne façon Contacts iPhone.
@@ -80,6 +81,7 @@ export class PemaOfflineDB extends Dexie {
   meta!: Table<LocalMeta, string>;
   studentDetails!: Table<LocalStudentDetail, string>;
   contacts!: Table<LocalContact, string>;
+  outbox!: Table<OutboxMutation, string>;
 
   constructor() {
     super('pema-offline');
@@ -94,6 +96,14 @@ export class PemaOfflineDB extends Dexie {
       meta: 'key, school_id, scope',
       studentDetails: 'id, school_id, sync_status',
       contacts: 'id, student_id, school_id, sync_status',
+    });
+    this.version(3).stores({
+      students: 'id, school_id, last_name, status, class_id, sync_status',
+      classes: 'id, school_id, academic_year_id, level',
+      meta: 'key, school_id, scope',
+      studentDetails: 'id, school_id, sync_status',
+      contacts: 'id, student_id, school_id, sync_status',
+      outbox: 'id, school_id, type, status, created_at',
     });
   }
 }

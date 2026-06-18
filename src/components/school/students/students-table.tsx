@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { WaAvatar } from '@/components/school/mobile/wa-avatar';
 import { WaLabel } from '@/components/school/mobile/wa-label';
 import { WaList, WaListRow } from '@/components/school/mobile/wa-list-row';
@@ -14,6 +13,8 @@ type Props = {
   rows: StudentDirectoryRow[];
   /** Si fourni, le clic ouvre un panneau (offline) au lieu de naviguer. */
   onSelect?: (id: string) => void;
+  /** ids d'élèves en attente de sync (sync_status pending). */
+  pendingIds?: Set<string>;
 };
 
 function classLabel(row: StudentDirectoryRow): string {
@@ -27,8 +28,18 @@ function classLabel(row: StudentDirectoryRow): string {
   return base;
 }
 
-function studentLabels(row: StudentDirectoryRow) {
+function studentLabels(
+  row: StudentDirectoryRow,
+  isPending: boolean,
+) {
   const labels: React.ReactNode[] = [];
+  if (isPending) {
+    labels.push(
+      <WaLabel key="pending" tone="amber">
+        À synchroniser
+      </WaLabel>,
+    );
+  }
   if (!row.class_id) {
     labels.push(
       <WaLabel key="unassigned" tone="amber">
@@ -48,7 +59,7 @@ function studentLabels(row: StudentDirectoryRow) {
   ) : null;
 }
 
-export function StudentsTable({ rows, onSelect }: Props) {
+export function StudentsTable({ rows, onSelect, pendingIds }: Props) {
   if (rows.length === 0) {
     return (
       <p className="px-4 py-10 text-center text-sm text-wa-text-secondary">
@@ -61,6 +72,7 @@ export function StudentsTable({ rows, onSelect }: Props) {
     <WaList>
       {rows.map((row) => {
         const name = studentFullName(row.last_name, row.first_name);
+        const isPending = pendingIds?.has(row.id) ?? false;
         return (
           <WaListRow
             key={row.id}
@@ -73,7 +85,7 @@ export function StudentsTable({ rows, onSelect }: Props) {
                 <span className="block truncate">
                   {row.matricule ?? '—'} · {classLabel(row)}
                 </span>
-                {studentLabels(row)}
+                {studentLabels(row, isPending)}
               </>
             }
           />

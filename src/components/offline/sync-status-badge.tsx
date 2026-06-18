@@ -8,6 +8,7 @@ type Props = {
   phase: SyncPhase;
   online: boolean;
   lastSyncAt: string | null | undefined;
+  pendingCount?: number;
   onRefresh?: () => void;
   className?: string;
 };
@@ -28,6 +29,7 @@ export function SyncStatusBadge({
   phase,
   online,
   lastSyncAt,
+  pendingCount = 0,
   onRefresh,
   className,
 }: Props) {
@@ -37,7 +39,14 @@ export function SyncStatusBadge({
 
   if (!online) {
     icon = <CloudOff className="size-3.5" aria-hidden />;
-    label = `Hors ligne · ${relativeTime(lastSyncAt)}`;
+    label =
+      pendingCount > 0
+        ? `Hors ligne · ${pendingCount} en attente`
+        : `Hors ligne · ${relativeTime(lastSyncAt)}`;
+    tone = 'text-amber-600';
+  } else if (pendingCount > 0 && phase !== 'syncing') {
+    icon = <Loader2 className="size-3.5" aria-hidden />;
+    label = `${pendingCount} en attente`;
     tone = 'text-amber-600';
   } else if (phase === 'syncing') {
     icon = <Loader2 className="size-3.5 animate-spin" aria-hidden />;
