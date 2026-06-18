@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireSchoolDirection } from '@/lib/auth/require-role';
+import { requireSchoolEnrollment } from '@/lib/auth/require-role';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { enrollStudent } from '@/lib/db/students';
 import type { RegisterStudentPayload } from '@/lib/offline/outbox-types';
@@ -18,7 +18,7 @@ function isUniqueViolation(message: string): boolean {
 
 /** Pousse une inscription locale (outbox) vers Supabase. */
 export async function POST(request: Request) {
-  const { schoolId } = await requireSchoolDirection();
+  const { schoolId } = await requireSchoolEnrollment();
 
   let body: Body;
   try {

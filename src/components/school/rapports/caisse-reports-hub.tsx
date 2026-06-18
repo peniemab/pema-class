@@ -6,7 +6,15 @@ import {
   SettingsPanelGroup,
 } from '@/components/school/settings-panel';
 
-export function CaisseReportsHub() {
+import { SCHOOL_REPORTS_BASE, reportHref } from '@/lib/navigation/reports-paths';
+
+type Props = {
+  reportsBase?: string;
+};
+
+export function CaisseReportsHub({
+  reportsBase = SCHOOL_REPORTS_BASE,
+}: Props = {}) {
   return (
     <div className="mx-auto max-w-2xl space-y-4 pb-8">
       <SettingsLargeTitle
@@ -16,7 +24,7 @@ export function CaisseReportsHub() {
 
       <SettingsPanelGroup>
         <Link
-          href="/school/rapports/caisse/journal"
+          href={reportHref(reportsBase, 'caisse', 'journal')}
           className="flex w-full min-h-[4.25rem] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50 active:bg-muted/70"
         >
           <SettingsIcon tone="indigo">

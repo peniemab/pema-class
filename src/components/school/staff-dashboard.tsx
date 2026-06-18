@@ -1,11 +1,14 @@
-import { ClipboardCheck, LogOut, Wallet } from 'lucide-react';
+import { ClipboardCheck, FileBarChart, GraduationCap, LogOut, Users, Wallet } from 'lucide-react';
 import {
   ATTENDANCE_ROLES,
+  ENROLLMENT_ROLES,
   FINANCE_ROLES,
+  REPORT_ROLES,
+  isOfficeStaffRole,
   staffRoleLabel,
   type StaffRole,
 } from '@/lib/auth/types';
-import type { DashboardPageData } from '@/lib/db/dashboard-page';
+import type { StaffDashboardPageData } from '@/lib/school/load-staff-dashboard-page';
 import { APP_LOGOUT_ITEM } from '@/lib/navigation/app-nav';
 import { WaBusinessProfileCard } from '@/components/school/mobile/wa-business-profile-card';
 import {
@@ -22,11 +25,11 @@ import {
 } from '@/lib/school/fee-currencies';
 
 type Props = {
-  data: DashboardPageData;
+  data: StaffDashboardPageData;
   role: StaffRole;
 };
 
-function treasuryAmounts(data: DashboardPageData, currency: FeeCurrency) {
+function treasuryAmounts(data: StaffDashboardPageData, currency: FeeCurrency) {
   if (currency === 'USD') {
     return {
       collected: data.totalCollectedUsd,
@@ -44,6 +47,11 @@ function treasuryAmounts(data: DashboardPageData, currency: FeeCurrency) {
 export function StaffDashboard({ data, role }: Props) {
   const canAttendance = ATTENDANCE_ROLES.includes(role);
   const canFinance = FINANCE_ROLES.includes(role);
+  const canReports = REPORT_ROLES.includes(role);
+  const isTeacher = role === 'enseignant';
+  const isOfficeStaff = isOfficeStaffRole(role);
+  const canAllClassAttendance = canAttendance && !isTeacher;
+  const canEnrollment = ENROLLMENT_ROLES.includes(role) && isOfficeStaff;
   const currencies = data.feeCurrencies;
   const primaryCurrency = currencies[0] ?? 'CDF';
   const primary = treasuryAmounts(data, primaryCurrency);
@@ -101,12 +109,41 @@ export function StaffDashboard({ data, role }: Props) {
           ) : null}
 
           <SettingsGroup title="Mes modules">
+            {canEnrollment ? (
+              <SettingsRow
+                href="/app/eleves"
+                icon={<GraduationCap aria-hidden />}
+                label="Élèves"
+                detail="Annuaire et inscriptions"
+              />
+            ) : null}
             {canAttendance ? (
               <SettingsRow
                 href="/app/presences"
                 icon={<ClipboardCheck aria-hidden />}
                 label="Présences"
-                detail="Marquer les absences"
+                detail={
+                  canAllClassAttendance
+                    ? 'Toutes les salles · couverture possible'
+                    : 'Marquer les absences'
+                }
+              />
+            ) : null}
+            {isTeacher ? (
+              <SettingsRow
+                href="/app/impayes"
+                icon={<Users aria-hidden />}
+                label="Recouvrement (ma classe)"
+                detail={
+                  data.teacherStudentsWithDebt != null
+                    ? `${data.teacherStudentsWithDebt} élève${data.teacherStudentsWithDebt > 1 ? 's' : ''} à relancer`
+                    : 'Liste pour relance en salle'
+                }
+                detailClassName={
+                  (data.teacherStudentsWithDebt ?? 0) > 0
+                    ? 'text-destructive font-medium'
+                    : undefined
+                }
               />
             ) : null}
             {canFinance ? (
@@ -121,6 +158,14 @@ export function StaffDashboard({ data, role }: Props) {
                   },
                   currencies,
                 )}
+              />
+            ) : null}
+            {canReports && isOfficeStaff ? (
+              <SettingsRow
+                href="/app/rapports"
+                icon={<FileBarChart aria-hidden />}
+                label="Rapports"
+                detail="Synthèses et listes à imprimer"
               />
             ) : null}
           </SettingsGroup>
@@ -143,7 +188,25 @@ export function StaffDashboard({ data, role }: Props) {
                 }
               />
             </SettingsGroup>
-          ) : canAttendance ? (
+          ) : isTeacher ? (
+            <SettingsGroup title="Ma classe">
+              <SettingsRow
+                href="/app/presences"
+                label="Classes assignées"
+                detail={String(data.teacherClassCount ?? 0)}
+              />
+              <SettingsRow
+                href="/app/impayes"
+                label="Élèves impayés"
+                detail={String(data.teacherStudentsWithDebt ?? 0)}
+                detailClassName={
+                  (data.teacherStudentsWithDebt ?? 0) > 0
+                    ? 'text-destructive font-medium'
+                    : undefined
+                }
+              />
+            </SettingsGroup>
+          ) : canAllClassAttendance ? (
             <SettingsGroup title="Établissement">
               <SettingsRow
                 href="/app/presences"

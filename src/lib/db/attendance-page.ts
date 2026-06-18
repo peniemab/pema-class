@@ -4,7 +4,7 @@ import { listAttendancesForStudentsOnDate, type AttendanceStatus } from '@/lib/d
 import { listClassesForYear, type ClassRow } from '@/lib/db/classes';
 import { listEnrolledStudentsForYear } from '@/lib/db/enrolled-students';
 import {
-  SCHOOL_DIRECTION_ROLES,
+  canMarkAllClassAttendances,
   normalizeStaffRole,
   type StaffRole,
 } from '@/lib/auth/types';
@@ -52,7 +52,7 @@ async function listClassesForStaff(
   const all = await listClassesForYear(schoolId, academicYearId);
   const normalized = normalizeStaffRole(role);
 
-  if (SCHOOL_DIRECTION_ROLES.includes(normalized) || normalized === 'secretaire') {
+  if (canMarkAllClassAttendances(normalized)) {
     return { classes: all, teacherLimited: false };
   }
 

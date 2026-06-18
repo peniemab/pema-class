@@ -12,6 +12,7 @@ import {
   SettingsPanelGroup,
 } from '@/components/school/settings-panel';
 import { formatDualMoney, type FeeCurrency } from '@/lib/school/fee-currencies';
+import { SCHOOL_REPORTS_BASE, reportHref } from '@/lib/navigation/reports-paths';
 import { cn } from '@/lib/utils';
 
 type Preview = {
@@ -26,11 +27,13 @@ type Preview = {
 
 type Props = {
   preview: Preview;
+  reportsBase?: string;
 };
 
-const SECTIONS = [
+function buildSections(base: string) {
+  return [
   {
-    href: '/school/rapports/presences',
+    href: reportHref(base, 'presences'),
     icon: ClipboardCheck,
     tone: 'green' as const,
     label: 'Présences',
@@ -48,7 +51,7 @@ const SECTIONS = [
           : 'danger',
   },
   {
-    href: '/school/rapports/caisse',
+    href: reportHref(base, 'caisse'),
     icon: Wallet,
     tone: 'indigo' as const,
     label: 'Caisse',
@@ -66,7 +69,7 @@ const SECTIONS = [
     badgeTone: () => 'neutral' as const,
   },
   {
-    href: '/school/rapports/impayes',
+    href: reportHref(base, 'impayes'),
     icon: CircleAlert,
     tone: 'orange' as const,
     label: 'Impayés',
@@ -84,7 +87,7 @@ const SECTIONS = [
           : 'danger',
   },
   {
-    href: '/school/rapports/effectifs',
+    href: reportHref(base, 'effectifs'),
     icon: GraduationCap,
     tone: 'blue' as const,
     label: 'Effectifs',
@@ -96,8 +99,13 @@ const SECTIONS = [
     badgeTone: () => 'neutral' as const,
   },
 ];
+}
 
-export function RapportsHub({ preview }: Props) {
+export function RapportsHub({
+  preview,
+  reportsBase = SCHOOL_REPORTS_BASE,
+}: Props) {
+  const sections = buildSections(reportsBase);
   return (
     <div className="mx-auto w-full max-w-2xl space-y-2 pb-8">
       <SettingsLargeTitle
@@ -106,7 +114,7 @@ export function RapportsHub({ preview }: Props) {
       />
 
       <SettingsPanelGroup>
-        {SECTIONS.map((section) => {
+        {sections.map((section) => {
           const Icon = section.icon;
           const badge = section.badge(preview);
           const badgeTone = section.badgeTone(preview);

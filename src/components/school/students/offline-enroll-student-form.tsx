@@ -42,6 +42,8 @@ type Props = {
   activeYearName: string;
   classes: LocalClass[];
   online: boolean;
+  studentsBase?: string;
+  caisseBase?: string;
 };
 
 const emptyContact = (): ContactDraft => ({
@@ -57,6 +59,8 @@ export function OfflineEnrollStudentForm({
   activeYearName,
   classes,
   online,
+  studentsBase = '/school/eleves',
+  caisseBase = '/school/caisse',
 }: Props) {
   const router = useRouter();
   const levels = useMemo(
@@ -134,7 +138,7 @@ export function OfflineEnrollStudentForm({
         const { pushed, failed } = await pushOutbox(schoolId);
         const serverId = await getMutationServerId(result.studentId);
         if (pushed > 0 && serverId) {
-          router.push(`/school/caisse/${serverId}?nouveau=1`);
+          router.push(`${caisseBase}/${serverId}?nouveau=1`);
           return;
         }
         if (failed > 0) {
@@ -144,13 +148,13 @@ export function OfflineEnrollStudentForm({
         } else {
           setSuccess(`Élève inscrit (${result.matricule}).`);
         }
-        router.push('/school/eleves');
+        router.push(studentsBase);
         return;
       } catch {
         setSuccess(
           `Élève enregistré localement (${result.matricule}). La synchronisation reprendra automatiquement.`,
         );
-        router.push('/school/eleves');
+        router.push(studentsBase);
         return;
       } finally {
         setPending(false);

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireSchoolDirection } from '@/lib/auth/require-role';
+import { requireSchoolEnrollment } from '@/lib/auth/require-role';
 import { getActiveAcademicYearLite } from '@/lib/db/academic-years';
 import {
   replaceEmergencyContacts,
@@ -35,7 +35,7 @@ function parseGender(raw: string | null): StudentGender | null {
 
 /** Pousse une mutation de mise à jour locale vers Supabase. */
 export async function POST(request: Request) {
-  const { schoolId } = await requireSchoolDirection();
+  const { schoolId } = await requireSchoolEnrollment();
 
   let body: Body;
   try {

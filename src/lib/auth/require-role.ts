@@ -9,7 +9,9 @@ import { createClient } from '@/lib/supabase/server';
 import {
   getRoleHomePath,
   normalizeStaffRole,
+  ENROLLMENT_ROLES,
   FINANCE_ROLES,
+  REPORT_ROLES,
   SCHOOL_DIRECTION_ROLES,
   type AuthPrincipal,
   type StaffRole,
@@ -85,6 +87,55 @@ export async function requireSchoolStaff(): Promise<{
   const role = normalizeStaffRole(staff.role);
   if (SCHOOL_DIRECTION_ROLES.includes(role)) {
     redirect('/school');
+  }
+  return {
+    userId,
+    schoolId: staff.school_id,
+    staffId: staff.id,
+    role,
+  };
+}
+
+export async function requireSchoolEnrollment(): Promise<{
+  userId: string;
+  schoolId: string;
+  staffId: string;
+  role: StaffRole;
+}> {
+  const { userId } = await requireSession();
+  const staff = await getStaffByUserId(userId);
+  if (!staff?.school_id || staff.status !== 'active' || !staff.is_active) {
+    redirect('/post-login');
+  }
+  const role = normalizeStaffRole(staff.role);
+  if (!ENROLLMENT_ROLES.includes(role)) {
+    redirect('/post-login');
+  }
+  return {
+    userId,
+    schoolId: staff.school_id,
+    staffId: staff.id,
+    role,
+  };
+}
+
+export async function requireSchoolReports(): Promise<{
+  userId: string;
+  schoolId: string;
+  staffId: string;
+  role: StaffRole;
+}> {
+  const { userId } = await requireSession();
+  const staff = await getStaffByUserId(userId);
+  if (!staff?.school_id || staff.status !== 'active' || !staff.is_active) {
+    redirect('/post-login');
+  }
+  const role = normalizeStaffRole(staff.role);
+  if (!REPORT_ROLES.includes(role)) {
+    redirect('/post-login');
+  }
+  if (SCHOOL_DIRECTION_ROLES.includes(role)) {
+    redirect('/school/rapports');
   }
   return {
     userId,

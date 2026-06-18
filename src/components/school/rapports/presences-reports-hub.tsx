@@ -13,11 +13,17 @@ import {
   SettingsPanelGroup,
 } from '@/components/school/settings-panel';
 
+import { SCHOOL_REPORTS_BASE, reportHref } from '@/lib/navigation/reports-paths';
+
 type Props = {
   todayPreview: AttendanceReportData | null;
+  reportsBase?: string;
 };
 
-export function PresencesReportsHub({ todayPreview }: Props) {
+export function PresencesReportsHub({
+  todayPreview,
+  reportsBase = SCHOOL_REPORTS_BASE,
+}: Props) {
   const issues = todayPreview
     ? todayPreview.totals.absent +
       todayPreview.totals.late +
@@ -26,7 +32,7 @@ export function PresencesReportsHub({ todayPreview }: Props) {
 
   const items = [
     {
-      href: '/school/rapports/presences/jour',
+      href: reportHref(reportsBase, 'presences', 'jour'),
       icon: ClipboardList,
       tone: 'green' as const,
       label: 'Rapport du jour',
@@ -39,7 +45,7 @@ export function PresencesReportsHub({ todayPreview }: Props) {
           : 'Par date et classe',
     },
     {
-      href: '/school/rapports/presences/hebdo',
+      href: reportHref(reportsBase, 'presences', 'hebdo'),
       icon: CalendarDays,
       tone: 'blue' as const,
       label: 'Synthèse hebdomadaire',
@@ -47,7 +53,7 @@ export function PresencesReportsHub({ todayPreview }: Props) {
       detail: 'Lun → dim',
     },
     {
-      href: '/school/rapports/presences/absences-repetees',
+      href: reportHref(reportsBase, 'presences', 'absences-repetees'),
       icon: Repeat2,
       tone: 'orange' as const,
       label: 'Absences répétées',
@@ -55,7 +61,7 @@ export function PresencesReportsHub({ todayPreview }: Props) {
       detail: 'Suivi disciplinaire',
     },
     {
-      href: '/school/rapports/presences/eleve',
+      href: reportHref(reportsBase, 'presences', 'eleve'),
       icon: UserRound,
       tone: 'indigo' as const,
       label: 'Historique élève',

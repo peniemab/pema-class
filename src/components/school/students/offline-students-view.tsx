@@ -18,12 +18,19 @@ import {
 } from '@/lib/offline/students-filter';
 import type { StudentsSnapshot } from '@/lib/offline/students-snapshot';
 
+import { SCHOOL_STUDENTS_BASE, studentsPath } from '@/lib/navigation/students-paths';
+
 type Props = {
   schoolId: string;
   initialSnapshot: StudentsSnapshot | null;
+  studentsBase?: string;
 };
 
-export function OfflineStudentsView({ schoolId, initialSnapshot }: Props) {
+export function OfflineStudentsView({
+  schoolId,
+  initialSnapshot,
+  studentsBase = SCHOOL_STUDENTS_BASE,
+}: Props) {
   const { students, classes, state, phase, online, pendingCount, refresh } =
     useStudentsSync(schoolId);
 
@@ -135,7 +142,7 @@ export function OfflineStudentsView({ schoolId, initialSnapshot }: Props) {
       {activeYear ? (
         <div className="no-print fixed bottom-[calc(3.25rem+env(safe-area-inset-bottom)+0.75rem)] right-4 z-30 md:bottom-6">
           <ButtonLink
-            href="/school/eleves/nouveau"
+            href={studentsPath(studentsBase, 'nouveau')}
             size="icon"
             className="size-14 rounded-full bg-primary shadow-lg hover:bg-primary-dark"
             aria-label="Inscrire un élève"
@@ -262,7 +269,7 @@ export function OfflineStudentsView({ schoolId, initialSnapshot }: Props) {
                   : 'Aucun élève en cache.'}
               </p>
               <ButtonLink
-                href="/school/eleves/nouveau"
+                href={studentsPath(studentsBase, 'nouveau')}
                 className="mt-4 gap-1.5 bg-primary hover:bg-primary-dark"
                 size="sm"
               >

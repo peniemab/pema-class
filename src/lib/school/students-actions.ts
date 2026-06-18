@@ -1,7 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireSchoolDirection } from '@/lib/auth/require-role';
+import { requireSchoolEnrollment } from '@/lib/auth/require-role';
+import {
+  APP_STUDENTS_BASE,
+  SCHOOL_STUDENTS_BASE,
+} from '@/lib/navigation/students-paths';
 import { getActiveAcademicYearLite } from '@/lib/db/academic-years';
 import {
   enrollStudent,
@@ -22,32 +26,35 @@ export type ActionResult =
   | { ok: false; error: string };
 
 function revalidateStudents(studentId?: string) {
-  revalidatePath('/school/eleves');
-  if (studentId) {
-    revalidatePath(`/school/eleves/${studentId}`);
+  for (const base of [SCHOOL_STUDENTS_BASE, APP_STUDENTS_BASE]) {
+    revalidatePath(base);
+    if (studentId) {
+      revalidatePath(`${base}/${studentId}`);
+    }
   }
   revalidatePath('/school');
+  revalidatePath('/app');
 }
 
 export async function loadStudentsListPage(
   searchParams: Record<string, string | undefined>,
 ) {
-  const { schoolId } = await requireSchoolDirection();
+  const { schoolId } = await requireSchoolEnrollment();
   return getStudentsListPageData(schoolId, searchParams);
 }
 
 export async function loadStudentDetailPage(studentId: string) {
-  const { schoolId } = await requireSchoolDirection();
+  const { schoolId } = await requireSchoolEnrollment();
   return getStudentDetailPageData(schoolId, studentId);
 }
 
 export async function loadEnrollStudentPage() {
-  const { schoolId } = await requireSchoolDirection();
+  const { schoolId } = await requireSchoolEnrollment();
   return getEnrollStudentPageData(schoolId);
 }
 
 export async function suggestStudentsAction(term: string) {
-  const { schoolId } = await requireSchoolDirection();
+  const { schoolId } = await requireSchoolEnrollment();
   const activeYear = await getActiveAcademicYearLite(schoolId);
   if (!activeYear) return [];
   return suggestStudents(schoolId, activeYear.id, term);
@@ -72,7 +79,7 @@ export async function enrollStudentAction(input: {
   }[];
 }): Promise<ActionResult> {
   try {
-    const { schoolId } = await requireSchoolDirection();
+    const { schoolId } = await requireSchoolEnrollment();
     const activeYear = await getActiveAcademicYearLite(schoolId);
     if (!activeYear) {
       return {
@@ -136,7 +143,7 @@ export async function updateStudentAction(input: {
   status: StudentStatus;
 }): Promise<ActionResult> {
   try {
-    const { schoolId } = await requireSchoolDirection();
+    const { schoolId } = await requireSchoolEnrollment();
     const gender =
       input.gender === 'male' || input.gender === 'female' || input.gender === 'other'
         ? (input.gender as StudentGender)
@@ -174,7 +181,7 @@ export async function updateStudentContactsAction(input: {
   }[];
 }): Promise<ActionResult> {
   try {
-    const { schoolId } = await requireSchoolDirection();
+    const { schoolId } = await requireSchoolEnrollment();
     await replaceEmergencyContacts(
       schoolId,
       input.studentId,
@@ -200,7 +207,7 @@ export async function transferStudentClassAction(input: {
   classId: string;
 }): Promise<ActionResult> {
   try {
-    const { schoolId } = await requireSchoolDirection();
+    const { schoolId } = await requireSchoolEnrollment();
     const activeYear = await getActiveAcademicYearLite(schoolId);
     if (!activeYear) {
       return { ok: false, error: 'Aucune année scolaire active.' };

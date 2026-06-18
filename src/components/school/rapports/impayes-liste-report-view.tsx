@@ -12,13 +12,19 @@ import {
   getSchoolFeeCurrencies,
 } from '@/lib/school/fee-currencies';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { SCHOOL_REPORTS_BASE, reportHref } from '@/lib/navigation/reports-paths';
 
 type Props = {
   data: ImpayesReportData | null;
   search?: string;
+  reportsBase?: string;
 };
 
-export function ImpayesListeReportView({ data, search }: Props) {
+export function ImpayesListeReportView({
+  data,
+  search,
+  reportsBase = SCHOOL_REPORTS_BASE,
+}: Props) {
   const feeCurrencies = data ? getSchoolFeeCurrencies(data.fees) : [];
 
   return (
@@ -29,7 +35,7 @@ export function ImpayesListeReportView({ data, search }: Props) {
           ? `Année ${data.activeYear.name} — élèves avec reste à payer.`
           : 'Activez une année scolaire pour consulter les impayés.'
       }
-      backHref="/school/rapports/impayes"
+      backHref={reportHref(reportsBase, 'impayes')}
       backLabel="Rapports impayés"
     >
       {!data ? (
@@ -72,7 +78,7 @@ export function ImpayesListeReportView({ data, search }: Props) {
           <Suspense fallback={null}>
             <div className="no-print rounded-2xl border bg-card p-4 shadow-sm">
               <ImpayesReportFilters
-                basePath="/school/rapports/impayes/liste"
+                basePath={reportHref(reportsBase, 'impayes', 'liste')}
                 classes={data.classes}
                 fees={data.fees}
                 selectedClassId={data.selectedClassId}

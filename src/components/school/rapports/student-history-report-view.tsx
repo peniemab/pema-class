@@ -14,12 +14,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { SCHOOL_REPORTS_BASE, reportHref } from '@/lib/navigation/reports-paths';
 
 type Props = {
   data: StudentAttendanceHistoryData | null;
+  reportsBase?: string;
 };
-
-const BASE = '/school/rapports/presences/eleve';
 
 const STATUS_LABELS = {
   present: 'Présent',
@@ -36,8 +36,12 @@ function formatLongDate(iso: string): string {
   });
 }
 
-export function StudentHistoryReportView({ data }: Props) {
+export function StudentHistoryReportView({
+  data,
+  reportsBase = SCHOOL_REPORTS_BASE,
+}: Props) {
   const [search, setSearch] = useState('');
+  const basePath = reportHref(reportsBase, 'presences', 'eleve');
 
   return (
     <ReportPageShell
@@ -47,7 +51,7 @@ export function StudentHistoryReportView({ data }: Props) {
           ? `Année ${data.activeYear.name} — journal de présence par élève.`
           : 'Activez une année scolaire pour consulter les rapports.'
       }
-      backHref="/school/rapports/presences"
+      backHref={reportHref(reportsBase, 'presences')}
       backLabel="Rapports présences"
     >
       {!data ? (
@@ -68,11 +72,13 @@ export function StudentHistoryReportView({ data }: Props) {
                 search={search}
                 onSearchChange={setSearch}
                 selectedStudentId={data.student?.id ?? null}
+                basePath={basePath}
               />
               <DateRangeFilters
                 startDate={data.startDate}
                 endDate={data.endDate}
                 studentId={data.student?.id ?? null}
+                basePath={basePath}
               />
             </div>
           </Suspense>
@@ -141,10 +147,12 @@ function StudentPicker({
   search,
   onSearchChange,
   selectedStudentId,
+  basePath,
 }: {
   search: string;
   onSearchChange: (value: string) => void;
   selectedStudentId: string | null;
+  basePath: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -152,7 +160,7 @@ function StudentPicker({
   function selectStudent(studentId: string) {
     const params = new URLSearchParams(searchParams.toString());
     params.set('eleve', studentId);
-    router.push(`${BASE}?${params.toString()}`);
+    router.push(`${basePath}?${params.toString()}`);
   }
 
   return (
@@ -170,10 +178,12 @@ function DateRangeFilters({
   startDate,
   endDate,
   studentId,
+  basePath,
 }: {
   startDate: string;
   endDate: string;
   studentId: string | null;
+  basePath: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -189,7 +199,7 @@ function DateRangeFilters({
       if (next.fin) params.set('fin', next.fin);
       else params.delete('fin');
     }
-    router.push(`${BASE}?${params.toString()}`);
+    router.push(`${basePath}?${params.toString()}`);
   }
 
   return (

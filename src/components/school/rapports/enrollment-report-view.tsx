@@ -6,9 +6,11 @@ import { ReportPageShell } from '@/components/school/rapports/report-page-shell'
 import { classDisplayLabel } from '@/lib/school/students/constants';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
+import { SCHOOL_REPORTS_BASE } from '@/lib/navigation/reports-paths';
 
 type Props = {
   data: EnrollmentReportData | null;
+  reportsBase?: string;
 };
 
 function fillTone(rate: number): string {
@@ -17,7 +19,10 @@ function fillTone(rate: number): string {
   return 'bg-emerald-500';
 }
 
-export function EnrollmentReportView({ data }: Props) {
+export function EnrollmentReportView({
+  data,
+  reportsBase = SCHOOL_REPORTS_BASE,
+}: Props) {
   return (
     <ReportPageShell
       title="Effectifs par classe"
@@ -26,7 +31,7 @@ export function EnrollmentReportView({ data }: Props) {
           ? `Année ${data.activeYear.name} — inscrits et taux de remplissage.`
           : 'Activez une année scolaire pour consulter les effectifs.'
       }
-      backHref="/school/rapports"
+      backHref={reportsBase}
       backLabel="Rapports"
     >
       {!data ? (

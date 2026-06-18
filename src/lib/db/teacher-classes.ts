@@ -1,5 +1,24 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 
+/** Classes assignées à un enseignant pour l'année active. */
+export async function listTeacherClassIds(
+  schoolId: string,
+  academicYearId: string,
+  staffId: string,
+): Promise<string[]> {
+  void schoolId;
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('teacher_classes')
+    .select('class_id')
+    .eq('staff_id', staffId)
+    .eq('academic_year_id', academicYearId);
+
+  if (error) throw new Error(error.message);
+
+  return (data ?? []).map((r) => (r as { class_id: string }).class_id);
+}
+
 export async function listTeacherClassIdsForStaff(
   staffIds: string[],
   academicYearId: string,

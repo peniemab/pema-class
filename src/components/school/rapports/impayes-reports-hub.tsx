@@ -6,7 +6,15 @@ import {
   SettingsPanelGroup,
 } from '@/components/school/settings-panel';
 
-export function ImpayesReportsHub() {
+import { SCHOOL_REPORTS_BASE, reportHref } from '@/lib/navigation/reports-paths';
+
+type Props = {
+  reportsBase?: string;
+};
+
+export function ImpayesReportsHub({
+  reportsBase = SCHOOL_REPORTS_BASE,
+}: Props = {}) {
   return (
     <div className="mx-auto max-w-2xl space-y-4 pb-8">
       <SettingsLargeTitle
@@ -16,7 +24,7 @@ export function ImpayesReportsHub() {
 
       <SettingsPanelGroup>
         <Link
-          href="/school/rapports/impayes/synthese"
+          href={reportHref(reportsBase, 'impayes', 'synthese')}
           className="flex w-full min-h-[4.25rem] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50 active:bg-muted/70"
         >
           <SettingsIcon tone="orange">
@@ -31,7 +39,7 @@ export function ImpayesReportsHub() {
           <ChevronRight className="size-4 shrink-0 text-muted-foreground/50" aria-hidden />
         </Link>
         <Link
-          href="/school/rapports/impayes/liste"
+          href={reportHref(reportsBase, 'impayes', 'liste')}
           className="flex w-full min-h-[4.25rem] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50 active:bg-muted/70"
         >
           <SettingsIcon tone="pink">

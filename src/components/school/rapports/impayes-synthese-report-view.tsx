@@ -7,12 +7,17 @@ import { ImpayesStatsCards } from '@/components/school/impayes/impayes-stats';
 import { ReportPageShell } from '@/components/school/rapports/report-page-shell';
 import { getSchoolFeeCurrencies } from '@/lib/school/fee-currencies';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { SCHOOL_REPORTS_BASE, reportHref } from '@/lib/navigation/reports-paths';
 
 type Props = {
   data: ImpayesReportData | null;
+  reportsBase?: string;
 };
 
-export function ImpayesSyntheseReportView({ data }: Props) {
+export function ImpayesSyntheseReportView({
+  data,
+  reportsBase = SCHOOL_REPORTS_BASE,
+}: Props) {
   const feeCurrencies = data ? getSchoolFeeCurrencies(data.fees) : [];
 
   return (
@@ -23,7 +28,7 @@ export function ImpayesSyntheseReportView({ data }: Props) {
           ? `Année ${data.activeYear.name} — KPIs et répartition par frais.`
           : 'Activez une année scolaire pour consulter les impayés.'
       }
-      backHref="/school/rapports/impayes"
+      backHref={reportHref(reportsBase, 'impayes')}
       backLabel="Rapports impayés"
     >
       {!data ? (

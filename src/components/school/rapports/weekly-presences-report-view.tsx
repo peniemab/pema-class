@@ -9,8 +9,11 @@ import { classDisplayLabel } from '@/lib/school/students/constants';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 
+import { SCHOOL_REPORTS_BASE, reportHref } from '@/lib/navigation/reports-paths';
+
 type Props = {
   data: WeeklyAttendanceReportData | null;
+  reportsBase?: string;
 };
 
 function formatShortDate(iso: string): string {
@@ -20,7 +23,10 @@ function formatShortDate(iso: string): string {
   });
 }
 
-export function WeeklyPresencesReportView({ data }: Props) {
+export function WeeklyPresencesReportView({
+  data,
+  reportsBase = SCHOOL_REPORTS_BASE,
+}: Props) {
   return (
     <ReportPageShell
       title="Synthèse hebdomadaire"
@@ -29,7 +35,7 @@ export function WeeklyPresencesReportView({ data }: Props) {
           ? `Année ${data.activeYear.name} — taux cumulé sur ${data.dayCount} jour${data.dayCount > 1 ? 's' : ''}.`
           : 'Activez une année scolaire pour consulter les rapports.'
       }
-      backHref="/school/rapports/presences"
+      backHref={reportHref(reportsBase, 'presences')}
       backLabel="Rapports présences"
     >
       {!data ? (
@@ -51,7 +57,7 @@ export function WeeklyPresencesReportView({ data }: Props) {
                 {formatShortDate(data.weekEnd)}
               </p>
               <PresencesReportFilters
-                basePath="/school/rapports/presences/hebdo"
+                basePath={reportHref(reportsBase, 'presences', 'hebdo')}
                 classes={data.classes}
                 selectedClassId={data.selectedClassId}
                 selectedDate={data.anchorDate}

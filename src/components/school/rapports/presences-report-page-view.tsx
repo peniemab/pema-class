@@ -21,11 +21,17 @@ import { cn } from '@/lib/utils';
 
 type IssueFilter = 'all' | 'absent' | 'late' | 'unmarked';
 
+import { SCHOOL_REPORTS_BASE, reportHref } from '@/lib/navigation/reports-paths';
+
 type Props = {
   data: AttendanceReportData | null;
+  reportsBase?: string;
 };
 
-export function PresencesReportPageView({ data }: Props) {
+export function PresencesReportPageView({
+  data,
+  reportsBase = SCHOOL_REPORTS_BASE,
+}: Props) {
   const [issueFilter, setIssueFilter] = useState<IssueFilter>('all');
 
   const filteredIssues = useMemo(() => {
@@ -68,7 +74,7 @@ export function PresencesReportPageView({ data }: Props) {
           ? `Année ${data.activeYear.name} — absences et retards pour une date.`
           : 'Activez une année scolaire pour consulter les rapports.'
       }
-      backHref="/school/rapports/presences"
+      backHref={reportHref(reportsBase, 'presences')}
       backLabel="Rapports présences"
     >
       {!data ? (
@@ -100,7 +106,7 @@ export function PresencesReportPageView({ data }: Props) {
           <Suspense fallback={null}>
             <div className="no-print rounded-2xl border bg-card p-4 shadow-sm">
               <PresencesReportFilters
-                basePath="/school/rapports/presences/jour"
+                basePath={reportHref(reportsBase, 'presences', 'jour')}
                 classes={data.classes}
                 selectedClassId={data.selectedClassId}
                 selectedDate={data.selectedDate}

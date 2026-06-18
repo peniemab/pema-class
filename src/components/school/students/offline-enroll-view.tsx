@@ -9,12 +9,22 @@ import { useStudentsSync } from '@/lib/offline/use-students-sync';
 import { saveStudentsSnapshot } from '@/lib/offline/students-repo';
 import type { StudentsSnapshot } from '@/lib/offline/students-snapshot';
 
+import {
+  SCHOOL_STUDENTS_BASE,
+  studentsCaisseBase,
+} from '@/lib/navigation/students-paths';
+
 type Props = {
   schoolId: string;
   initialSnapshot: StudentsSnapshot | null;
+  studentsBase?: string;
 };
 
-export function OfflineEnrollView({ schoolId, initialSnapshot }: Props) {
+export function OfflineEnrollView({
+  schoolId,
+  initialSnapshot,
+  studentsBase = SCHOOL_STUDENTS_BASE,
+}: Props) {
   const { classes, state, phase, online, pendingCount, refresh } =
     useStudentsSync(schoolId);
 
@@ -32,7 +42,7 @@ export function OfflineEnrollView({ schoolId, initialSnapshot }: Props) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <Link
-            href="/school/eleves"
+            href={studentsBase}
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="size-4" aria-hidden />
@@ -64,6 +74,8 @@ export function OfflineEnrollView({ schoolId, initialSnapshot }: Props) {
           activeYearName={activeYear.name}
           classes={localClasses}
           online={online}
+          studentsBase={studentsBase}
+          caisseBase={studentsCaisseBase(studentsBase)}
         />
       ) : (
         <p className="text-sm text-muted-foreground">

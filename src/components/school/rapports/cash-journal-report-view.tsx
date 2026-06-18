@@ -12,9 +12,11 @@ import {
   studentFullName,
 } from '@/lib/school/students/constants';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { SCHOOL_REPORTS_BASE, reportHref } from '@/lib/navigation/reports-paths';
 
 type Props = {
   data: CashJournalReportData | null;
+  reportsBase?: string;
 };
 
 function formatTime(iso: string): string {
@@ -24,7 +26,10 @@ function formatTime(iso: string): string {
   });
 }
 
-export function CashJournalReportView({ data }: Props) {
+export function CashJournalReportView({
+  data,
+  reportsBase = SCHOOL_REPORTS_BASE,
+}: Props) {
   const formattedDate = data
     ? new Date(`${data.selectedDate}T12:00:00`).toLocaleDateString('fr-FR', {
         weekday: 'long',
@@ -42,7 +47,7 @@ export function CashJournalReportView({ data }: Props) {
           ? `Année ${data.activeYear.name} — encaissements du jour.`
           : 'Activez une année scolaire pour consulter le journal.'
       }
-      backHref="/school/rapports/caisse"
+      backHref={reportHref(reportsBase, 'caisse')}
       backLabel="Rapports caisse"
     >
       {!data ? (
@@ -69,7 +74,7 @@ export function CashJournalReportView({ data }: Props) {
           <Suspense fallback={null}>
             <div className="no-print rounded-2xl border bg-card p-4 shadow-sm">
               <CashDateFilters
-                basePath="/school/rapports/caisse/journal"
+                basePath={reportHref(reportsBase, 'caisse', 'journal')}
                 selectedDate={data.selectedDate}
               />
             </div>

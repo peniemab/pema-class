@@ -17,12 +17,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { SCHOOL_REPORTS_BASE, reportHref } from '@/lib/navigation/reports-paths';
 
 type Props = {
   data: RepeatedAbsencesReportData | null;
+  reportsBase?: string;
 };
-
-const BASE = '/school/rapports/presences/absences-repetees';
 
 function formatShortDate(iso: string): string {
   return new Date(`${iso}T12:00:00`).toLocaleDateString('fr-FR', {
@@ -32,7 +32,12 @@ function formatShortDate(iso: string): string {
   });
 }
 
-export function RepeatedAbsencesReportView({ data }: Props) {
+export function RepeatedAbsencesReportView({
+  data,
+  reportsBase = SCHOOL_REPORTS_BASE,
+}: Props) {
+  const basePath = reportHref(reportsBase, 'presences', 'absences-repetees');
+
   return (
     <ReportPageShell
       title="Absences répétées"
@@ -41,7 +46,7 @@ export function RepeatedAbsencesReportView({ data }: Props) {
           ? `Élèves absents au moins ${data.minAbsences} fois sur ${data.periodDays} jours.`
           : 'Activez une année scolaire pour consulter les rapports.'
       }
-      backHref="/school/rapports/presences"
+      backHref={reportHref(reportsBase, 'presences')}
       backLabel="Rapports présences"
     >
       {!data ? (
@@ -59,7 +64,7 @@ export function RepeatedAbsencesReportView({ data }: Props) {
           <Suspense fallback={null}>
             <div className="no-print space-y-4 rounded-2xl border bg-card p-4 shadow-sm">
               <ReportPeriodToggle
-                basePath={BASE}
+                basePath={basePath}
                 periodDays={data.periodDays}
                 options={[
                   { value: 7, label: '7 jours' },
@@ -67,9 +72,12 @@ export function RepeatedAbsencesReportView({ data }: Props) {
                 ]}
               />
               <div className="grid gap-4 sm:grid-cols-2">
-                <MinAbsencesFilter minAbsences={data.minAbsences} />
+                <MinAbsencesFilter
+                  minAbsences={data.minAbsences}
+                  basePath={basePath}
+                />
                 <ReportClassFilter
-                  basePath={BASE}
+                  basePath={basePath}
                   classes={data.classes}
                   selectedClassId={data.selectedClassId}
                 />
@@ -129,7 +137,13 @@ export function RepeatedAbsencesReportView({ data }: Props) {
   );
 }
 
-function MinAbsencesFilter({ minAbsences }: { minAbsences: number }) {
+function MinAbsencesFilter({
+  minAbsences,
+  basePath,
+}: {
+  minAbsences: number;
+  basePath: string;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -142,7 +156,7 @@ function MinAbsencesFilter({ minAbsences }: { minAbsences: number }) {
         onChange={(e) => {
           const params = new URLSearchParams(searchParams.toString());
           params.set('min', e.target.value);
-          router.push(`${BASE}?${params.toString()}`);
+          router.push(`${basePath}?${params.toString()}`);
         }}
         className="bg-background"
       >

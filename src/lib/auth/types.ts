@@ -51,19 +51,49 @@ export function getRoleHomePath(role: StaffRole | 'superadmin'): string {
 
 export const SCHOOL_DIRECTION_ROLES: StaffRole[] = ['school_admin', 'admin'];
 
+/**
+ * Secrétariat + comptabilité : même périmètre en phase 1.
+ * Le directeur pourra différencier les tâches plus tard.
+ */
+export const OFFICE_STAFF_ROLES: StaffRole[] = ['secretaire', 'comptabilite'];
+
+/** Présences dans toutes les salles (couverture si un enseignant est absent). */
+export const ATTENDANCE_ALL_CLASSES_ROLES: StaffRole[] = [
+  ...SCHOOL_DIRECTION_ROLES,
+  ...OFFICE_STAFF_ROLES,
+];
+
 /** Rôles autorisés à encaisser les frais. */
 export const FINANCE_ROLES: StaffRole[] = [
   ...SCHOOL_DIRECTION_ROLES,
-  'comptabilite',
-  'secretaire',
+  ...OFFICE_STAFF_ROLES,
 ];
 
 /** Rôles autorisés à marquer les présences élèves. */
 export const ATTENDANCE_ROLES: StaffRole[] = [
-  ...SCHOOL_DIRECTION_ROLES,
+  ...ATTENDANCE_ALL_CLASSES_ROLES,
   'enseignant',
-  'secretaire',
 ];
+
+/** Rôles autorisés à consulter les rapports (personnel sur /app). */
+export const REPORT_ROLES: StaffRole[] = [
+  ...SCHOOL_DIRECTION_ROLES,
+  ...OFFICE_STAFF_ROLES,
+];
+
+/** Inscription et annuaire élèves (direction + bureau). */
+export const ENROLLMENT_ROLES: StaffRole[] = [
+  ...SCHOOL_DIRECTION_ROLES,
+  ...OFFICE_STAFF_ROLES,
+];
+
+export function isOfficeStaffRole(role: StaffRole | string): boolean {
+  return OFFICE_STAFF_ROLES.includes(normalizeStaffRole(role));
+}
+
+export function canMarkAllClassAttendances(role: StaffRole | string): boolean {
+  return ATTENDANCE_ALL_CLASSES_ROLES.includes(normalizeStaffRole(role));
+}
 
 /** Rôles invitables par la direction (Paramètres → Équipe) — pas le directeur. */
 export const INVITABLE_STAFF_ROLES = [
