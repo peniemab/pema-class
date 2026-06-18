@@ -112,16 +112,21 @@ export async function updateSession(request: NextRequest) {
     const hasCookie = hasSupabaseAuthCookie(request);
     if (!hasCookie) reason = 'nocookie';
     const cookieNames = request.cookies.getAll().map((c) => c.name);
-    const ck = cookieNames.join(',').slice(0, 200) || 'EMPTY';
+    const ck = cookieNames.join(',').slice(0, 120) || 'EMPTY';
+    const h = request.headers;
+    const sfs = h.get('sec-fetch-site') || 'na';
+    const rsc = h.get('RSC') ? '1' : '0';
+    const pf = h.get('Next-Router-Prefetch') ? '1' : '0';
+    const diag = `${reason}|sfs=${sfs}|rsc=${rsc}|pf=${pf}`;
     // Diagnostic : visible dans Vercel → Runtime Logs.
     console.warn(
-      `[auth-redirect] path=${pathname} reason=${reason} hasCookie=${hasCookie} cookies=${ck}`,
+      `[auth-redirect] path=${pathname} reason=${reason} hasCookie=${hasCookie} cookies=${ck} sfs=${sfs} rsc=${rsc} pf=${pf} hasCookieHeader=${h.get('cookie') ? 'yes' : 'no'}`,
     );
     const url = request.nextUrl.clone();
     url.pathname = '/';
     url.search = '';
     url.searchParams.set('error', 'session');
-    url.searchParams.set('reason', reason);
+    url.searchParams.set('reason', diag);
     url.searchParams.set('ck', ck);
     return redirectWithSession(url, supabaseResponse);
   }
