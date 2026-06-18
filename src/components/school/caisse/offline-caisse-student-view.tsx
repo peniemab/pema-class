@@ -113,8 +113,8 @@ export function OfflineCaisseStudentView({
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div className="no-print flex items-center justify-end">
+    <div className="mx-auto w-full max-w-3xl space-y-0">
+      <div className="no-print flex items-center justify-end px-4 py-2">
         <SyncStatusBadge
           phase={phase}
           online={online}
@@ -124,7 +124,7 @@ export function OfflineCaisseStudentView({
         />
       </div>
 
-      <div>
+      <div className="hidden md:block px-4 pt-2">
         <ButtonLink
           variant="ghost"
           size="sm"
@@ -134,12 +134,15 @@ export function OfflineCaisseStudentView({
           <ArrowLeft className="size-4" aria-hidden />
           Caisse
         </ButtonLink>
-        <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+      </div>
+
+      <div className="border-b border-wa-divider bg-wa-panel px-4 py-4 md:rounded-none">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="text-xl font-semibold tracking-tight text-wa-text-primary md:text-2xl">
               {studentFullName(student.last_name, student.first_name)}
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-sm text-wa-text-secondary">
               Matricule {student.matricule ?? '—'}
               {student.class_id
                 ? ` · ${classDisplayLabel(student.class_level, student.class_name)}`
@@ -157,7 +160,7 @@ export function OfflineCaisseStudentView({
       </div>
 
       {isNewEnrollment && student.class_id ? (
-        <Alert className="border-primary/20 bg-primary/5">
+        <Alert className="mx-4 border-primary/20 bg-primary/5">
           <AlertDescription className="flex items-start gap-2">
             <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
             <span>
@@ -171,19 +174,20 @@ export function OfflineCaisseStudentView({
       ) : null}
 
       {!yearName ? (
-        <Alert>
+        <Alert className="mx-4">
           <AlertDescription>
             Activez une année scolaire avant d&apos;encaisser des frais.
           </AlertDescription>
         </Alert>
       ) : !student.class_id ? (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="mx-4">
           <AlertDescription>
             Cet élève n&apos;est pas inscrit pour {yearName}.
           </AlertDescription>
         </Alert>
       ) : (
-        <CaisseStudentPanel
+        <div className="px-4 pb-6">
+          <CaisseStudentPanel
           studentId={student.id}
           activeYearName={yearName}
           balances={balances}
@@ -193,6 +197,7 @@ export function OfflineCaisseStudentView({
           onRecordPayment={handleRecordPayment}
           pendingPaymentIds={pendingPaymentIds}
         />
+        </div>
       )}
     </div>
   );

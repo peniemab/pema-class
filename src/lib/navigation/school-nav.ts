@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 
+import type { WaShellConfig } from '@/lib/navigation/wa-shell-context';
+
 export type SchoolNavItem = {
   href: string;
   label: string;
@@ -156,6 +158,14 @@ const BOTTOM_TAB_PATHS = new Set([
 export function shouldShowSchoolBottomNav(pathname: string): boolean {
   return BOTTOM_TAB_PATHS.has(pathname);
 }
+
+export const SCHOOL_WA_SHELL_CONFIG: WaShellConfig = {
+  homeHref: '/school',
+  bottomNav: SCHOOL_BOTTOM_NAV,
+  getPageMeta: getSchoolMobilePageMeta,
+  shouldShowBottomNav: shouldShowSchoolBottomNav,
+  isNavActive: isSchoolNavActive,
+};
 
 type PageMeta = {
   title: string;

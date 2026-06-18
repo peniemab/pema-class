@@ -1,36 +1,17 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
-import { shouldShowSchoolBottomNav } from '@/lib/navigation/school-nav';
-import { SchoolBottomNav } from '@/components/school/mobile/school-bottom-nav';
-import { SchoolHeader } from '@/components/school/mobile/school-header';
-import { SchoolSideRail } from '@/components/school/mobile/school-side-rail';
-import { cn } from '@/lib/utils';
+import { WaShellMain } from '@/components/school/mobile/wa-shell-main';
+import { SCHOOL_WA_SHELL_CONFIG } from '@/lib/navigation/school-nav';
+import { WaShellProvider } from '@/lib/navigation/wa-shell-context';
 
 type Props = {
   children: React.ReactNode;
 };
 
 export function SchoolShellMain({ children }: Props) {
-  const pathname = usePathname();
-  const showBottomNav = shouldShowSchoolBottomNav(pathname);
-
   return (
-    <div className="flex min-h-dvh min-w-0 flex-1 bg-wa-bg md:h-dvh md:overflow-hidden">
-      <SchoolSideRail />
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col md:overflow-hidden">
-        <SchoolHeader />
-        <main
-          className={cn(
-            'mx-auto w-full max-w-6xl flex-1 overflow-x-hidden md:min-h-0 md:overflow-y-auto',
-            showBottomNav &&
-              'pb-[calc(3.25rem+env(safe-area-inset-bottom,0px))] md:pb-0',
-          )}
-        >
-          {children}
-        </main>
-        {showBottomNav ? <SchoolBottomNav /> : null}
-      </div>
-    </div>
+    <WaShellProvider config={SCHOOL_WA_SHELL_CONFIG}>
+      <WaShellMain>{children}</WaShellMain>
+    </WaShellProvider>
   );
 }

@@ -15,6 +15,13 @@ type Props = {
   totalCollectedCdf: number;
   totalCollectedUsd: number;
   studentsWithDebt: number;
+  /** Sous-titre sous le nom (ex. rôle personnel). */
+  subtitle?: string;
+  /** Lien profil établissement (direction uniquement). */
+  showProfileLink?: boolean;
+  profileHref?: string;
+  /** Bandeau trésorerie sous la carte. */
+  showTreasury?: boolean;
 };
 
 export function WaBusinessProfileCard({
@@ -26,6 +33,10 @@ export function WaBusinessProfileCard({
   totalCollectedCdf,
   totalCollectedUsd,
   studentsWithDebt,
+  subtitle = 'Établissement scolaire',
+  showProfileLink = true,
+  profileHref = '/school/parametres#etablissement',
+  showTreasury = true,
 }: Props) {
   const collectedLabel = formatDualMoney(
     { cdf: totalCollectedCdf, usd: totalCollectedUsd },
@@ -45,7 +56,7 @@ export function WaBusinessProfileCard({
             <BadgeCheck className="size-4 shrink-0 text-primary" aria-label="Compte établissement" />
           </div>
           <p className="mt-0.5 text-sm text-wa-text-secondary">
-            Établissement scolaire
+            {subtitle}
             {activeYearName ? ` · ${activeYearName}` : ''}
           </p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs">
@@ -64,7 +75,7 @@ export function WaBusinessProfileCard({
         </div>
       </div>
 
-      {activeYearName && feeCurrencies.length > 0 ? (
+      {showTreasury && activeYearName && feeCurrencies.length > 0 ? (
         <div className="mt-4 flex items-center justify-between rounded-lg bg-wa-bg px-3 py-2.5">
           <div>
             <p className="text-xs text-wa-text-secondary">Encaissé cette année</p>
@@ -72,13 +83,15 @@ export function WaBusinessProfileCard({
               {collectedLabel}
             </p>
           </div>
-          <Link
-            href="/school/parametres#etablissement"
-            className="inline-flex items-center gap-0.5 text-sm font-medium text-primary"
-          >
-            Profil
-            <ChevronRight className="size-4" aria-hidden />
-          </Link>
+          {showProfileLink ? (
+            <Link
+              href={profileHref}
+              className="inline-flex items-center gap-0.5 text-sm font-medium text-primary"
+            >
+              Profil
+              <ChevronRight className="size-4" aria-hidden />
+            </Link>
+          ) : null}
         </div>
       ) : null}
     </section>

@@ -5,14 +5,13 @@ import {
   CheckCircle2,
   TriangleAlert,
 } from 'lucide-react';
-import { BrandMark } from '@/components/brand-mark';
+import { brand } from '@/lib/brand';
 import { StaffJoinForm } from '@/components/auth/staff-join-form';
 import {
   peekStaffInvitation,
   extractStaffInviteToken,
 } from '@/lib/db/invitations';
 import { staffRoleLabel } from '@/lib/auth/types';
-import { brand } from '@/lib/brand';
 
 type PageProps = {
   searchParams: Promise<{ invite?: string }>;
@@ -46,118 +45,113 @@ export default async function JoinPage({ searchParams }: PageProps) {
   const roleLabel = preview?.role ? staffRoleLabel(preview.role) : '';
 
   return (
-    <main className="min-h-dvh bg-background px-5 py-6 sm:px-8">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
-        <header className="flex items-center justify-between gap-4">
+    <main className="min-h-dvh bg-wa-bg px-4 py-6 safe-top safe-bottom sm:px-6">
+      <div className="mx-auto flex w-full max-w-lg flex-col gap-6">
+        <header className="flex items-center gap-3">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full text-wa-text-secondary transition-colors hover:bg-wa-panel"
+            aria-label="Retour"
           >
-            <ArrowLeft className="size-4" aria-hidden />
-            Retour
+            <ArrowLeft className="size-5" aria-hidden />
           </Link>
-          <BrandMark size="sm" showSubtitle={false} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-wa-text-primary">
+              {brand.name}
+            </p>
+            <p className="truncate text-xs text-wa-text-secondary">
+              Rejoindre un établissement
+            </p>
+          </div>
         </header>
 
-        <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-8">
-          <div className="mb-8 space-y-3 text-center">
-            <div
-              className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary"
-              aria-hidden
-            >
-              <Users className="size-6" />
-            </div>
-            <div className="space-y-2">
-              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                Rejoindre un établissement
-              </h1>
-              <p className="mx-auto max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                Créez votre compte collaborateur avec le lien transmis par la
-                direction. Votre rôle est fixé dans le lien et ne peut pas être
-                modifié.
-              </p>
+        <section className="overflow-hidden rounded-xl border border-wa-divider bg-wa-panel">
+          <div className="border-b border-wa-divider bg-wa-header px-4 py-4 text-wa-header-foreground">
+            <div className="flex items-center gap-3">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/15">
+                <Users className="size-5" aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <h1 className="text-lg font-semibold tracking-tight">
+                  Compte collaborateur
+                </h1>
+                <p className="text-sm text-white/80">
+                  Même espace que la direction, accès selon votre rôle.
+                </p>
+              </div>
             </div>
           </div>
 
-          {invitationValid && preview?.schoolName && roleLabel ? (
-            <div className="mb-6 rounded-2xl border border-secondary/30 bg-secondary/10 p-4 text-sm">
-              <div className="flex gap-3">
-                <CheckCircle2
-                  className="mt-0.5 size-5 shrink-0 text-secondary"
-                  aria-hidden
-                />
-                <div className="space-y-1">
-                  <p className="font-medium text-foreground">
-                    Invitation {brand.name} détectée
-                  </p>
-                  <p className="text-muted-foreground">
-                    Vous êtes invité à rejoindre{' '}
-                    <span className="font-medium text-foreground">
-                      {preview.schoolName}
-                    </span>{' '}
-                    en tant que{' '}
-                    <span className="font-medium text-foreground">
-                      {roleLabel}
-                    </span>
-                    .
-                  </p>
-                  {preview.email ? (
-                    <p className="text-xs text-muted-foreground">
-                      Utilisez l’e-mail{' '}
-                      <span className="font-medium text-foreground">
-                        {preview.email}
+          <div className="space-y-5 p-4 sm:p-5">
+            {invitationValid && preview?.schoolName && roleLabel ? (
+              <div className="rounded-lg border border-secondary/30 bg-secondary/10 p-4 text-sm">
+                <div className="flex gap-3">
+                  <CheckCircle2
+                    className="mt-0.5 size-5 shrink-0 text-secondary"
+                    aria-hidden
+                  />
+                  <div className="space-y-1">
+                    <p className="font-medium text-wa-text-primary">
+                      Invitation {brand.name} détectée
+                    </p>
+                    <p className="text-wa-text-secondary">
+                      <span className="font-medium text-wa-text-primary">
+                        {preview.schoolName}
                       </span>{' '}
-                      indiqué lors de l’invitation.
+                      · {roleLabel}
                     </p>
-                  ) : null}
+                    {preview.email ? (
+                      <p className="text-xs text-wa-text-secondary">
+                        E-mail attendu :{' '}
+                        <span className="font-medium text-wa-text-primary">
+                          {preview.email}
+                        </span>
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
 
-          {hasInvalidInvite ? (
-            <div className="mb-6 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm">
-              <div className="flex gap-3">
-                <TriangleAlert
-                  className="mt-0.5 size-5 shrink-0 text-destructive"
-                  aria-hidden
-                />
-                <div className="space-y-1">
-                  <p className="font-medium text-foreground">
-                    Lien d&apos;invitation invalide ou expiré
-                  </p>
-                  <p className="text-muted-foreground">
-                    {invalidInviteMessage(preview?.reason)}
-                  </p>
-                  {preview?.reason === 'expired' && preview.schoolName ? (
-                    <p className="text-xs text-muted-foreground">
-                      Établissement : {preview.schoolName}
+            {hasInvalidInvite ? (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm">
+                <div className="flex gap-3">
+                  <TriangleAlert
+                    className="mt-0.5 size-5 shrink-0 text-destructive"
+                    aria-hidden
+                  />
+                  <div className="space-y-1">
+                    <p className="font-medium text-wa-text-primary">
+                      Lien d&apos;invitation invalide ou expiré
                     </p>
-                  ) : null}
+                    <p className="text-wa-text-secondary">
+                      {invalidInviteMessage(preview?.reason)}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
 
-          {!hasInvalidInvite ? (
-            <StaffJoinForm
-              defaultInviteToken={token}
-              inviteReadonly={invitationValid && Boolean(inviteFromUrl)}
-              defaultEmail={preview?.email ?? ''}
-              emailReadonly={Boolean(preview?.email)}
-              roleLabel={roleLabel || '—'}
-              schoolName={preview?.schoolName}
-            />
-          ) : (
-            <p className="text-center text-sm text-muted-foreground">
-              <Link
-                href="/"
-                className="font-medium text-primary underline-offset-4 hover:underline"
-              >
-                Retour à la connexion
-              </Link>
-            </p>
-          )}
+            {!hasInvalidInvite ? (
+              <StaffJoinForm
+                defaultInviteToken={token}
+                inviteReadonly={invitationValid && Boolean(inviteFromUrl)}
+                defaultEmail={preview?.email ?? ''}
+                emailReadonly={Boolean(preview?.email)}
+                roleLabel={roleLabel || '—'}
+                schoolName={preview?.schoolName}
+              />
+            ) : (
+              <p className="text-center text-sm text-wa-text-secondary">
+                <Link
+                  href="/"
+                  className="font-medium text-wa-accent underline-offset-4 hover:underline"
+                >
+                  Retour à la connexion
+                </Link>
+              </p>
+            )}
+          </div>
         </section>
       </div>
     </main>

@@ -49,11 +49,11 @@ export function StaffJoinForm({
   return (
     <form action={action} onSubmit={submit} className="space-y-5">
       {schoolName ? (
-        <div className="rounded-2xl border border-secondary/30 bg-secondary/10 p-4 text-sm">
-          <p className="font-medium text-foreground">{schoolName}</p>
-          <p className="text-muted-foreground">
+        <div className="rounded-lg border border-wa-divider bg-wa-bg p-4 text-sm">
+          <p className="font-medium text-wa-text-primary">{schoolName}</p>
+          <p className="text-wa-text-secondary">
             Vous rejoignez cet établissement en tant que{' '}
-            <span className="font-medium text-foreground">{roleLabel}</span>.
+            <span className="font-medium text-wa-text-primary">{roleLabel}</span>.
           </p>
         </div>
       ) : null}
@@ -86,7 +86,7 @@ export function StaffJoinForm({
           defaultValue={defaultInviteToken}
           readOnly={inviteReadonly}
         />
-        <p className="text-xs leading-relaxed text-muted-foreground">
+        <p className="text-xs leading-relaxed text-wa-text-secondary">
           Ce lien définit votre rôle dans l&apos;établissement. Contactez la
           direction si le lien ne fonctionne plus.
         </p>
@@ -107,7 +107,7 @@ export function StaffJoinForm({
         />
       </div>
 
-      <label className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+      <label className="flex items-start gap-2 text-xs leading-relaxed text-wa-text-secondary">
         <input
           type="checkbox"
           name="consent"
@@ -123,7 +123,12 @@ export function StaffJoinForm({
         </span>
       </label>
 
-      <Button type="submit" size="lg" className="h-11 w-full" disabled={pending}>
+      <Button
+        type="submit"
+        size="lg"
+        className="h-11 w-full bg-primary hover:bg-primary-dark"
+        disabled={pending}
+      >
         {pending ? 'Création du compte…' : 'Rejoindre l\'établissement'}
         <ArrowRight className="size-4" aria-hidden />
       </Button>

@@ -3,10 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ArrowLeft, Printer } from 'lucide-react';
-import {
-  getSchoolMobilePageMeta,
-  shouldShowSchoolBottomNav,
-} from '@/lib/navigation/school-nav';
+import { useWaShell } from '@/lib/navigation/wa-shell-context';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -19,11 +16,14 @@ type Props = {
 
 export function SchoolHeader({ title, backHref, actions, showPrint }: Props) {
   const pathname = usePathname();
-  const meta = getSchoolMobilePageMeta(pathname);
-  const showBack = !shouldShowSchoolBottomNav(pathname);
+  const { getPageMeta, shouldShowBottomNav } = useWaShell();
+  const meta = getPageMeta(pathname);
+  const showBack = !shouldShowBottomNav(pathname);
   const displayTitle = title ?? meta.title;
   const back = backHref ?? meta.backHref;
-  const isReportDetail = pathname.startsWith('/school/rapports/') && pathname !== '/school/rapports';
+  const isReportDetail =
+    pathname.startsWith('/school/rapports/') &&
+    pathname !== '/school/rapports';
 
   return (
     <header className="no-print sticky top-0 z-40 shrink-0 bg-wa-header text-wa-header-foreground safe-top md:static">
@@ -40,7 +40,9 @@ export function SchoolHeader({ title, backHref, actions, showPrint }: Props) {
           <span className="size-10 shrink-0 md:hidden" aria-hidden />
         )}
 
-        <h1 className="min-w-0 flex-1 truncate text-lg font-medium">{displayTitle}</h1>
+        <h1 className="min-w-0 flex-1 truncate text-lg font-medium">
+          {displayTitle}
+        </h1>
 
         <div className="flex shrink-0 items-center gap-0.5">
           {actions}

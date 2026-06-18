@@ -4,16 +4,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LogOut } from 'lucide-react';
 import { brand } from '@/lib/brand';
-import {
-  SCHOOL_BOTTOM_NAV,
-  SCHOOL_LOGOUT_ITEM,
-  isSchoolNavActive,
-} from '@/lib/navigation/school-nav';
+import { SCHOOL_LOGOUT_ITEM } from '@/lib/navigation/school-nav';
+import { useWaShell } from '@/lib/navigation/wa-shell-context';
 import { LogoutButton } from '@/components/auth/logout-button';
 import { cn } from '@/lib/utils';
 
 export function SchoolSideRail() {
   const pathname = usePathname();
+  const { homeHref, bottomNav, isNavActive } = useWaShell();
 
   return (
     <aside
@@ -21,7 +19,7 @@ export function SchoolSideRail() {
       aria-label="Navigation principale"
     >
       <Link
-        href="/school"
+        href={homeHref}
         prefetch={false}
         className="mb-4 flex size-10 items-center justify-center rounded-xl bg-white text-lg font-bold text-primary shadow-sm"
         aria-label={brand.name}
@@ -30,8 +28,8 @@ export function SchoolSideRail() {
       </Link>
 
       <nav className="flex w-full flex-1 flex-col items-center gap-1">
-        {SCHOOL_BOTTOM_NAV.map((item) => {
-          const active = isSchoolNavActive(pathname, item.href, item.exact);
+        {bottomNav.map((item) => {
+          const active = isNavActive(pathname, item.href, item.exact);
           const Icon = item.icon;
           return (
             <Link

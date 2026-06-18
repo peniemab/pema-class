@@ -1,5 +1,5 @@
 import { requireSchoolStaff } from '@/lib/auth/require-role';
-import { AppShell } from '@/components/app-shell';
+import { StaffShellMain } from '@/components/school/mobile/staff-shell-main';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,6 +8,6 @@ export default async function StaffAppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireSchoolStaff();
-  return <AppShell variant="app">{children}</AppShell>;
+  const { role } = await requireSchoolStaff();
+  return <StaffShellMain role={role}>{children}</StaffShellMain>;
 }
