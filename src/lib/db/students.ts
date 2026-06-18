@@ -458,6 +458,50 @@ export async function listEmergencyContacts(
   return (data ?? []) as EmergencyContactRow[];
 }
 
+/** Tous les élèves d'une école (colonnes complètes) — cache hors ligne. */
+export async function listStudentsFullForSchool(
+  schoolId: string,
+): Promise<StudentRow[]> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('students')
+    .select(STUDENT_COLUMNS)
+    .eq('school_id', schoolId)
+    .order('last_name', { ascending: true })
+    .order('first_name', { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as StudentRow[];
+}
+
+/** Tous les contacts d'urgence d'une école — cache hors ligne. */
+export async function listEmergencyContactsForSchool(
+  schoolId: string,
+): Promise<EmergencyContactRow[]> {
+  const admin = createAdminClient();
+  const { data: ids, error: idsError } = await admin
+    .from('students')
+    .select('id')
+    .eq('school_id', schoolId);
+  if (idsError) throw new Error(idsError.message);
+
+  const studentIds = (ids ?? []).map((r) => (r as { id: string }).id);
+  if (studentIds.length === 0) return [];
+
+  const contacts: EmergencyContactRow[] = [];
+  const CHUNK = 800;
+  for (let i = 0; i < studentIds.length; i += CHUNK) {
+    const slice = studentIds.slice(i, i + CHUNK);
+    const { data, error } = await admin
+      .from('student_emergency_contacts')
+      .select('id, student_id, full_name, relationship, phone, note, created_at')
+      .in('student_id', slice)
+      .order('created_at', { ascending: true });
+    if (error) throw new Error(error.message);
+    contacts.push(...((data ?? []) as EmergencyContactRow[]));
+  }
+  return contacts;
+}
+
 export async function updateStudent(
   schoolId: string,
   studentId: string,

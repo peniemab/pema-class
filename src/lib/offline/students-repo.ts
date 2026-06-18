@@ -2,7 +2,9 @@ import {
   getOfflineDb,
   metaKey,
   type LocalClass,
+  type LocalContact,
   type LocalStudent,
+  type LocalStudentDetail,
 } from '@/lib/offline/db';
 import type { StudentsSnapshot } from '@/lib/offline/students-snapshot';
 
@@ -49,37 +51,105 @@ export async function saveStudentsSnapshot(
     current_count: c.current_count,
   }));
 
-  await db.transaction('rw', db.students, db.classes, db.meta, async () => {
-    // Remplace les élèves « synced » de cette école (préserve d'éventuels
-    // brouillons locaux des phases suivantes — pending/error).
-    const staleSynced = await db.students
-      .where('school_id')
-      .equals(schoolId)
-      .filter((s) => s.sync_status === 'synced')
-      .primaryKeys();
-    await db.students.bulkDelete(staleSynced);
-    await db.students.bulkPut(students);
+  const details: LocalStudentDetail[] = snapshot.details.map((s) => ({
+    id: s.id,
+    school_id: s.school_id,
+    first_name: s.first_name,
+    last_name: s.last_name,
+    matricule: s.matricule,
+    birth_date: s.birth_date,
+    lieu_naissance: s.lieu_naissance,
+    ecole_provenance: s.ecole_provenance,
+    gender: s.gender,
+    photo_url: s.photo_url,
+    address: s.address,
+    status: s.status,
+    created_at: s.created_at,
+    updated_at: s.updated_at,
+    sync_status: 'synced',
+  }));
 
-    const staleClasses = await db.classes
-      .where('school_id')
-      .equals(schoolId)
-      .primaryKeys();
-    await db.classes.bulkDelete(staleClasses);
-    await db.classes.bulkPut(classes);
+  const contacts: LocalContact[] = snapshot.contacts.map((c) => ({
+    id: c.id,
+    student_id: c.student_id,
+    school_id: schoolId,
+    full_name: c.full_name,
+    relationship: c.relationship,
+    phone: c.phone,
+    note: c.note,
+    created_at: c.created_at,
+    sync_status: 'synced',
+  }));
 
-    const state: StudentsSyncState = {
-      activeYear: snapshot.activeYear,
-      stats: snapshot.stats,
-      lastSyncAt: snapshot.generatedAt,
-    };
-    await db.meta.put({
-      key: metaKey(schoolId, SCOPE_STATE),
-      school_id: schoolId,
-      scope: SCOPE_STATE,
-      value: state,
-      updated_at: snapshot.generatedAt,
-    });
-  });
+  await db.transaction(
+    'rw',
+    db.students,
+    db.classes,
+    db.studentDetails,
+    db.contacts,
+    db.meta,
+    async () => {
+      // Remplace les enregistrements « synced » de cette école (préserve
+      // d'éventuels brouillons locaux des phases suivantes — pending/error).
+      const staleSynced = await db.students
+        .where('school_id')
+        .equals(schoolId)
+        .filter((s) => s.sync_status === 'synced')
+        .primaryKeys();
+      await db.students.bulkDelete(staleSynced);
+      await db.students.bulkPut(students);
+
+      const staleClasses = await db.classes
+        .where('school_id')
+        .equals(schoolId)
+        .primaryKeys();
+      await db.classes.bulkDelete(staleClasses);
+      await db.classes.bulkPut(classes);
+
+      const staleDetails = await db.studentDetails
+        .where('school_id')
+        .equals(schoolId)
+        .filter((d) => d.sync_status === 'synced')
+        .primaryKeys();
+      await db.studentDetails.bulkDelete(staleDetails);
+      await db.studentDetails.bulkPut(details);
+
+      const staleContacts = await db.contacts
+        .where('school_id')
+        .equals(schoolId)
+        .filter((c) => c.sync_status === 'synced')
+        .primaryKeys();
+      await db.contacts.bulkDelete(staleContacts);
+      await db.contacts.bulkPut(contacts);
+
+      const state: StudentsSyncState = {
+        activeYear: snapshot.activeYear,
+        stats: snapshot.stats,
+        lastSyncAt: snapshot.generatedAt,
+      };
+      await db.meta.put({
+        key: metaKey(schoolId, SCOPE_STATE),
+        school_id: schoolId,
+        scope: SCOPE_STATE,
+        value: state,
+        updated_at: snapshot.generatedAt,
+      });
+    },
+  );
+}
+
+export async function readLocalStudentDetail(
+  studentId: string,
+): Promise<LocalStudentDetail | null> {
+  const db = getOfflineDb();
+  return (await db.studentDetails.get(studentId)) ?? null;
+}
+
+export async function readLocalContactsForStudent(
+  studentId: string,
+): Promise<LocalContact[]> {
+  const db = getOfflineDb();
+  return db.contacts.where('student_id').equals(studentId).toArray();
 }
 
 export async function readStudentsSyncState(

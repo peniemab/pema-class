@@ -12,6 +12,8 @@ import { SCHOOL_CYCLE_LABELS, type SchoolCycle } from '@/lib/school/referentials
 
 type Props = {
   rows: StudentDirectoryRow[];
+  /** Si fourni, le clic ouvre un panneau (offline) au lieu de naviguer. */
+  onSelect?: (id: string) => void;
 };
 
 function classLabel(row: StudentDirectoryRow): string {
@@ -46,7 +48,7 @@ function studentLabels(row: StudentDirectoryRow) {
   ) : null;
 }
 
-export function StudentsTable({ rows }: Props) {
+export function StudentsTable({ rows, onSelect }: Props) {
   if (rows.length === 0) {
     return (
       <p className="px-4 py-10 text-center text-sm text-wa-text-secondary">
@@ -62,7 +64,8 @@ export function StudentsTable({ rows }: Props) {
         return (
           <WaListRow
             key={row.id}
-            href={`/school/eleves/${row.id}`}
+            href={onSelect ? undefined : `/school/eleves/${row.id}`}
+            onClick={onSelect ? () => onSelect(row.id) : undefined}
             avatar={<WaAvatar name={name} size="md" />}
             title={name}
             subtitle={

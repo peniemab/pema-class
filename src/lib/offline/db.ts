@@ -34,6 +34,37 @@ export type LocalClass = {
   current_count: number;
 };
 
+/** Fiche complète (profil détaillé) pour la lecture hors ligne. */
+export type LocalStudentDetail = {
+  id: string;
+  school_id: string;
+  first_name: string;
+  last_name: string;
+  matricule: string | null;
+  birth_date: string | null;
+  lieu_naissance: string | null;
+  ecole_provenance: string | null;
+  gender: string | null;
+  photo_url: string | null;
+  address: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  sync_status: 'synced' | 'pending' | 'error';
+};
+
+export type LocalContact = {
+  id: string;
+  student_id: string;
+  school_id: string;
+  full_name: string;
+  relationship: string;
+  phone: string;
+  note: string | null;
+  created_at: string;
+  sync_status: 'synced' | 'pending' | 'error';
+};
+
 export type LocalMeta = {
   /** Clé composite : `${schoolId}:${scope}` (ex. `<id>:students`). */
   key: string;
@@ -47,6 +78,8 @@ export class PemaOfflineDB extends Dexie {
   students!: Table<LocalStudent, string>;
   classes!: Table<LocalClass, string>;
   meta!: Table<LocalMeta, string>;
+  studentDetails!: Table<LocalStudentDetail, string>;
+  contacts!: Table<LocalContact, string>;
 
   constructor() {
     super('pema-offline');
@@ -54,6 +87,13 @@ export class PemaOfflineDB extends Dexie {
       students: 'id, school_id, last_name, status, class_id, sync_status',
       classes: 'id, school_id, academic_year_id, level',
       meta: 'key, school_id, scope',
+    });
+    this.version(2).stores({
+      students: 'id, school_id, last_name, status, class_id, sync_status',
+      classes: 'id, school_id, academic_year_id, level',
+      meta: 'key, school_id, scope',
+      studentDetails: 'id, school_id, sync_status',
+      contacts: 'id, student_id, school_id, sync_status',
     });
   }
 }

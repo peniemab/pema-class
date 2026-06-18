@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Plus, Search, UserPlus } from 'lucide-react';
 import { ButtonLink } from '@/components/ui/button-link';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { StudentsTable } from '@/components/school/students/students-table';
+import { StudentDetailPanel } from '@/components/school/students/student-detail-panel';
 import { SyncStatusBadge } from '@/components/offline/sync-status-badge';
 import { useStudentsSync } from '@/lib/offline/use-students-sync';
 import { saveStudentsSnapshot } from '@/lib/offline/students-repo';
@@ -30,6 +31,7 @@ export function OfflineStudentsView({ schoolId, initialSnapshot }: Props) {
   const [classId, setClassId] = useState('');
   const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [unassignedOnly, setUnassignedOnly] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Amorce le cache local au premier rendu (peinture instantanée en ligne).
   useEffect(() => {
@@ -85,6 +87,30 @@ export function OfflineStudentsView({ schoolId, initialSnapshot }: Props) {
     setStatus('all');
     setUnassignedOnly(false);
   }
+
+  // Fiche élève en panneau (master-detail) — aucune navigation serveur,
+  // fonctionne hors ligne. Le bouton « retour » du téléphone ferme le panneau.
+  useEffect(() => {
+    const onPop = () => setSelectedId(null);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  const openStudent = useCallback((id: string) => {
+    setSelectedId(id);
+    window.history.pushState({ pema: 'student' }, '');
+  }, []);
+
+  const closeStudent = useCallback(() => {
+    if (
+      typeof window !== 'undefined' &&
+      (window.history.state as { pema?: string } | null)?.pema === 'student'
+    ) {
+      window.history.back();
+    } else {
+      setSelectedId(null);
+    }
+  }, []);
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-0">
@@ -236,10 +262,22 @@ export function OfflineStudentsView({ schoolId, initialSnapshot }: Props) {
               </ButtonLink>
             </div>
           ) : (
-            <StudentsTable rows={filtered.map(toDirectoryRow)} />
+            <StudentsTable
+              rows={filtered.map(toDirectoryRow)}
+              onSelect={openStudent}
+            />
           )}
         </>
       )}
+
+      {selectedId ? (
+        <StudentDetailPanel
+          studentId={selectedId}
+          activeYearName={activeYear?.name ?? null}
+          online={online}
+          onClose={closeStudent}
+        />
+      ) : null}
     </div>
   );
 }
