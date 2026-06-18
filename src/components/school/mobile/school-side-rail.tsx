@@ -9,6 +9,7 @@ import {
   SCHOOL_LOGOUT_ITEM,
   isSchoolNavActive,
 } from '@/lib/navigation/school-nav';
+import { LogoutButton } from '@/components/auth/logout-button';
 import { cn } from '@/lib/utils';
 
 export function SchoolSideRail() {
@@ -53,14 +54,12 @@ export function SchoolSideRail() {
         })}
       </nav>
 
-      <Link
-        href={SCHOOL_LOGOUT_ITEM.href}
-        title={SCHOOL_LOGOUT_ITEM.label}
-        aria-label={SCHOOL_LOGOUT_ITEM.label}
+      <LogoutButton
+        label={SCHOOL_LOGOUT_ITEM.label}
         className="mt-2 flex size-11 items-center justify-center rounded-xl text-white/70 transition-colors hover:bg-white/10 hover:text-white"
       >
         <LogOut className="size-5" aria-hidden />
-      </Link>
+      </LogoutButton>
     </aside>
   );
 }

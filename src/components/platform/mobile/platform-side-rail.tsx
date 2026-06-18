@@ -9,6 +9,7 @@ import {
   PLATFORM_LOGOUT_ITEM,
   isPlatformNavActive,
 } from '@/lib/navigation/platform-nav';
+import { LogoutButton } from '@/components/auth/logout-button';
 import { cn } from '@/lib/utils';
 
 export function PlatformSideRail() {
@@ -53,14 +54,12 @@ export function PlatformSideRail() {
         })}
       </nav>
 
-      <Link
-        href={PLATFORM_LOGOUT_ITEM.href}
-        title={PLATFORM_LOGOUT_ITEM.label}
-        aria-label={PLATFORM_LOGOUT_ITEM.label}
+      <LogoutButton
+        label={PLATFORM_LOGOUT_ITEM.label}
         className="mt-2 flex size-11 items-center justify-center rounded-xl text-white/70 transition-colors hover:bg-white/10 hover:text-white"
       >
         <LogOut className="size-5" aria-hidden />
-      </Link>
+      </LogoutButton>
     </aside>
   );
 }

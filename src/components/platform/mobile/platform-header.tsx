@@ -7,7 +7,9 @@ import {
   getPlatformMobilePageMeta,
   shouldShowPlatformBottomNav,
 } from '@/lib/navigation/platform-nav';
-import { ButtonLink } from '@/components/ui/button-link';
+import { buttonVariants } from '@/components/ui/button';
+import { LogoutButton } from '@/components/auth/logout-button';
+import { cn } from '@/lib/utils';
 
 type Props = {
   title?: string;
@@ -47,16 +49,15 @@ export function PlatformHeader({ title, backHref, actions }: Props) {
             Superadmin
           </span>
           {actions}
-          <ButtonLink
-            variant="ghost"
-            size="icon"
-            className="size-10 text-wa-header-foreground hover:bg-white/10 hover:text-white"
-            href="/logout"
-            aria-label="Déconnexion"
-            title="Déconnexion"
+          <LogoutButton
+            label="Déconnexion"
+            className={cn(
+              buttonVariants({ variant: 'ghost', size: 'icon' }),
+              'size-10 text-wa-header-foreground hover:bg-white/10 hover:text-white',
+            )}
           >
             <LogOut className="size-5" aria-hidden />
-          </ButtonLink>
+          </LogoutButton>
         </div>
       </div>
     </header>

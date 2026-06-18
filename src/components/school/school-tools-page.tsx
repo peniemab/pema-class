@@ -1,10 +1,10 @@
-import Link from 'next/link';
 import { LogOut } from 'lucide-react';
 import {
   SCHOOL_LOGOUT_ITEM,
   SCHOOL_TOOL_SECTIONS,
 } from '@/lib/navigation/school-nav';
 import { WaToolCard } from '@/components/school/mobile/wa-tool-card';
+import { LogoutButton } from '@/components/auth/logout-button';
 
 export function SchoolToolsPage() {
   return (
@@ -24,9 +24,9 @@ export function SchoolToolsPage() {
         ))}
 
         <section className="px-4">
-          <Link
-            href={SCHOOL_LOGOUT_ITEM.href}
-            className="flex min-h-[3.25rem] items-center gap-3 rounded-xl border border-wa-divider bg-wa-panel px-4 transition-colors hover:bg-wa-row-hover active:bg-wa-row-active"
+          <LogoutButton
+            label={SCHOOL_LOGOUT_ITEM.label}
+            className="flex min-h-[3.25rem] w-full items-center gap-3 rounded-xl border border-wa-divider bg-wa-panel px-4 text-left transition-colors hover:bg-wa-row-hover active:bg-wa-row-active"
           >
             <span className="flex size-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
               <LogOut className="size-5" aria-hidden />
@@ -34,7 +34,7 @@ export function SchoolToolsPage() {
             <span className="text-sm font-medium text-destructive">
               {SCHOOL_LOGOUT_ITEM.label}
             </span>
-          </Link>
+          </LogoutButton>
         </section>
       </div>
     </div>
