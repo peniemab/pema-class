@@ -47,7 +47,9 @@
 
 - `SUPABASE_SERVICE_ROLE_KEY` (serveur uniquement)
 
-- `APP_BASE_URL`
+- `APP_BASE_URL` et `NEXT_PUBLIC_APP_BASE_URL` (même valeur ; reset MDP + invitations)
+
+- E-mails auth : SMTP **Resend** dans le dashboard Supabase — voir `docs/supabase-smtp.md`
 
 
 

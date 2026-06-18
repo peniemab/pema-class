@@ -1,8 +1,12 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
+import {
+  AUTH_RESET_PASSWORD_CALLBACK,
+  authCallbackUrl,
+} from '@/lib/auth/auth-redirect-url';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,10 +18,7 @@ export function ForgotPasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
 
-  const redirectTo = useMemo(() => {
-    if (typeof window === 'undefined') return undefined;
-    return `${window.location.origin}/auth/callback?next=/auth/reset-password`;
-  }, []);
+  const redirectTo = authCallbackUrl(AUTH_RESET_PASSWORD_CALLBACK);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -35,7 +36,7 @@ export function ForgotPasswordForm() {
     const supabase = createClient();
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       email.trim(),
-      redirectTo ? { redirectTo } : undefined,
+      { redirectTo },
     );
     setSubmitting(false);
 
