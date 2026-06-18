@@ -8,16 +8,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { brand } from '@/lib/brand';
 
 type PageProps = {
-  searchParams: Promise<{
-    error?: string;
-    password_reset?: string;
-    reason?: string;
-    ck?: string;
-  }>;
+  searchParams: Promise<{ error?: string; password_reset?: string }>;
 };
 
 export default async function LoginPage({ searchParams }: PageProps) {
-  const { error, password_reset, reason, ck } = await searchParams;
+  const { error, password_reset } = await searchParams;
   const noProfile = error === 'no_profile';
   const sessionError = error === 'session';
   const resetOk = password_reset === '1';
@@ -69,12 +64,6 @@ export default async function LoginPage({ searchParams }: PageProps) {
               <Alert variant="destructive">
                 <AlertDescription>
                   Session expirée ou invalide. Reconnectez-vous.
-                  {reason ? (
-                    <span className="mt-1 block font-mono text-xs opacity-70">
-                      diag: {reason}
-                      {ck ? ` · cookies: ${ck}` : ''}
-                    </span>
-                  ) : null}
                 </AlertDescription>
               </Alert>
             )}

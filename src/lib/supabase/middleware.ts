@@ -91,43 +91,25 @@ export async function updateSession(request: NextRequest) {
   });
 
   let user: { id: string } | null = null;
-  let reason = 'nouser';
   try {
     const { data, error } = await supabase.auth.getUser();
     if (!error && data.user) {
       user = data.user;
     } else if (error) {
-      reason = `err_${(error.message || 'unknown').slice(0, 40).replace(/[^a-zA-Z0-9_]+/g, '-')}`;
       const passthrough = allowSessionCookieThrough(request, pathname, supabaseResponse);
       if (passthrough) return passthrough;
     }
-  } catch (e) {
-    reason = `throw_${(e instanceof Error ? e.message : 'unknown').slice(0, 40).replace(/[^a-zA-Z0-9_]+/g, '-')}`;
+  } catch {
     const passthrough = allowSessionCookieThrough(request, pathname, supabaseResponse);
     if (passthrough) return passthrough;
     user = null;
   }
 
   if (!user && !isPublicPath(pathname)) {
-    const hasCookie = hasSupabaseAuthCookie(request);
-    if (!hasCookie) reason = 'nocookie';
-    const cookieNames = request.cookies.getAll().map((c) => c.name);
-    const ck = cookieNames.join(',').slice(0, 120) || 'EMPTY';
-    const h = request.headers;
-    const sfs = h.get('sec-fetch-site') || 'na';
-    const rsc = h.get('RSC') ? '1' : '0';
-    const pf = h.get('Next-Router-Prefetch') ? '1' : '0';
-    const diag = `${reason}|sfs=${sfs}|rsc=${rsc}|pf=${pf}`;
-    // Diagnostic : visible dans Vercel → Runtime Logs.
-    console.warn(
-      `[auth-redirect] path=${pathname} reason=${reason} hasCookie=${hasCookie} cookies=${ck} sfs=${sfs} rsc=${rsc} pf=${pf} hasCookieHeader=${h.get('cookie') ? 'yes' : 'no'}`,
-    );
     const url = request.nextUrl.clone();
     url.pathname = '/';
     url.search = '';
     url.searchParams.set('error', 'session');
-    url.searchParams.set('reason', diag);
-    url.searchParams.set('ck', ck);
     return redirectWithSession(url, supabaseResponse);
   }
 
