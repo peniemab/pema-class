@@ -115,6 +115,28 @@ export function StaffWorkspace({
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
+  // Précharge les bundles des onglets pendant un temps mort → premier
+  // basculement quasi instantané (le chunk est déjà en cache navigateur).
+  useEffect(() => {
+    const warmUp = () => {
+      void import('@/components/school/students/offline-students-view');
+      void import('@/components/school/presences/presences-page-view');
+      void import('@/components/school/caisse/offline-caisse-home-view');
+      void import('@/components/school/caisse/offline-caisse-student-view');
+    };
+    const ric = (
+      window as typeof window & {
+        requestIdleCallback?: (cb: () => void) => number;
+      }
+    ).requestIdleCallback;
+    if (ric) {
+      ric(warmUp);
+    } else {
+      const t = setTimeout(warmUp, 1500);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
   const allTabs: { key: AppTabKey; render: () => React.ReactNode }[] = [
     {
       key: 'accueil',
