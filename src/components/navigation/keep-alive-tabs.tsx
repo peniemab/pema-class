@@ -5,39 +5,48 @@ import { cn } from '@/lib/utils';
 
 type KeepAliveTab = {
   key: string;
-  render: () => ReactNode;
+  content: ReactNode;
 };
 
 type KeepAliveTabsProps = {
   activeKey: string;
   tabs: KeepAliveTab[];
+  /**
+   * true = tous les onglets montés dès le départ (design toujours en place,
+   * switch instantané sans flash « Chargement… »).
+   */
+  eager?: boolean;
 };
 
 /**
- * Onglets « gardés en mémoire » façon WhatsApp Business :
- * un onglet est monté à sa PREMIÈRE activation, puis conservé dans le DOM.
- * Les onglets inactifs sont masqués via `hidden` (display:none) — leur état
- * React, leur scroll et leurs hooks de synchro restent vivants. Le switch
- * d'onglet est donc instantané (0 ms, aucun rechargement).
+ * Onglets gardés en mémoire : masqués via `hidden`, jamais démontés.
+ * Le contenu (`content`) est passé une fois — pas de `render()` répété.
  */
-export function KeepAliveTabs({ activeKey, tabs }: KeepAliveTabsProps) {
-  const mounted = useRef<Set<string>>(new Set());
+export function KeepAliveTabs({
+  activeKey,
+  tabs,
+  eager = true,
+}: KeepAliveTabsProps) {
+  const mounted = useRef<Set<string>>(
+    eager ? new Set(tabs.map((t) => t.key)) : new Set(),
+  );
+
+  if (!eager && !mounted.current.has(activeKey)) {
+    mounted.current.add(activeKey);
+  }
 
   return (
     <>
       {tabs.map((tab) => {
-        const isActive = tab.key === activeKey;
-        if (isActive) mounted.current.add(tab.key);
-        // Jamais visité → pas encore monté (démarrage léger sur mobile).
         if (!mounted.current.has(tab.key)) return null;
-
+        const isActive = tab.key === activeKey;
         return (
           <div
             key={tab.key}
             className={cn(isActive ? undefined : 'hidden')}
             aria-hidden={!isActive}
           >
-            {tab.render()}
+            {tab.content}
           </div>
         );
       })}
