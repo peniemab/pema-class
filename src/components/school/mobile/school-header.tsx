@@ -4,6 +4,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { useWaShell } from '@/lib/navigation/wa-shell-context';
+import {
+  APP_TAB_TITLES,
+  useAppTabsOptional,
+} from '@/lib/navigation/app-tab-context';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -17,9 +21,12 @@ type Props = {
 export function SchoolHeader({ title, backHref, actions, showPrint }: Props) {
   const pathname = usePathname();
   const { getPageMeta, shouldShowBottomNav } = useWaShell();
+  const tabs = useAppTabsOptional();
+  const inWorkspace = tabs != null && pathname === '/app';
   const meta = getPageMeta(pathname);
   const showBack = !shouldShowBottomNav(pathname);
-  const displayTitle = title ?? meta.title;
+  const displayTitle =
+    title ?? (inWorkspace ? APP_TAB_TITLES[tabs!.activeTab] : meta.title);
   const back = backHref ?? meta.backHref;
   const isReportDetail =
     pathname.startsWith('/school/rapports/') &&

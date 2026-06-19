@@ -14,12 +14,18 @@ type Props = {
   schoolId: string;
   caisseBasePath: '/school/caisse' | '/app/caisse';
   initialSnapshot: CaisseSnapshot | null;
+  /**
+   * Si fourni, l'encaissement s'ouvre en panneau (workspace keep-alive)
+   * au lieu de naviguer vers `${caisseBasePath}/${studentId}`.
+   */
+  onOpenStudent?: (studentId: string) => void;
 };
 
 export function OfflineCaisseHomeView({
   schoolId,
   caisseBasePath,
   initialSnapshot,
+  onOpenStudent,
 }: Props) {
   const router = useRouter();
   const { state, phase, online, pendingCount, refresh } =
@@ -35,9 +41,13 @@ export function OfflineCaisseHomeView({
 
   const onSelectStudent = useCallback(
     (studentId: string) => {
+      if (onOpenStudent) {
+        onOpenStudent(studentId);
+        return;
+      }
       router.push(`${caisseBasePath}/${studentId}`);
     },
-    [router, caisseBasePath],
+    [router, caisseBasePath, onOpenStudent],
   );
 
   return (
