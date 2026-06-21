@@ -1,5 +1,7 @@
 /** Mutation outbox — file d'attente de sync cloud (spec domain-spec). */
 
+import type { AttendanceStatus } from '@/lib/db/attendances';
+
 export type RegisterStudentContact = {
   full_name: string;
   relationship: string;
@@ -103,12 +105,24 @@ export type PayFeeMutation = OutboxMutationBase & {
   payload: PayFeePayload;
 };
 
+export type SaveAttendanceBatchPayload = {
+  classId: string;
+  date: string;
+  entries: { studentId: string; status: AttendanceStatus }[];
+};
+
+export type SaveAttendanceBatchMutation = OutboxMutationBase & {
+  type: 'save_attendance_batch';
+  payload: SaveAttendanceBatchPayload;
+};
+
 export type OutboxMutation =
   | RegisterStudentMutation
   | UpdateStudentMutation
   | UpdateContactsMutation
   | TransferClassMutation
-  | PayFeeMutation;
+  | PayFeeMutation
+  | SaveAttendanceBatchMutation;
 
 export type EnrollPushResult = {
   studentId: string;
@@ -128,4 +142,5 @@ export type PayPushResult = {
 export type MutationPushResult = {
   ok: true;
   studentId?: string;
+  saved?: number;
 };

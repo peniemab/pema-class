@@ -8,21 +8,22 @@ import { KeepAliveTabs } from '@/components/navigation/keep-alive-tabs';
 import { APP_STUDENTS_BASE } from '@/lib/navigation/students-paths';
 import { StaffDashboard } from '@/components/school/staff-dashboard';
 import { OfflineStudentsView } from '@/components/school/students/offline-students-view';
-import { PresencesPageView } from '@/components/school/presences/presences-page-view';
+import { OfflinePresencesView } from '@/components/school/presences/offline-presences-view';
 import { OfflineCaisseHomeView } from '@/components/school/caisse/offline-caisse-home-view';
 import { OfflineCaisseStudentView } from '@/components/school/caisse/offline-caisse-student-view';
 import type { StaffDashboardPageData } from '@/lib/school/load-staff-dashboard-page';
 import type { StudentsSnapshot } from '@/lib/offline/students-snapshot';
 import type { CaisseSnapshot } from '@/lib/offline/caisse-snapshot';
-import type { AttendancePageData } from '@/lib/db/attendance-page';
+import type { AttendanceSnapshot } from '@/lib/offline/attendance-snapshot';
 
 type Props = {
   role: StaffRole;
   schoolId: string;
+  staffId: string;
   dashboard: StaffDashboardPageData;
   studentsSnapshot: StudentsSnapshot | null;
   caisseSnapshot: CaisseSnapshot | null;
-  attendance: AttendancePageData | null;
+  attendanceSnapshot: AttendanceSnapshot | null;
 };
 
 /**
@@ -33,10 +34,11 @@ type Props = {
 export function StaffWorkspace({
   role,
   schoolId,
+  staffId,
   dashboard,
   studentsSnapshot,
   caisseSnapshot,
-  attendance,
+  attendanceSnapshot,
 }: Props) {
   const tabs = useAppTabsOptional();
   const activeTab: AppTabKey = tabs?.activeTab ?? 'accueil';
@@ -85,9 +87,14 @@ export function StaffWorkspace({
 
   const presencesPanel = useMemo(
     () => (
-      <PresencesPageView data={attendance} basePath="/app/presences" />
+      <OfflinePresencesView
+        schoolId={schoolId}
+        role={role}
+        initialSnapshot={attendanceSnapshot}
+        studentsSnapshot={studentsSnapshot}
+      />
     ),
-    [attendance],
+    [schoolId, role, attendanceSnapshot, studentsSnapshot],
   );
 
   const caissePanel = useMemo(

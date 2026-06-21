@@ -46,6 +46,15 @@ const STATUS_OPTIONS: {
 type Props = {
   data: AttendancePageData;
   basePath: '/school/presences' | '/app/presences';
+  /** Mode offline : enregistrement local + outbox au lieu du server action. */
+  onSaveLocal?: (input: {
+    classId: string;
+    date: string;
+    entries: { studentId: string; status: AttendanceStatus }[];
+  }) => Promise<
+    | { ok: true; saved: number }
+    | { ok: false; error: string }
+  >;
 };
 
 type LocalRow = {
@@ -56,7 +65,7 @@ type LocalRow = {
   status: AttendanceStatus | null;
 };
 
-export function PresencesPanel({ data, basePath }: Props) {
+export function PresencesPanel({ data, basePath, onSaveLocal }: Props) {
   const [rows, setRows] = useState<LocalRow[]>(() =>
     data.rows.map((r) => ({ ...r })),
   );
@@ -102,19 +111,25 @@ export function PresencesPanel({ data, basePath }: Props) {
     }
 
     startTransition(async () => {
-      const result = await saveAttendanceAction({
+      const payload = {
         classId: data.selectedClassId!,
         date: data.selectedDate,
         entries,
-        basePath,
-      });
+      };
+
+      const result = onSaveLocal
+        ? await onSaveLocal(payload)
+        : await saveAttendanceAction({ ...payload, basePath });
+
       if (!result.ok) {
         setError(result.error);
         setMessage(null);
         return;
       }
       setError(null);
-      setMessage(`${result.saved} présence${result.saved > 1 ? 's' : ''} enregistrée${result.saved > 1 ? 's' : ''}.`);
+      setMessage(
+        `${result.saved} présence${result.saved > 1 ? 's' : ''} enregistrée${result.saved > 1 ? 's' : ''}.`,
+      );
     });
   }
 

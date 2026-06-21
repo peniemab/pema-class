@@ -7,8 +7,10 @@ import {
 } from '@/lib/offline/outbox-repo';
 import { saveCaisseSnapshot } from '@/lib/offline/caisse-repo';
 import { saveStudentsSnapshot } from '@/lib/offline/students-repo';
+import { saveAttendanceSnapshot, attendanceRowId } from '@/lib/offline/attendance-repo';
 import type { CaisseSnapshot } from '@/lib/offline/caisse-snapshot';
 import type { StudentsSnapshot } from '@/lib/offline/students-snapshot';
+import type { AttendanceSnapshot } from '@/lib/offline/attendance-snapshot';
 import type {
   EnrollPushResult,
   MutationPushResult,
@@ -39,6 +41,16 @@ async function pullStudentsSnapshot(): Promise<void> {
   await saveStudentsSnapshot(snapshot);
 }
 
+async function pullAttendanceSnapshot(): Promise<void> {
+  const res = await fetch('/api/sync/attendance', {
+    cache: 'no-store',
+    credentials: 'same-origin',
+  });
+  if (!res.ok) return;
+  const snapshot = (await res.json()) as AttendanceSnapshot;
+  await saveAttendanceSnapshot(snapshot);
+}
+
 async function pushEnrollMutation(
   mutation: OutboxMutation,
 ): Promise<EnrollPushResult> {
@@ -59,6 +71,49 @@ async function pushEnrollMutation(
     throw new Error(body.error ?? `Push HTTP ${res.status}`);
   }
   return body;
+}
+
+async function pushAttendanceMutation(
+  mutation: OutboxMutation,
+): Promise<MutationPushResult> {
+  if (mutation.type !== 'save_attendance_batch') {
+    throw new Error('Type mutation invalide.');
+  }
+  const res = await fetch('/api/sync/attendance', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      mutationId: mutation.id,
+      payload: mutation.payload,
+    }),
+  });
+  const body = (await res.json()) as MutationPushResult & { error?: string };
+  if (!res.ok) {
+    throw new Error(body.error ?? `Push HTTP ${res.status}`);
+  }
+  return body;
+}
+
+async function markAttendanceSyncedLocally(
+  mutation: OutboxMutation,
+): Promise<void> {
+  if (mutation.type !== 'save_attendance_batch') return;
+  const db = getOfflineDb();
+  const { classId, date, entries } = mutation.payload;
+  const now = new Date().toISOString();
+  await db.transaction('rw', db.attendance, async () => {
+    for (const entry of entries) {
+      const id = attendanceRowId(entry.studentId, date);
+      const row = await db.attendance.get(id);
+      if (row && row.class_id === classId && row.date === date) {
+        await db.attendance.update(id, {
+          sync_status: 'synced',
+          updated_at: now,
+        });
+      }
+    }
+  });
 }
 
 async function pushUpdateMutation(
@@ -167,6 +222,14 @@ async function processMutation(mutation: OutboxMutation): Promise<void> {
     return;
   }
 
+  if (mutation.type === 'save_attendance_batch') {
+    await updateOutboxMutation(mutation.id, { status: 'processing' });
+    await pushAttendanceMutation(mutation);
+    await markAttendanceSyncedLocally(mutation);
+    await removeOutboxMutation(mutation.id);
+    return;
+  }
+
   await updateOutboxMutation(mutation.id, { status: 'processing' });
   await pushUpdateMutation(mutation);
   await removeOutboxMutation(mutation.id);
@@ -191,8 +254,12 @@ export async function pushOutbox(schoolId: string): Promise<{
   const ordered = [
     ...pending.filter((m) => m.type === 'register_student'),
     ...pending.filter(
-      (m) => m.type !== 'register_student' && m.type !== 'pay_fee',
+      (m) =>
+        m.type !== 'register_student' &&
+        m.type !== 'pay_fee' &&
+        m.type !== 'save_attendance_batch',
     ),
+    ...pending.filter((m) => m.type === 'save_attendance_batch'),
     ...pending.filter((m) => m.type === 'pay_fee'),
   ];
 
@@ -216,6 +283,7 @@ export async function pushOutbox(schoolId: string): Promise<{
     try {
       await pullCaisseSnapshot();
       await pullStudentsSnapshot();
+      await pullAttendanceSnapshot();
     } catch {
       // Le push a réussi ; le pull suivra au prochain cycle.
     }

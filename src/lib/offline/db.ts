@@ -1,4 +1,5 @@
 import Dexie, { type Table } from 'dexie';
+import type { AttendanceStatus } from '@/lib/db/attendances';
 import type { OutboxMutation } from '@/lib/offline/outbox-types';
 
 /**
@@ -88,6 +89,18 @@ export type LocalPayment = {
   sync_status: 'synced' | 'pending' | 'error';
 };
 
+/** Présence élève — clé id = `${student_id}:${date}` (idempotent). */
+export type LocalAttendance = {
+  id: string;
+  school_id: string;
+  student_id: string;
+  class_id: string;
+  date: string;
+  status: AttendanceStatus;
+  sync_status: 'synced' | 'pending' | 'error';
+  updated_at: string;
+};
+
 export type LocalMeta = {
   /** Clé composite : `${schoolId}:${scope}` (ex. `<id>:students`). */
   key: string;
@@ -106,6 +119,7 @@ export class PemaOfflineDB extends Dexie {
   outbox!: Table<OutboxMutation, string>;
   fees!: Table<LocalFee, string>;
   payments!: Table<LocalPayment, string>;
+  attendance!: Table<LocalAttendance, string>;
 
   constructor() {
     super('pema-offline');
@@ -167,6 +181,18 @@ export class PemaOfflineDB extends Dexie {
       outbox: 'id, school_id, entity_id, type, status, created_at',
       fees: 'id, school_id, academic_year',
       payments: 'id, school_id, student_id, fee_id, receipt_number, sync_status',
+    });
+    this.version(6).stores({
+      students: 'id, school_id, last_name, status, class_id, sync_status',
+      classes: 'id, school_id, academic_year_id, level',
+      meta: 'key, school_id, scope',
+      studentDetails: 'id, school_id, sync_status',
+      contacts: 'id, student_id, school_id, sync_status',
+      outbox: 'id, school_id, entity_id, type, status, created_at',
+      fees: 'id, school_id, academic_year',
+      payments: 'id, school_id, student_id, fee_id, receipt_number, sync_status',
+      attendance:
+        'id, school_id, class_id, student_id, date, sync_status, [student_id+date]',
     });
   }
 }
