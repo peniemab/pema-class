@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { StudentsTable } from '@/components/school/students/students-table';
 import { StudentDetailPanel } from '@/components/school/students/student-detail-panel';
+import { StudentsSkeleton } from '@/components/school/mobile/view-skeletons';
 import { SyncStatusBadge } from '@/components/offline/sync-status-badge';
 import { useStudentsSync } from '@/lib/offline/use-students-sync';
 import { saveStudentsSnapshot } from '@/lib/offline/students-repo';
@@ -129,6 +130,10 @@ export function OfflineStudentsView({
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-0">
+      {loading ? (
+        <StudentsSkeleton />
+      ) : (
+        <>
       <div className="no-print flex items-center justify-end px-4 py-2">
         <SyncStatusBadge
           phase={phase}
@@ -152,7 +157,7 @@ export function OfflineStudentsView({
         </div>
       ) : null}
 
-      {!activeYear && !loading ? (
+      {!activeYear ? (
         <Alert className="mx-4 mt-4">
           <AlertDescription>
             Configurez d&apos;abord une{' '}
@@ -257,11 +262,7 @@ export function OfflineStudentsView({
             </div>
           </div>
 
-          {loading ? (
-            <p className="px-4 py-10 text-center text-sm text-wa-text-secondary">
-              Chargement…
-            </p>
-          ) : allStudents.length === 0 && !hasFilters ? (
+          {allStudents.length === 0 && !hasFilters ? (
             <div className="px-6 py-10 text-center">
               <p className="text-sm text-wa-text-secondary">
                 {activeYear
@@ -299,6 +300,8 @@ export function OfflineStudentsView({
           onSync={refresh}
         />
       ) : null}
+        </>
+      )}
     </div>
   );
 }

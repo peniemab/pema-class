@@ -4,6 +4,7 @@ import { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Wallet } from 'lucide-react';
 import { OfflineCaisseSearchPanel } from '@/components/school/caisse/offline-caisse-search-panel';
+import { CaisseSkeleton } from '@/components/school/mobile/view-skeletons';
 import { SyncStatusBadge } from '@/components/offline/sync-status-badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { saveCaisseSnapshot } from '@/lib/offline/caisse-repo';
@@ -38,6 +39,7 @@ export function OfflineCaisseHomeView({
   }, [initialSnapshot]);
 
   const activeYear = state?.activeYear ?? initialSnapshot?.activeYear ?? null;
+  const loading = state === undefined && !initialSnapshot;
 
   const onSelectStudent = useCallback(
     (studentId: string) => {
@@ -52,6 +54,10 @@ export function OfflineCaisseHomeView({
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-0">
+      {loading ? (
+        <CaisseSkeleton />
+      ) : (
+        <>
       <div className="no-print flex items-center justify-end px-4 py-2">
         <SyncStatusBadge
           phase={phase}
@@ -78,6 +84,8 @@ export function OfflineCaisseHomeView({
           onSelectStudent={onSelectStudent}
         />
       </div>
+        </>
+      )}
     </div>
   );
 }

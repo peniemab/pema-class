@@ -89,7 +89,7 @@ export function usePresencesSync(
   );
 
   const pageData = useMemo(() => {
-    if (classes === undefined || students === undefined || attendances === undefined) {
+    if (classes === undefined || students === undefined) {
       return undefined;
     }
     return buildLocalAttendancePageData({
@@ -98,7 +98,7 @@ export function usePresencesSync(
       syncState: syncState ?? null,
       classes,
       students,
-      attendances,
+      attendances: attendances ?? [],
       selectedClassId: filters.classId,
       selectedDate: filters.date,
     });

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { StaffRole } from '@/lib/auth/types';
 import { SyncStatusBadge } from '@/components/offline/sync-status-badge';
+import { PresencesSkeleton } from '@/components/school/mobile/view-skeletons';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PresencesFiltersLocal } from '@/components/school/presences/presences-filters-local';
 import { PresencesPanel } from '@/components/school/presences/presences-panel';
@@ -86,6 +87,10 @@ export function OfflinePresencesView({
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-0">
+      {loading ? (
+        <PresencesSkeleton />
+      ) : (
+        <>
       <div className="no-print flex items-center justify-end px-4 py-2">
         <SyncStatusBadge
           phase={phase}
@@ -96,11 +101,7 @@ export function OfflinePresencesView({
         />
       </div>
 
-      {loading ? (
-        <p className="px-4 py-10 text-center text-sm text-wa-text-secondary">
-          Chargement…
-        </p>
-      ) : !pageData ? (
+      {!pageData ? (
         <Alert className="mx-4 mt-4">
           <AlertDescription>
             Configurez d&apos;abord une{' '}
@@ -168,6 +169,8 @@ export function OfflinePresencesView({
               onSaveLocal={handleSaveLocal}
             />
           )}
+        </>
+      )}
         </>
       )}
     </div>
