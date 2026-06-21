@@ -2,14 +2,14 @@
 
 import { Check, CloudOff, Loader2, RefreshCw, TriangleAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { SyncPhase } from '@/lib/offline/use-students-sync';
+import type { RefreshOptions, SyncPhase } from '@/lib/offline/silent-sync';
 
 type Props = {
   phase: SyncPhase;
   online: boolean;
   lastSyncAt: string | null | undefined;
   pendingCount?: number;
-  onRefresh?: () => void;
+  onRefresh?: (options?: RefreshOptions) => void;
   className?: string;
 };
 
@@ -61,7 +61,7 @@ export function SyncStatusBadge({
   return (
     <button
       type="button"
-      onClick={onRefresh}
+      onClick={() => onRefresh?.({ visible: true })}
       disabled={phase === 'syncing'}
       className={cn(
         'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.6875rem] font-medium transition-colors hover:bg-black/5 disabled:cursor-default',
