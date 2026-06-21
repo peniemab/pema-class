@@ -145,3 +145,14 @@ export async function readLocalPaymentsForStudent(
     .filter((p) => p.student_id === studentId)
     .toArray();
 }
+
+export function caissePaintFromSnapshot(snapshot: CaisseSnapshot): CaisseSyncState {
+  return {
+    activeYear: snapshot.activeYear,
+    lastSyncAt: snapshot.generatedAt,
+  };
+}
+
+export function caissePaintCacheKey(schoolId: string): string {
+  return `${schoolId}:caisse`;
+}

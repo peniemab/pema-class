@@ -14,6 +14,7 @@ import {
   type StaffRole,
 } from '@/lib/auth/types';
 import type { AttendanceSnapshot } from '@/lib/offline/attendance-snapshot';
+import type { StudentsSnapshot } from '@/lib/offline/students-snapshot';
 
 export type AttendanceSyncState = {
   activeYear: { id: string; name: string } | null;
@@ -241,4 +242,86 @@ export function buildLocalAttendancePageData(input: {
     },
     teacherLimited,
   };
+}
+
+export function attendanceSnapshotToSyncState(
+  snapshot: AttendanceSnapshot,
+): AttendanceSyncState {
+  return {
+    activeYear: snapshot.activeYear,
+    teacherClassIds: snapshot.teacherClassIds,
+    teacherLimited: snapshot.teacherLimited,
+    lastSyncAt: snapshot.generatedAt,
+  };
+}
+
+function attendanceSnapshotToLocalRows(
+  snapshot: AttendanceSnapshot,
+): LocalAttendance[] {
+  return snapshot.attendances.map((a) => ({
+    id: attendanceRowId(a.student_id, a.date),
+    school_id: snapshot.schoolId,
+    student_id: a.student_id,
+    class_id: a.class_id,
+    date: a.date,
+    status: a.status,
+    sync_status: 'synced' as const,
+    updated_at: snapshot.generatedAt,
+  }));
+}
+
+/** Peinture synchrone depuis snapshots serveur (0 ms, sans Dexie). */
+export function buildPresencesPageFromSnapshots(
+  attendanceSnapshot: AttendanceSnapshot,
+  studentsSnapshot: StudentsSnapshot,
+  role: StaffRole,
+  selectedClassId: string | null,
+  selectedDate: string,
+): AttendancePageData | null {
+  const students: LocalStudent[] = studentsSnapshot.students.map((s) => ({
+    id: s.id,
+    school_id: studentsSnapshot.schoolId,
+    first_name: s.first_name,
+    last_name: s.last_name,
+    matricule: s.matricule,
+    gender: s.gender,
+    birth_date: s.birth_date,
+    status: s.status,
+    class_id: s.class_id,
+    class_name: s.class_name,
+    class_level: s.class_level,
+    class_cycle: s.class_cycle,
+    sync_status: 'synced',
+    updated_at: studentsSnapshot.generatedAt,
+  }));
+
+  const classes: LocalClass[] = studentsSnapshot.classes.map((c) => ({
+    id: c.id,
+    school_id: c.school_id,
+    academic_year_id: c.academic_year_id,
+    name: c.name,
+    level: c.level,
+    cycle: c.cycle,
+    max_capacity: c.max_capacity,
+    current_count: c.current_count,
+  }));
+
+  return buildLocalAttendancePageData({
+    schoolId: attendanceSnapshot.schoolId,
+    role,
+    syncState: attendanceSnapshotToSyncState(attendanceSnapshot),
+    classes,
+    students,
+    attendances: attendanceSnapshotToLocalRows(attendanceSnapshot),
+    selectedClassId,
+    selectedDate,
+  });
+}
+
+export function presencesPaintCacheKey(
+  schoolId: string,
+  date: string,
+  classId: string | null,
+): string {
+  return `${schoolId}:presences:${date}:${classId ?? '_'}`;
 }

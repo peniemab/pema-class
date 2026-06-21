@@ -173,3 +173,57 @@ export async function readLocalClasses(
   const db = getOfflineDb();
   return db.classes.where('school_id').equals(schoolId).toArray();
 }
+
+/** Bundle pour peinture synchrone (sessionStorage / 1er rendu). */
+export type StudentsPaintBundle = {
+  students: LocalStudent[];
+  classes: LocalClass[];
+  state: StudentsSyncState;
+};
+
+export function studentsPaintFromSnapshot(
+  snapshot: StudentsSnapshot,
+): StudentsPaintBundle {
+  const { schoolId } = snapshot;
+  const students: LocalStudent[] = snapshot.students.map((s) => ({
+    id: s.id,
+    school_id: schoolId,
+    first_name: s.first_name,
+    last_name: s.last_name,
+    matricule: s.matricule,
+    gender: s.gender,
+    birth_date: s.birth_date,
+    status: s.status,
+    class_id: s.class_id,
+    class_name: s.class_name,
+    class_level: s.class_level,
+    class_cycle: s.class_cycle,
+    sync_status: 'synced',
+    updated_at: snapshot.generatedAt,
+  }));
+
+  const classes: LocalClass[] = snapshot.classes.map((c) => ({
+    id: c.id,
+    school_id: c.school_id,
+    academic_year_id: c.academic_year_id,
+    name: c.name,
+    level: c.level,
+    cycle: c.cycle,
+    max_capacity: c.max_capacity,
+    current_count: c.current_count,
+  }));
+
+  return {
+    students,
+    classes,
+    state: {
+      activeYear: snapshot.activeYear,
+      stats: snapshot.stats,
+      lastSyncAt: snapshot.generatedAt,
+    },
+  };
+}
+
+export function studentsPaintCacheKey(schoolId: string): string {
+  return `${schoolId}:students`;
+}

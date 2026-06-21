@@ -1,14 +1,20 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Wallet } from 'lucide-react';
 import { OfflineCaisseSearchPanel } from '@/components/school/caisse/offline-caisse-search-panel';
 import { CaisseSkeleton } from '@/components/school/mobile/view-skeletons';
 import { SyncStatusBadge } from '@/components/offline/sync-status-badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { saveCaisseSnapshot } from '@/lib/offline/caisse-repo';
+import {
+  caissePaintCacheKey,
+  caissePaintFromSnapshot,
+  saveCaisseSnapshot,
+  type CaisseSyncState,
+} from '@/lib/offline/caisse-repo';
 import { useCaisseSync } from '@/lib/offline/use-caisse-sync';
+import { readStaleCache, writeStaleCache } from '@/lib/offline/stale-cache';
 import type { CaisseSnapshot } from '@/lib/offline/caisse-snapshot';
 
 type Props = {
@@ -22,6 +28,16 @@ type Props = {
   onOpenStudent?: (studentId: string) => void;
 };
 
+function readCaissePaint(
+  schoolId: string,
+  initialSnapshot: CaisseSnapshot | null,
+): CaisseSyncState | null {
+  const cached = readStaleCache<CaisseSyncState>(caissePaintCacheKey(schoolId));
+  if (cached) return cached;
+  if (initialSnapshot) return caissePaintFromSnapshot(initialSnapshot);
+  return null;
+}
+
 export function OfflineCaisseHomeView({
   schoolId,
   caisseBasePath,
@@ -32,14 +48,30 @@ export function OfflineCaisseHomeView({
   const { state, phase, online, pendingCount, refresh } =
     useCaisseSync(schoolId);
 
+  const [paint, setPaint] = useState<CaisseSyncState | null>(() =>
+    readCaissePaint(schoolId, initialSnapshot),
+  );
+
+  useEffect(() => {
+    setPaint(readCaissePaint(schoolId, initialSnapshot));
+  }, [schoolId, initialSnapshot]);
+
   useEffect(() => {
     if (initialSnapshot) {
       void saveCaisseSnapshot(initialSnapshot);
     }
   }, [initialSnapshot]);
 
-  const activeYear = state?.activeYear ?? initialSnapshot?.activeYear ?? null;
-  const loading = state === undefined && !initialSnapshot;
+  useEffect(() => {
+    if (state === undefined) return;
+    if (state) {
+      writeStaleCache(caissePaintCacheKey(schoolId), state);
+    }
+  }, [state, schoolId]);
+
+  const displayState = state !== undefined ? state : paint;
+  const activeYear = displayState?.activeYear ?? null;
+  const loading = displayState === null && state === undefined;
 
   const onSelectStudent = useCallback(
     (studentId: string) => {
@@ -52,17 +84,21 @@ export function OfflineCaisseHomeView({
     [router, caisseBasePath, onOpenStudent],
   );
 
+  if (loading) {
+    return (
+      <div className="mx-auto w-full max-w-2xl space-y-0">
+        <CaisseSkeleton />
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-2xl space-y-0">
-      {loading ? (
-        <CaisseSkeleton />
-      ) : (
-        <>
       <div className="no-print flex items-center justify-end px-4 py-2">
         <SyncStatusBadge
           phase={phase}
           online={online}
-          lastSyncAt={state?.lastSyncAt}
+          lastSyncAt={displayState?.lastSyncAt ?? null}
           pendingCount={pendingCount}
           onRefresh={refresh}
         />
@@ -84,8 +120,6 @@ export function OfflineCaisseHomeView({
           onSelectStudent={onSelectStudent}
         />
       </div>
-        </>
-      )}
     </div>
   );
 }

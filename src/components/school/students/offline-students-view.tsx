@@ -11,15 +11,34 @@ import { StudentDetailPanel } from '@/components/school/students/student-detail-
 import { StudentsSkeleton } from '@/components/school/mobile/view-skeletons';
 import { SyncStatusBadge } from '@/components/offline/sync-status-badge';
 import { useStudentsSync } from '@/lib/offline/use-students-sync';
-import { saveStudentsSnapshot } from '@/lib/offline/students-repo';
+import {
+  saveStudentsSnapshot,
+  studentsPaintCacheKey,
+  studentsPaintFromSnapshot,
+  type StudentsPaintBundle,
+} from '@/lib/offline/students-repo';
 import {
   filterLocalStudents,
   toDirectoryRow,
   type LocalStudentsFilters,
 } from '@/lib/offline/students-filter';
+import { readStaleCache, writeStaleCache } from '@/lib/offline/stale-cache';
+
 import type { StudentsSnapshot } from '@/lib/offline/students-snapshot';
 
 import { SCHOOL_STUDENTS_BASE, studentsPath } from '@/lib/navigation/students-paths';
+
+function readStudentsPaint(
+  schoolId: string,
+  initialSnapshot: StudentsSnapshot | null,
+): StudentsPaintBundle | null {
+  const cached = readStaleCache<StudentsPaintBundle>(
+    studentsPaintCacheKey(schoolId),
+  );
+  if (cached) return cached;
+  if (initialSnapshot) return studentsPaintFromSnapshot(initialSnapshot);
+  return null;
+}
 
 type Props = {
   schoolId: string;
@@ -35,18 +54,44 @@ export function OfflineStudentsView({
   const { students, classes, state, phase, online, pendingCount, refresh } =
     useStudentsSync(schoolId);
 
+  const [paint, setPaint] = useState<StudentsPaintBundle | null>(() =>
+    readStudentsPaint(schoolId, initialSnapshot),
+  );
+
+  useEffect(() => {
+    setPaint(readStudentsPaint(schoolId, initialSnapshot));
+  }, [schoolId, initialSnapshot]);
+
   const [search, setSearch] = useState('');
   const [classId, setClassId] = useState('');
   const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [unassignedOnly, setUnassignedOnly] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Amorce le cache local au premier rendu (peinture instantanée en ligne).
+  // Amorce Dexie en arrière-plan (peinture via sessionStorage / snapshot).
   useEffect(() => {
     if (initialSnapshot) {
       void saveStudentsSnapshot(initialSnapshot);
     }
   }, [initialSnapshot]);
+
+  useEffect(() => {
+    if (students === undefined || classes === undefined || state === undefined) {
+      return;
+    }
+    writeStaleCache(studentsPaintCacheKey(schoolId), {
+      students,
+      classes,
+      state: state ?? {
+        activeYear: null,
+        stats: null,
+        lastSyncAt: null,
+      },
+    });
+  }, [students, classes, state, schoolId]);
+
+  const allStudents = students ?? paint?.students ?? [];
+  const syncState = state !== undefined ? state : (paint?.state ?? null);
 
   const filters: LocalStudentsFilters = useMemo(
     () => ({
@@ -58,7 +103,6 @@ export function OfflineStudentsView({
     [search, classId, status, unassignedOnly],
   );
 
-  const allStudents = students ?? [];
   const filtered = useMemo(
     () => filterLocalStudents(allStudents, filters),
     [allStudents, filters],
@@ -84,16 +128,17 @@ export function OfflineStudentsView({
 
   const sortedClasses = useMemo(
     () =>
-      [...(classes ?? [])].sort(
+      [...(classes ?? paint?.classes ?? [])].sort(
         (a, b) =>
           a.level.localeCompare(b.level, 'fr') ||
           a.name.localeCompare(b.name, 'fr'),
       ),
-    [classes],
+    [classes, paint?.classes],
   );
 
-  const activeYear = state?.activeYear ?? initialSnapshot?.activeYear ?? null;
-  const loading = students === undefined;
+  const activeYear =
+    syncState?.activeYear ?? initialSnapshot?.activeYear ?? null;
+  const loading = students === undefined && !paint;
   const hasFilters =
     Boolean(search) || Boolean(classId) || status !== 'all' || unassignedOnly;
 
@@ -138,7 +183,7 @@ export function OfflineStudentsView({
         <SyncStatusBadge
           phase={phase}
           online={online}
-          lastSyncAt={state?.lastSyncAt}
+          lastSyncAt={syncState?.lastSyncAt ?? null}
           pendingCount={pendingCount}
           onRefresh={refresh}
         />

@@ -1,20 +1,47 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { ArrowLeft } from 'lucide-react';
 import type { StaffRole } from '@/lib/auth/types';
 import { useAppTabsOptional, type AppTabKey } from '@/lib/navigation/app-tab-context';
 import { KeepAliveTabs } from '@/components/navigation/keep-alive-tabs';
+import {
+  CaisseSkeleton,
+  PresencesSkeleton,
+  StudentsSkeleton,
+} from '@/components/school/mobile/view-skeletons';
 import { APP_STUDENTS_BASE } from '@/lib/navigation/students-paths';
 import { StaffDashboard } from '@/components/school/staff-dashboard';
-import { OfflineStudentsView } from '@/components/school/students/offline-students-view';
-import { OfflinePresencesView } from '@/components/school/presences/offline-presences-view';
-import { OfflineCaisseHomeView } from '@/components/school/caisse/offline-caisse-home-view';
 import { OfflineCaisseStudentView } from '@/components/school/caisse/offline-caisse-student-view';
 import type { StaffDashboardPageData } from '@/lib/school/load-staff-dashboard-page';
 import type { StudentsSnapshot } from '@/lib/offline/students-snapshot';
 import type { CaisseSnapshot } from '@/lib/offline/caisse-snapshot';
 import type { AttendanceSnapshot } from '@/lib/offline/attendance-snapshot';
+
+const OfflineStudentsView = dynamic(
+  () =>
+    import('@/components/school/students/offline-students-view').then(
+      (mod) => mod.OfflineStudentsView,
+    ),
+  { loading: () => <StudentsSkeleton /> },
+);
+
+const OfflinePresencesView = dynamic(
+  () =>
+    import('@/components/school/presences/offline-presences-view').then(
+      (mod) => mod.OfflinePresencesView,
+    ),
+  { loading: () => <PresencesSkeleton /> },
+);
+
+const OfflineCaisseHomeView = dynamic(
+  () =>
+    import('@/components/school/caisse/offline-caisse-home-view').then(
+      (mod) => mod.OfflineCaisseHomeView,
+    ),
+  { loading: () => <CaisseSkeleton /> },
+);
 
 type Props = {
   role: StaffRole;
@@ -27,9 +54,8 @@ type Props = {
 };
 
 /**
- * Workspace /app — tous les onglets montés dès le chargement.
- * Le design (caisse, élèves, etc.) reste en place ; on ne fait que
- * masquer/afficher avec `hidden` — aucun rechargement visuel.
+ * Workspace /app — navigation type bepas-log :
+ * lazy mount + skeleton immédiat au clic, keep-alive ensuite.
  */
 export function StaffWorkspace({
   role,
@@ -122,7 +148,7 @@ export function StaffWorkspace({
 
   return (
     <>
-      <KeepAliveTabs activeKey={activeTab} tabs={allTabs} eager />
+      <KeepAliveTabs activeKey={activeTab} tabs={allTabs} eager={false} />
 
       {caisseStudentId ? (
         <div className="fixed inset-0 z-50 flex flex-col bg-wa-bg">
