@@ -1,3 +1,6 @@
+'use client';
+
+import { useEffect } from 'react';
 import { LogOut } from 'lucide-react';
 import {
   SCHOOL_LOGOUT_ITEM,
@@ -5,8 +8,16 @@ import {
 } from '@/lib/navigation/school-nav';
 import { WaToolCard } from '@/components/school/mobile/wa-tool-card';
 import { LogoutButton } from '@/components/auth/logout-button';
+import { useAppData } from '@/lib/offline/app-data-context';
+import { prefetchImpayesSnapshot } from '@/lib/offline/prefetch-impayes';
 
 export function SchoolToolsPage() {
+  const { schoolId } = useAppData();
+
+  useEffect(() => {
+    prefetchImpayesSnapshot(schoolId);
+  }, [schoolId]);
+
   return (
     <div className="mx-auto w-full max-w-3xl pb-8">
       <div className="space-y-6">

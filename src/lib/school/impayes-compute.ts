@@ -1,0 +1,375 @@
+import type { ClassRow } from '@/lib/db/classes';
+import type { EnrolledStudent } from '@/lib/db/enrolled-students';
+import type { FeeRow } from '@/lib/db/fees';
+import type {
+  ImpayesFilters,
+  ImpayesPageData,
+  ImpayesStats,
+  UnpaidStudentRow,
+  FeeBreakdownStat,
+} from '@/lib/db/impayes-page';
+import {
+  applyScolaritePoolToBalances,
+  buildRawStudentFeeBalances,
+  isScolaritePoolAggregateFee,
+  scolaritePoolFeeId,
+  scolaritePoolSummaryForStudent,
+} from '@/lib/school/scolarite-balances';
+import {
+  FEE_ANNUAL_LUMP_LABEL,
+  feeTrancheSortOrder,
+  isScolariteFeeName,
+  isTrancheScolariteFee,
+} from '@/lib/school/referentials/constants';
+
+export const IMPAYES_PAGE_SIZE = 30;
+
+type UnpaidLineInternal = {
+  student_id: string;
+  class_id: string | null;
+  fee_id: string;
+  fee_name: string;
+  amount_remaining: number;
+  currency: string;
+};
+
+export function buildPaidByStudentFee(
+  payments: { student_id: string; fee_id: string; amount_paid: number }[],
+): Map<string, number> {
+  const paidByStudentFee = new Map<string, number>();
+  for (const row of payments) {
+    const key = `${row.student_id}:${row.fee_id}`;
+    paidByStudentFee.set(
+      key,
+      (paidByStudentFee.get(key) ?? 0) + Number(row.amount_paid),
+    );
+  }
+  return paidByStudentFee;
+}
+
+function matchesSearch(row: EnrolledStudent, term: string): boolean {
+  const full = `${row.last_name} ${row.first_name}`.toLowerCase();
+  const reverse = `${row.first_name} ${row.last_name}`.toLowerCase();
+  const matricule = (row.matricule ?? '').toLowerCase();
+  return (
+    full.includes(term) ||
+    reverse.includes(term) ||
+    matricule.includes(term)
+  );
+}
+
+function aggregateStudents(
+  enrolled: EnrolledStudent[],
+  unpaidLines: UnpaidLineInternal[],
+): UnpaidStudentRow[] {
+  const studentMap = new Map(enrolled.map((s) => [s.id, s]));
+  const byStudent = new Map<
+    string,
+    { cdf: number; usd: number; feeIds: Set<string> }
+  >();
+
+  for (const line of unpaidLines) {
+    const agg = byStudent.get(line.student_id) ?? {
+      cdf: 0,
+      usd: 0,
+      feeIds: new Set<string>(),
+    };
+    if (line.currency === 'USD') {
+      agg.usd += line.amount_remaining;
+    } else {
+      agg.cdf += line.amount_remaining;
+    }
+    agg.feeIds.add(line.fee_id);
+    byStudent.set(line.student_id, agg);
+  }
+
+  const rows: UnpaidStudentRow[] = [];
+  for (const [studentId, agg] of byStudent) {
+    const student = studentMap.get(studentId);
+    if (!student) continue;
+    rows.push({
+      student_id: studentId,
+      first_name: student.first_name,
+      last_name: student.last_name,
+      matricule: student.matricule,
+      class_id: student.class_id,
+      class_name: student.class_name,
+      class_level: student.class_level,
+      unpaid_fee_count: agg.feeIds.size,
+      remaining_cdf: agg.cdf,
+      remaining_usd: agg.usd,
+    });
+  }
+
+  rows.sort((a, b) => {
+    const byLast = a.last_name.localeCompare(b.last_name, 'fr');
+    if (byLast !== 0) return byLast;
+    return a.first_name.localeCompare(b.first_name, 'fr');
+  });
+
+  return rows;
+}
+
+function studentDisplayBalances(
+  studentId: string,
+  fees: { id: string; name: string; amount: number; currency: string }[],
+  paidByStudentFee: Map<string, number>,
+) {
+  const paidByFee = new Map<string, number>();
+  for (const fee of fees) {
+    const paid = paidByStudentFee.get(`${studentId}:${fee.id}`) ?? 0;
+    if (paid > 0) paidByFee.set(fee.id, paid);
+  }
+  const raw = buildRawStudentFeeBalances(fees, paidByFee);
+  return applyScolaritePoolToBalances(raw).balances;
+}
+
+function buildFeeBreakdown(
+  fees: FeeRow[],
+  enrolled: EnrolledStudent[],
+  paidByStudentFee: Map<string, number>,
+): FeeBreakdownStat[] {
+  const trancheFees = fees
+    .filter((f) => isTrancheScolariteFee(f.name))
+    .sort(
+      (a, b) =>
+        feeTrancheSortOrder(a.name) - feeTrancheSortOrder(b.name) ||
+        a.name.localeCompare(b.name, 'fr'),
+    );
+  const fixedFees = fees.filter((f) => !isScolariteFeeName(f.name));
+  const hasTranches = trancheFees.length > 0;
+
+  function statForFee(fee: FeeRow): FeeBreakdownStat {
+    let totalCollected = 0;
+    let totalRemaining = 0;
+    let studentCount = 0;
+
+    for (const student of enrolled) {
+      const balances = studentDisplayBalances(
+        student.id,
+        fees,
+        paidByStudentFee,
+      );
+      const line = balances.find((b) => b.fee_id === fee.id);
+      if (!line) continue;
+      totalCollected += line.amount_paid;
+      totalRemaining += line.amount_remaining;
+      if (line.amount_remaining > 0.001) studentCount += 1;
+    }
+
+    return {
+      fee_id: fee.id,
+      fee_name: fee.name,
+      currency: fee.currency,
+      total_expected: Number(fee.amount) * enrolled.length,
+      total_collected: totalCollected,
+      total_remaining: totalRemaining,
+      student_count: studentCount,
+    };
+  }
+
+  const result: FeeBreakdownStat[] = [];
+
+  if (hasTranches) {
+    const trancheTotalPerStudent = trancheFees.reduce(
+      (sum, f) => sum + Number(f.amount),
+      0,
+    );
+    const currency = trancheFees[0].currency;
+    let poolCollected = 0;
+    let poolRemaining = 0;
+    let poolStudentCount = 0;
+
+    for (const student of enrolled) {
+      const summary = scolaritePoolSummaryForStudent(
+        student.id,
+        fees,
+        paidByStudentFee,
+      );
+      if (!summary) continue;
+      poolCollected += summary.total_paid;
+      poolRemaining += summary.total_remaining;
+      if (summary.total_remaining > 0.001) poolStudentCount += 1;
+    }
+
+    result.push({
+      fee_id: scolaritePoolFeeId(fees),
+      fee_name: FEE_ANNUAL_LUMP_LABEL,
+      currency,
+      total_expected: trancheTotalPerStudent * enrolled.length,
+      total_collected: poolCollected,
+      total_remaining: poolRemaining,
+      student_count: poolStudentCount,
+      is_scolarite_pool: true,
+    });
+
+    for (const fee of trancheFees) {
+      result.push(statForFee(fee));
+    }
+  } else {
+    for (const fee of fees.filter((f) => isScolariteFeeName(f.name))) {
+      result.push(statForFee(fee));
+    }
+  }
+
+  for (const fee of fixedFees) {
+    result.push(statForFee(fee));
+  }
+
+  return result;
+}
+
+/** Calcule la page impayés à partir de données déjà en mémoire (0 requête). */
+export function computeImpayesPageData(input: {
+  activeYear: { id: string; name: string } | null;
+  fees: FeeRow[];
+  classes: ClassRow[];
+  enrolled: EnrolledStudent[];
+  paidByStudentFee: Map<string, number>;
+  filters: ImpayesFilters;
+  allRows?: boolean;
+}): ImpayesPageData {
+  const { activeYear, fees, classes, enrolled, paidByStudentFee, filters } =
+    input;
+
+  if (!activeYear) {
+    return {
+      activeYear: null,
+      fees: [],
+      classes: [],
+      stats: null,
+      rows: [],
+      total: 0,
+      page: filters.page,
+      pageSize: IMPAYES_PAGE_SIZE,
+      filters,
+    };
+  }
+
+  const emptyStats: ImpayesStats = {
+    enrolledCount: enrolled.length,
+    studentsWithDebt: 0,
+    studentsUpToDate: enrolled.length,
+    totalUnpaidCdf: 0,
+    totalUnpaidUsd: 0,
+    feeBreakdown: buildFeeBreakdown(fees, enrolled, new Map()),
+  };
+
+  if (fees.length === 0 || enrolled.length === 0) {
+    return {
+      activeYear: { id: activeYear.id, name: activeYear.name },
+      fees,
+      classes,
+      stats: emptyStats,
+      rows: [],
+      total: 0,
+      page: filters.page,
+      pageSize: IMPAYES_PAGE_SIZE,
+      filters,
+    };
+  }
+
+  const unpaidLines: UnpaidLineInternal[] = [];
+
+  for (const student of enrolled) {
+    const balances = studentDisplayBalances(
+      student.id,
+      fees,
+      paidByStudentFee,
+    );
+    for (const line of balances) {
+      if (line.amount_remaining <= 0.001) continue;
+      unpaidLines.push({
+        student_id: student.id,
+        class_id: student.class_id,
+        fee_id: line.fee_id,
+        fee_name: line.fee_name,
+        amount_remaining: line.amount_remaining,
+        currency: line.currency,
+      });
+    }
+  }
+
+  const stats: ImpayesStats = {
+    enrolledCount: enrolled.length,
+    studentsWithDebt: new Set(unpaidLines.map((l) => l.student_id)).size,
+    studentsUpToDate:
+      enrolled.length - new Set(unpaidLines.map((l) => l.student_id)).size,
+    totalUnpaidCdf: unpaidLines
+      .filter((l) => l.currency !== 'USD')
+      .reduce((sum, l) => sum + l.amount_remaining, 0),
+    totalUnpaidUsd: unpaidLines
+      .filter((l) => l.currency === 'USD')
+      .reduce((sum, l) => sum + l.amount_remaining, 0),
+    feeBreakdown: buildFeeBreakdown(fees, enrolled, paidByStudentFee),
+  };
+
+  let studentRows = aggregateStudents(enrolled, unpaidLines);
+
+  const search = filters.search?.toLowerCase() ?? '';
+  if (search) {
+    studentRows = studentRows.filter((r) =>
+      matchesSearch(
+        {
+          id: r.student_id,
+          first_name: r.first_name,
+          last_name: r.last_name,
+          matricule: r.matricule,
+          class_id: r.class_id,
+          class_name: r.class_name,
+          class_level: r.class_level,
+        },
+        search,
+      ),
+    );
+  }
+
+  if (filters.classId) {
+    studentRows = studentRows.filter((r) => r.class_id === filters.classId);
+  }
+
+  if (filters.feeId) {
+    const selectedFee = fees.find((f) => f.id === filters.feeId);
+    if (selectedFee && isScolaritePoolAggregateFee(selectedFee, fees)) {
+      const studentsWithPoolDebt = new Set<string>();
+      for (const student of enrolled) {
+        const summary = scolaritePoolSummaryForStudent(
+          student.id,
+          fees,
+          paidByStudentFee,
+        );
+        if (summary && summary.total_remaining > 0.001) {
+          studentsWithPoolDebt.add(student.id);
+        }
+      }
+      studentRows = studentRows.filter((r) =>
+        studentsWithPoolDebt.has(r.student_id),
+      );
+    } else {
+      const studentsWithFee = new Set(
+        unpaidLines
+          .filter((l) => l.fee_id === filters.feeId)
+          .map((l) => l.student_id),
+      );
+      studentRows = studentRows.filter((r) => studentsWithFee.has(r.student_id));
+    }
+  }
+
+  const total = studentRows.length;
+  const start = (filters.page - 1) * IMPAYES_PAGE_SIZE;
+  const rows = input.allRows
+    ? studentRows
+    : studentRows.slice(start, start + IMPAYES_PAGE_SIZE);
+
+  return {
+    activeYear: { id: activeYear.id, name: activeYear.name },
+    fees,
+    classes,
+    stats,
+    rows,
+    total,
+    page: filters.page,
+    pageSize: IMPAYES_PAGE_SIZE,
+    filters,
+  };
+}

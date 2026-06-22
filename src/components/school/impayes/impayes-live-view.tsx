@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { CheckCircle2 } from 'lucide-react';
@@ -8,10 +8,11 @@ import { ImpayesStatsCards } from '@/components/school/impayes/impayes-stats';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getOfflineDb, metaKey } from '@/lib/offline/db';
 import type { ImpayesPageData } from '@/lib/db/impayes-page';
+import { useAppData } from '@/lib/offline/app-data-context';
+import { buildImpayesFromAppData } from '@/lib/offline/impayes-local';
+import { IMPAYES_META_SCOPE } from '@/lib/offline/prefetch-impayes';
 import { getSchoolFeeCurrencies } from '@/lib/school/fee-currencies';
 import { cn } from '@/lib/utils';
-
-const SCOPE = 'school-impayes';
 
 function Bone({ className }: { className?: string }) {
   return (
@@ -46,8 +47,15 @@ type Props = {
 };
 
 export function ImpayesLiveView({ schoolId }: Props) {
+  const appData = useAppData();
+
+  const localData = useMemo(
+    () => buildImpayesFromAppData(appData),
+    [appData],
+  );
+
   const cached = useLiveQuery(
-    () => getOfflineDb().meta.get(metaKey(schoolId, SCOPE)),
+    () => getOfflineDb().meta.get(metaKey(schoolId, IMPAYES_META_SCOPE)),
     [schoolId],
   );
   const [fresh, setFresh] = useState<ImpayesPageData | null>(null);
@@ -60,9 +68,9 @@ export function ImpayesLiveView({ schoolId }: Props) {
         if (!alive || !data) return;
         setFresh(data);
         void getOfflineDb().meta.put({
-          key: metaKey(schoolId, SCOPE),
+          key: metaKey(schoolId, IMPAYES_META_SCOPE),
           school_id: schoolId,
-          scope: SCOPE,
+          scope: IMPAYES_META_SCOPE,
           value: data,
           updated_at: new Date().toISOString(),
         });
@@ -73,7 +81,12 @@ export function ImpayesLiveView({ schoolId }: Props) {
     };
   }, [schoolId]);
 
-  const data = fresh ?? (cached?.value as ImpayesPageData | undefined) ?? null;
+  const data =
+    fresh ??
+    (cached?.value as ImpayesPageData | undefined) ??
+    localData ??
+    null;
+
   if (!data) return <ImpayesSkeleton />;
 
   const feeCurrencies = getSchoolFeeCurrencies(data.fees);

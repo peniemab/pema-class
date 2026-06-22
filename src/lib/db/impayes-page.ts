@@ -20,8 +20,11 @@ import {
   isScolariteFeeName,
   isTrancheScolariteFee,
 } from '@/lib/school/referentials/constants';
-
-const PAGE_SIZE = 30;
+import {
+  buildPaidByStudentFee,
+  computeImpayesPageData,
+  IMPAYES_PAGE_SIZE,
+} from '@/lib/school/impayes-compute';
 
 export type UnpaidStudentRow = {
   student_id: string;
@@ -99,15 +102,6 @@ export type ImpayesPageData = {
   filters: ImpayesFilters;
 };
 
-type UnpaidLineInternal = {
-  student_id: string;
-  class_id: string | null;
-  fee_id: string;
-  fee_name: string;
-  amount_remaining: number;
-  currency: string;
-};
-
 function parsePage(raw: string | undefined): number {
   const n = Number.parseInt(raw ?? '1', 10);
   return Number.isFinite(n) && n > 0 ? n : 1;
@@ -122,58 +116,6 @@ function matchesSearch(row: EnrolledStudent, term: string): boolean {
     reverse.includes(term) ||
     matricule.includes(term)
   );
-}
-
-function aggregateStudents(
-  enrolled: EnrolledStudent[],
-  unpaidLines: UnpaidLineInternal[],
-): UnpaidStudentRow[] {
-  const studentMap = new Map(enrolled.map((s) => [s.id, s]));
-  const byStudent = new Map<
-    string,
-    { cdf: number; usd: number; feeIds: Set<string> }
-  >();
-
-  for (const line of unpaidLines) {
-    const agg = byStudent.get(line.student_id) ?? {
-      cdf: 0,
-      usd: 0,
-      feeIds: new Set<string>(),
-    };
-    if (line.currency === 'USD') {
-      agg.usd += line.amount_remaining;
-    } else {
-      agg.cdf += line.amount_remaining;
-    }
-    agg.feeIds.add(line.fee_id);
-    byStudent.set(line.student_id, agg);
-  }
-
-  const rows: UnpaidStudentRow[] = [];
-  for (const [studentId, agg] of byStudent) {
-    const student = studentMap.get(studentId);
-    if (!student) continue;
-    rows.push({
-      student_id: studentId,
-      first_name: student.first_name,
-      last_name: student.last_name,
-      matricule: student.matricule,
-      class_id: student.class_id,
-      class_name: student.class_name,
-      class_level: student.class_level,
-      unpaid_fee_count: agg.feeIds.size,
-      remaining_cdf: agg.cdf,
-      remaining_usd: agg.usd,
-    });
-  }
-
-  rows.sort((a, b) => {
-    const byLast = a.last_name.localeCompare(b.last_name, 'fr');
-    if (byLast !== 0) return byLast;
-    return a.first_name.localeCompare(b.first_name, 'fr');
-  });
-
-  return rows;
 }
 
 function studentDisplayBalances(
@@ -339,7 +281,7 @@ async function fetchImpayesPageData(
       rows: [],
       total: 0,
       page: filters.page,
-      pageSize: PAGE_SIZE,
+      pageSize: IMPAYES_PAGE_SIZE,
       filters,
     };
   }
@@ -350,27 +292,16 @@ async function fetchImpayesPageData(
     listEnrolledStudentsForYear(schoolId, activeYear.id),
   ]);
 
-  const emptyStats: ImpayesStats = {
-    enrolledCount: enrolled.length,
-    studentsWithDebt: 0,
-    studentsUpToDate: enrolled.length,
-    totalUnpaidCdf: 0,
-    totalUnpaidUsd: 0,
-    feeBreakdown: buildFeeBreakdown(fees, enrolled, new Map()),
-  };
-
   if (fees.length === 0 || enrolled.length === 0) {
-    return {
-      activeYear: { id: activeYear.id, name: activeYear.name },
+    return computeImpayesPageData({
+      activeYear,
       fees,
       classes,
-      stats: emptyStats,
-      rows: [],
-      total: 0,
-      page: filters.page,
-      pageSize: PAGE_SIZE,
+      enrolled,
+      paidByStudentFee: new Map(),
       filters,
-    };
+      allRows: searchParams.all === '1',
+    });
   }
 
   const feeIds = fees.map((f) => f.id);
@@ -384,120 +315,23 @@ async function fetchImpayesPageData(
     .in('student_id', studentIds);
   if (payError) throw new Error(payError.message);
 
-  const paidByStudentFee = new Map<string, number>();
-  for (const row of paymentRows ?? []) {
-    const raw = row as { student_id: string; fee_id: string; amount_paid: number };
-    const key = `${raw.student_id}:${raw.fee_id}`;
-    paidByStudentFee.set(
-      key,
-      (paidByStudentFee.get(key) ?? 0) + Number(raw.amount_paid),
-    );
-  }
+  const paidByStudentFee = buildPaidByStudentFee(
+    (paymentRows ?? []) as {
+      student_id: string;
+      fee_id: string;
+      amount_paid: number;
+    }[],
+  );
 
-  const unpaidLines: UnpaidLineInternal[] = [];
-
-  for (const student of enrolled) {
-    const balances = studentDisplayBalances(
-      student.id,
-      fees,
-      paidByStudentFee,
-    );
-    for (const line of balances) {
-      if (line.amount_remaining <= 0.001) continue;
-      unpaidLines.push({
-        student_id: student.id,
-        class_id: student.class_id,
-        fee_id: line.fee_id,
-        fee_name: line.fee_name,
-        amount_remaining: line.amount_remaining,
-        currency: line.currency,
-      });
-    }
-  }
-
-  const stats: ImpayesStats = {
-    enrolledCount: enrolled.length,
-    studentsWithDebt: new Set(unpaidLines.map((l) => l.student_id)).size,
-    studentsUpToDate:
-      enrolled.length - new Set(unpaidLines.map((l) => l.student_id)).size,
-    totalUnpaidCdf: unpaidLines
-      .filter((l) => l.currency !== 'USD')
-      .reduce((sum, l) => sum + l.amount_remaining, 0),
-    totalUnpaidUsd: unpaidLines
-      .filter((l) => l.currency === 'USD')
-      .reduce((sum, l) => sum + l.amount_remaining, 0),
-    feeBreakdown: buildFeeBreakdown(fees, enrolled, paidByStudentFee),
-  };
-
-  let studentRows = aggregateStudents(enrolled, unpaidLines);
-
-  const search = filters.search?.toLowerCase() ?? '';
-  if (search) {
-    studentRows = studentRows.filter((r) =>
-      matchesSearch(
-        {
-          id: r.student_id,
-          first_name: r.first_name,
-          last_name: r.last_name,
-          matricule: r.matricule,
-          class_id: r.class_id,
-          class_name: r.class_name,
-          class_level: r.class_level,
-        },
-        search,
-      ),
-    );
-  }
-
-  if (filters.classId) {
-    studentRows = studentRows.filter((r) => r.class_id === filters.classId);
-  }
-
-  if (filters.feeId) {
-    const selectedFee = fees.find((f) => f.id === filters.feeId);
-    if (selectedFee && isScolaritePoolAggregateFee(selectedFee, fees)) {
-      const studentsWithPoolDebt = new Set<string>();
-      for (const student of enrolled) {
-        const summary = scolaritePoolSummaryForStudent(
-          student.id,
-          fees,
-          paidByStudentFee,
-        );
-        if (summary && summary.total_remaining > 0.001) {
-          studentsWithPoolDebt.add(student.id);
-        }
-      }
-      studentRows = studentRows.filter((r) =>
-        studentsWithPoolDebt.has(r.student_id),
-      );
-    } else {
-      const studentsWithFee = new Set(
-        unpaidLines
-          .filter((l) => l.fee_id === filters.feeId)
-          .map((l) => l.student_id),
-      );
-      studentRows = studentRows.filter((r) => studentsWithFee.has(r.student_id));
-    }
-  }
-
-  const total = studentRows.length;
-  const start = (filters.page - 1) * PAGE_SIZE;
-  const allRows = searchParams.all === '1';
-  const rows = allRows
-    ? studentRows
-    : studentRows.slice(start, start + PAGE_SIZE);
-
-  return {
-    activeYear: { id: activeYear.id, name: activeYear.name },
+  return computeImpayesPageData({
+    activeYear,
     fees,
     classes,
-    stats,
-    rows,
-    total,
-    page: filters.page,
-    pageSize: PAGE_SIZE,
+    enrolled,
+    paidByStudentFee,
     filters,
-  };
+    allRows: searchParams.all === '1',
+  });
 }
 
 export const getImpayesPageData = cache(fetchImpayesPageData);
