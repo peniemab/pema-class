@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
+import { WorkspaceLink } from '@/components/school/mobile/workspace-link';
 import { cn } from '@/lib/utils';
 
 type SettingsGroupProps = {
@@ -41,7 +42,7 @@ export function SettingsRow({
   showChevron = true,
 }: SettingsRowProps) {
   return (
-    <Link
+    <WorkspaceLink
       href={href}
       className="flex min-h-[4.5rem] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-wa-row-hover active:bg-wa-row-active"
     >
@@ -64,7 +65,7 @@ export function SettingsRow({
       {showChevron ? (
         <ChevronRight className="size-4 shrink-0 text-muted-foreground/70" aria-hidden />
       ) : null}
-    </Link>
+    </WorkspaceLink>
   );
 }
 
