@@ -26,11 +26,13 @@ import { SCHOOL_REPORTS_BASE, reportHref } from '@/lib/navigation/reports-paths'
 type Props = {
   data: AttendanceReportData | null;
   reportsBase?: string;
+  onFiltersChange?: (params: { date?: string; classe?: string }) => void;
 };
 
 export function PresencesReportPageView({
   data,
   reportsBase = SCHOOL_REPORTS_BASE,
+  onFiltersChange,
 }: Props) {
   const [issueFilter, setIssueFilter] = useState<IssueFilter>('all');
 
@@ -110,6 +112,7 @@ export function PresencesReportPageView({
                 classes={data.classes}
                 selectedClassId={data.selectedClassId}
                 selectedDate={data.selectedDate}
+                onFiltersChange={onFiltersChange}
               />
             </div>
           </Suspense>

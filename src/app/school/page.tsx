@@ -1,8 +1,10 @@
-import { requireSchoolDirection } from '@/lib/auth/require-role';
+import { tryRequireSchoolDirection } from '@/lib/auth/try-require-role';
 import { getStudentsSnapshot } from '@/lib/offline/students-snapshot';
 import { getCaisseSnapshot } from '@/lib/offline/caisse-snapshot';
 import { getAttendanceSnapshot } from '@/lib/offline/attendance-snapshot';
 import { DirectionWorkspace } from '@/components/school/mobile/direction-workspace';
+import { DirectionWorkspaceOfflineBoot } from '@/components/offline/direction-workspace-offline-boot';
+import { PersistLocalSession } from '@/components/offline/persist-local-session';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,29 +17,32 @@ async function safe<T>(promise: Promise<T>): Promise<T | null> {
 }
 
 /**
- * Workspace direction. Le tableau de bord (accueil) n'est PAS chargé ici :
- * son squelette s'affiche tout de suite et les chiffres arrivent ensuite
- * (fetch client). On ne charge côté serveur que les snapshots des autres
- * onglets (élèves, caisse, présences) pour leur peinture instantanée.
+ * Workspace direction. Boot offline si auth serveur indisponible.
  */
 export default async function SchoolDashboardPage() {
-  const { role, schoolId, staffId } = await requireSchoolDirection();
+  const ctx = await tryRequireSchoolDirection();
+  if (!ctx) {
+    return <DirectionWorkspaceOfflineBoot />;
+  }
 
   const [studentsSnapshot, caisseSnapshot, attendanceSnapshot] =
     await Promise.all([
-      safe(getStudentsSnapshot(schoolId)),
-      safe(getCaisseSnapshot(schoolId)),
-      safe(getAttendanceSnapshot(schoolId, staffId, role)),
+      safe(getStudentsSnapshot(ctx.schoolId)),
+      safe(getCaisseSnapshot(ctx.schoolId)),
+      safe(getAttendanceSnapshot(ctx.schoolId, ctx.staffId, ctx.role)),
     ]);
 
   return (
-    <DirectionWorkspace
-      role={role}
-      schoolId={schoolId}
-      staffId={staffId}
-      studentsSnapshot={studentsSnapshot}
-      caisseSnapshot={caisseSnapshot}
-      attendanceSnapshot={attendanceSnapshot}
-    />
+    <>
+      <PersistLocalSession auth={ctx} />
+      <DirectionWorkspace
+        role={ctx.role}
+        schoolId={ctx.schoolId}
+        staffId={ctx.staffId}
+        studentsSnapshot={studentsSnapshot}
+        caisseSnapshot={caisseSnapshot}
+        attendanceSnapshot={attendanceSnapshot}
+      />
+    </>
   );
 }

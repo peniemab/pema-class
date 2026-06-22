@@ -22,6 +22,11 @@ import { SCHOOL_REPORTS_BASE, reportHref } from '@/lib/navigation/reports-paths'
 type Props = {
   data: RepeatedAbsencesReportData | null;
   reportsBase?: string;
+  onFiltersChange?: (params: {
+    periode?: number;
+    min?: number;
+    classe?: string;
+  }) => void;
 };
 
 function formatShortDate(iso: string): string {
@@ -35,6 +40,7 @@ function formatShortDate(iso: string): string {
 export function RepeatedAbsencesReportView({
   data,
   reportsBase = SCHOOL_REPORTS_BASE,
+  onFiltersChange,
 }: Props) {
   const basePath = reportHref(reportsBase, 'presences', 'absences-repetees');
 
@@ -70,16 +76,21 @@ export function RepeatedAbsencesReportView({
                   { value: 7, label: '7 jours' },
                   { value: 30, label: '30 jours' },
                 ]}
+                onPeriodChange={(days) => onFiltersChange?.({ periode: days })}
               />
               <div className="grid gap-4 sm:grid-cols-2">
                 <MinAbsencesFilter
                   minAbsences={data.minAbsences}
                   basePath={basePath}
+                  onMinChange={(min) => onFiltersChange?.({ min })}
                 />
                 <ReportClassFilter
                   basePath={basePath}
                   classes={data.classes}
                   selectedClassId={data.selectedClassId}
+                  onClassChange={(classId) =>
+                    onFiltersChange?.({ classe: classId ?? undefined })
+                  }
                 />
               </div>
               <p className="text-xs text-muted-foreground">
@@ -140,9 +151,11 @@ export function RepeatedAbsencesReportView({
 function MinAbsencesFilter({
   minAbsences,
   basePath,
+  onMinChange,
 }: {
   minAbsences: number;
   basePath: string;
+  onMinChange?: (min: number) => void;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -154,6 +167,11 @@ function MinAbsencesFilter({
         id="min-absences"
         value={String(minAbsences)}
         onChange={(e) => {
+          const min = Number(e.target.value);
+          if (onMinChange) {
+            onMinChange(min);
+            return;
+          }
           const params = new URLSearchParams(searchParams.toString());
           params.set('min', e.target.value);
           router.push(`${basePath}?${params.toString()}`);

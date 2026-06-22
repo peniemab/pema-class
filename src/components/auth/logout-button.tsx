@@ -1,4 +1,7 @@
+'use client';
+
 import { LogOut } from 'lucide-react';
+import { clearLocalSession } from '@/lib/offline/local-session';
 import { cn } from '@/lib/utils';
 
 type LogoutButtonProps = {
@@ -10,7 +13,7 @@ type LogoutButtonProps = {
 
 /**
  * Déconnexion via POST natif (non préchargeable par Next.js).
- * `display:contents` sur le form pour ne pas casser les layouts flex/grid parents.
+ * Efface aussi la session locale (style WhatsApp).
  */
 export function LogoutButton({
   className,
@@ -19,7 +22,12 @@ export function LogoutButton({
   children,
 }: LogoutButtonProps) {
   return (
-    <form action="/logout" method="post" className="contents">
+    <form
+      action="/logout"
+      method="post"
+      className="contents"
+      onSubmit={() => clearLocalSession()}
+    >
       <button type="submit" className={className} aria-label={label} title={label}>
         {children ?? (
           <>

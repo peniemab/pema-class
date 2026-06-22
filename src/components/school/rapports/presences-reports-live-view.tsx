@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { PresencesReportsHub } from '@/components/school/rapports/presences-reports-hub';
 import { PresencesReportPageView } from '@/components/school/rapports/presences-report-page-view';
 import { WeeklyPresencesReportView } from '@/components/school/rapports/weekly-presences-report-view';
@@ -12,6 +13,11 @@ import type {
   WeeklyAttendanceReportData,
 } from '@/lib/db/attendance-reports-ext';
 import { todayIsoDate } from '@/lib/date-utils';
+import {
+  buildWorkspaceHref,
+  reportsBaseForHref,
+} from '@/lib/navigation/workspace-route-utils';
+import { reportHref } from '@/lib/navigation/reports-paths';
 import { useAppData } from '@/lib/offline/app-data-context';
 import {
   buildAttendanceReportFromAppData,
@@ -38,111 +44,276 @@ function ReportSkeleton() {
 
 type Props = {
   schoolId: string;
+  href: string;
 };
 
-export function PresencesHubLiveView({ schoolId }: Props) {
+export function PresencesHubLiveView({ schoolId, href }: Props) {
   const appData = useAppData();
+  const reportsBase = reportsBaseForHref(href);
+  const workspaceHref = reportHref(reportsBase, 'presences');
+
   const data = useWorkspaceReportData<AttendanceReportData>({
     schoolId,
     metaScope: 'school-presences-hub',
-    workspaceHref: '/school/rapports/presences',
+    workspaceHref,
     view: 'presences-hub',
     buildLocal: () =>
       buildAttendanceReportFromAppData(appData, { date: todayIsoDate() }),
   });
 
   if (!data) return <ReportSkeleton />;
-  return <PresencesReportsHub todayPreview={data} />;
+  return <PresencesReportsHub todayPreview={data} reportsBase={reportsBase} />;
 }
 
-type HrefProps = Props & { href: string };
+type DateClassFilters = {
+  date?: string;
+  classId?: string;
+};
 
-export function PresencesJourLiveView({ schoolId, href }: HrefProps) {
-  const appData = useAppData();
+function parseDateClassFilters(href: string): DateClassFilters {
   const params = parseHrefParams(href);
-  const date = params.get('date') ?? undefined;
-  const classId = params.get('classe') ?? undefined;
+  return {
+    date: params.get('date') ?? undefined,
+    classId: params.get('classe') ?? undefined,
+  };
+}
 
-  const data = useWorkspaceReportData<AttendanceReportData>({
+function DateClassReportLive<T>({
+  schoolId,
+  href,
+  segment,
+  view,
+  metaPrefix,
+  buildLocal,
+  render,
+}: {
+  schoolId: string;
+  href: string;
+  segment: string;
+  view: string;
+  metaPrefix: string;
+  buildLocal: (filters: DateClassFilters) => T | null;
+  render: (
+    data: T,
+    reportsBase: string,
+    onFiltersChange: (p: { date?: string; classe?: string }) => void,
+  ) => ReactNode;
+}) {
+  const reportsBase = reportsBaseForHref(href);
+  const basePath = reportHref(reportsBase, 'presences', segment);
+  const [filters, setFilters] = useState<DateClassFilters>(() =>
+    parseDateClassFilters(href),
+  );
+
+  useEffect(() => {
+    setFilters(parseDateClassFilters(href));
+  }, [href]);
+
+  const workspaceHref = useMemo(
+    () =>
+      buildWorkspaceHref(basePath, {
+        date: filters.date,
+        classe: filters.classId,
+      }),
+    [basePath, filters],
+  );
+
+  const data = useWorkspaceReportData<T>({
     schoolId,
-    metaScope: `school-presences-jour:${params.toString()}`,
-    workspaceHref: href,
-    view: 'presences-jour',
-    buildLocal: () =>
-      buildAttendanceReportFromAppData(appData, { date, classId }),
-    deps: [date, classId],
+    metaScope: `${metaPrefix}:${JSON.stringify(filters)}`,
+    workspaceHref,
+    view,
+    buildLocal: () => buildLocal(filters),
+    deps: [filters.date, filters.classId],
   });
 
-  if (!data) return <ReportSkeleton />;
-  return <PresencesReportPageView data={data} />;
-}
-
-export function PresencesHebdoLiveView({ schoolId, href }: HrefProps) {
-  const appData = useAppData();
-  const params = parseHrefParams(href);
-  const date = params.get('date') ?? undefined;
-  const classId = params.get('classe') ?? undefined;
-
-  const data = useWorkspaceReportData<WeeklyAttendanceReportData>({
-    schoolId,
-    metaScope: `school-presences-hebdo:${params.toString()}`,
-    workspaceHref: href,
-    view: 'presences-hebdo',
-    buildLocal: () =>
-      buildWeeklyAttendanceReportFromAppData(appData, { date, classId }),
-    deps: [date, classId],
-  });
+  const onFiltersChange = useCallback((next: { date?: string; classe?: string }) => {
+    setFilters((prev) => ({
+      date: next.date !== undefined ? next.date : prev.date,
+      classId: next.classe !== undefined ? next.classe : prev.classId,
+    }));
+  }, []);
 
   if (!data) return <ReportSkeleton />;
-  return <WeeklyPresencesReportView data={data} />;
+  return <>{render(data, reportsBase, onFiltersChange)}</>;
 }
 
-export function PresencesAbsencesLiveView({ schoolId, href }: HrefProps) {
+export function PresencesJourLiveView({ schoolId, href }: Props) {
   const appData = useAppData();
-  const params = parseHrefParams(href);
-  const periodDays = Number(params.get('periode') ?? '30');
-  const minAbsences = Number(params.get('min') ?? '2');
-  const classId = params.get('classe') ?? undefined;
+  return (
+    <DateClassReportLive<AttendanceReportData>
+      schoolId={schoolId}
+      href={href}
+      segment="jour"
+      view="presences-jour"
+      metaPrefix="school-presences-jour"
+      buildLocal={(filters) =>
+        buildAttendanceReportFromAppData(appData, {
+          date: filters.date,
+          classId: filters.classId,
+        })
+      }
+      render={(data, reportsBase, onFiltersChange) => (
+        <PresencesReportPageView
+          data={data}
+          reportsBase={reportsBase}
+          onFiltersChange={onFiltersChange}
+        />
+      )}
+    />
+  );
+}
+
+export function PresencesHebdoLiveView({ schoolId, href }: Props) {
+  const appData = useAppData();
+  return (
+    <DateClassReportLive<WeeklyAttendanceReportData>
+      schoolId={schoolId}
+      href={href}
+      segment="hebdo"
+      view="presences-hebdo"
+      metaPrefix="school-presences-hebdo"
+      buildLocal={(filters) =>
+        buildWeeklyAttendanceReportFromAppData(appData, {
+          date: filters.date,
+          classId: filters.classId,
+        })
+      }
+      render={(data, reportsBase, onFiltersChange) => (
+        <WeeklyPresencesReportView
+          data={data}
+          reportsBase={reportsBase}
+          onFiltersChange={onFiltersChange}
+        />
+      )}
+    />
+  );
+}
+
+export function PresencesAbsencesLiveView({ schoolId, href }: Props) {
+  const appData = useAppData();
+  const reportsBase = reportsBaseForHref(href);
+  const basePath = reportHref(reportsBase, 'presences', 'absences-repetees');
+  const [filters, setFilters] = useState(() => parseAbsencesFilters(href));
+
+  useEffect(() => {
+    setFilters(parseAbsencesFilters(href));
+  }, [href]);
+
+  const workspaceHref = useMemo(
+    () =>
+      buildWorkspaceHref(basePath, {
+        periode: String(filters.periodDays),
+        min: String(filters.minAbsences),
+        classe: filters.classId,
+      }),
+    [basePath, filters],
+  );
 
   const data = useWorkspaceReportData<RepeatedAbsencesReportData>({
     schoolId,
-    metaScope: `school-presences-absences:${params.toString()}`,
-    workspaceHref: href,
+    metaScope: `school-presences-absences:${JSON.stringify(filters)}`,
+    workspaceHref,
     view: 'presences-absences',
     buildLocal: () =>
       buildRepeatedAbsencesReportFromAppData(appData, {
-        periodDays,
-        minAbsences,
-        classId,
+        periodDays: filters.periodDays,
+        minAbsences: filters.minAbsences,
+        classId: filters.classId,
       }),
-    deps: [periodDays, minAbsences, classId],
+    deps: [filters.periodDays, filters.minAbsences, filters.classId],
   });
 
+  const onFiltersChange = useCallback(
+    (params: { periode?: number; min?: number; classe?: string }) => {
+      setFilters((prev) => ({
+        periodDays: params.periode ?? prev.periodDays,
+        minAbsences: params.min ?? prev.minAbsences,
+        classId: params.classe !== undefined ? params.classe : prev.classId,
+      }));
+    },
+    [],
+  );
+
   if (!data) return <ReportSkeleton />;
-  return <RepeatedAbsencesReportView data={data} />;
+  return (
+    <RepeatedAbsencesReportView
+      data={data}
+      reportsBase={reportsBase}
+      onFiltersChange={onFiltersChange}
+    />
+  );
 }
 
-export function PresencesEleveLiveView({ schoolId, href }: HrefProps) {
-  const appData = useAppData();
+function parseAbsencesFilters(href: string) {
   const params = parseHrefParams(href);
-  const studentId = params.get('eleve') ?? undefined;
-  const startDate = params.get('debut') ?? undefined;
-  const endDate = params.get('fin') ?? undefined;
+  return {
+    periodDays: Number(params.get('periode') ?? '30'),
+    minAbsences: Number(params.get('min') ?? '2'),
+    classId: params.get('classe') ?? undefined,
+  };
+}
+
+export function PresencesEleveLiveView({ schoolId, href }: Props) {
+  const appData = useAppData();
+  const reportsBase = reportsBaseForHref(href);
+  const basePath = reportHref(reportsBase, 'presences', 'eleve');
+  const [filters, setFilters] = useState(() => parseHistoryFilters(href));
+
+  useEffect(() => {
+    setFilters(parseHistoryFilters(href));
+  }, [href]);
+
+  const workspaceHref = useMemo(
+    () =>
+      buildWorkspaceHref(basePath, {
+        eleve: filters.studentId,
+        debut: filters.startDate,
+        fin: filters.endDate,
+      }),
+    [basePath, filters],
+  );
 
   const data = useWorkspaceReportData<StudentAttendanceHistoryData>({
     schoolId,
-    metaScope: `school-presences-eleve:${params.toString()}`,
-    workspaceHref: href,
+    metaScope: `school-presences-eleve:${JSON.stringify(filters)}`,
+    workspaceHref,
     view: 'presences-eleve',
     buildLocal: () =>
       buildStudentAttendanceHistoryFromAppData(appData, {
-        studentId,
-        startDate,
-        endDate,
+        studentId: filters.studentId,
+        startDate: filters.startDate,
+        endDate: filters.endDate,
       }),
-    deps: [studentId, startDate, endDate],
+    deps: [filters.studentId, filters.startDate, filters.endDate],
   });
 
+  const onFiltersChange = useCallback(
+    (params: { eleve?: string; debut?: string; fin?: string }) => {
+      setFilters((prev) => ({
+        studentId: params.eleve !== undefined ? params.eleve : prev.studentId,
+        startDate: params.debut !== undefined ? params.debut : prev.startDate,
+        endDate: params.fin !== undefined ? params.fin : prev.endDate,
+      }));
+    },
+    [],
+  );
+
   if (!data) return <ReportSkeleton />;
-  return <StudentHistoryReportView data={data} />;
+  return (
+    <StudentHistoryReportView
+      data={data}
+      reportsBase={reportsBase}
+      onFiltersChange={onFiltersChange}
+    />
+  );
+}
+
+function parseHistoryFilters(href: string) {
+  const params = parseHrefParams(href);
+  return {
+    studentId: params.get('eleve') ?? undefined,
+    startDate: params.get('debut') ?? undefined,
+    endDate: params.get('fin') ?? undefined,
+  };
 }

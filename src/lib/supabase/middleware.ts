@@ -59,6 +59,12 @@ function allowSessionCookieThrough(
   return supabaseResponse;
 }
 
+/**
+ * Session persistante (Facebook / WhatsApp) :
+ * - refresh silencieux du JWT via getSession()
+ * - jamais de kick si le cookie refresh existe encore
+ * - login (/) ignoré quand déjà connecté
+ */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
   const { pathname } = request.nextUrl;
@@ -91,18 +97,21 @@ export async function updateSession(request: NextRequest) {
   });
 
   let user: { id: string } | null = null;
+
   try {
+    // Renouvelle l'access token à partir du refresh token (cookie longue durée).
+    await supabase.auth.getSession();
     const { data, error } = await supabase.auth.getUser();
     if (!error && data.user) {
       user = data.user;
-    } else if (error) {
-      const passthrough = allowSessionCookieThrough(request, pathname, supabaseResponse);
-      if (passthrough) return passthrough;
     }
   } catch {
+    /* réseau ou auth indisponible — on s'appuie sur le cookie refresh */
+  }
+
+  if (!user) {
     const passthrough = allowSessionCookieThrough(request, pathname, supabaseResponse);
     if (passthrough) return passthrough;
-    user = null;
   }
 
   if (!user && !isPublicPath(pathname)) {
@@ -113,15 +122,19 @@ export async function updateSession(request: NextRequest) {
     return redirectWithSession(url, supabaseResponse);
   }
 
+  if (user && pathname === '/') {
+    const url = request.nextUrl.clone();
+    url.pathname = '/post-login';
+    url.search = '';
+    return redirectWithSession(url, supabaseResponse);
+  }
+
   if (user && !isPublicPath(pathname)) {
     supabaseResponse.headers.set(
       'Cache-Control',
       'no-store, no-cache, must-revalidate, private',
     );
   }
-
-  // Ne pas auto-rediriger / → /post-login (boucle avec la page post-login).
-  // La redirection post-connexion est déclenchée uniquement par le formulaire login.
 
   return supabaseResponse;
 }

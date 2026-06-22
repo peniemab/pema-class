@@ -18,12 +18,18 @@ type Props = {
   data: ImpayesReportData | null;
   search?: string;
   reportsBase?: string;
+  onFiltersChange?: (params: {
+    q?: string;
+    classe?: string;
+    frais?: string;
+  }) => void;
 };
 
 export function ImpayesListeReportView({
   data,
   search,
   reportsBase = SCHOOL_REPORTS_BASE,
+  onFiltersChange,
 }: Props) {
   const feeCurrencies = data ? getSchoolFeeCurrencies(data.fees) : [];
 
@@ -84,6 +90,7 @@ export function ImpayesListeReportView({
                 selectedClassId={data.selectedClassId}
                 selectedFeeId={data.selectedFeeId}
                 search={search}
+                onFiltersChange={onFiltersChange}
               />
             </div>
           </Suspense>

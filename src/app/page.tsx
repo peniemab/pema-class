@@ -2,6 +2,10 @@ import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import { BrandMark } from '@/components/brand-mark';
 import { ProfessionalLoginForm } from '@/components/auth/professional-login-form';
+import {
+  LoginSessionGate,
+  SessionExpiredAlert,
+} from '@/components/auth/login-session-gate';
 import { PwaInstallButton } from '@/components/pwa/pwa-install-button';
 import { LoginLegalFooter } from '@/components/auth/login-legal-footer';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -14,7 +18,6 @@ type PageProps = {
 export default async function LoginPage({ searchParams }: PageProps) {
   const { error, password_reset } = await searchParams;
   const noProfile = error === 'no_profile';
-  const sessionError = error === 'session';
   const resetOk = password_reset === '1';
 
   return (
@@ -60,13 +63,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
               </Alert>
             )}
 
-            {sessionError && (
-              <Alert variant="destructive">
-                <AlertDescription>
-                  Session expirée ou invalide. Reconnectez-vous.
-                </AlertDescription>
-              </Alert>
-            )}
+            <SessionExpiredAlert />
 
             {resetOk && (
               <Alert>
@@ -76,7 +73,9 @@ export default async function LoginPage({ searchParams }: PageProps) {
               </Alert>
             )}
 
-            <ProfessionalLoginForm />
+            <LoginSessionGate>
+              <ProfessionalLoginForm />
+            </LoginSessionGate>
 
             <p className="text-center text-sm lg:text-left">
               <Link

@@ -14,6 +14,8 @@ type Props = {
   classes: ClassRow[];
   selectedClassId: string | null;
   selectedDate: string;
+  /** Mode overlay : filtres locaux sans router.push. */
+  onFiltersChange?: (params: { date?: string; classe?: string }) => void;
 };
 
 function shiftDate(iso: string, days: number): string {
@@ -31,6 +33,7 @@ export function PresencesReportFilters({
   classes,
   selectedClassId,
   selectedDate,
+  onFiltersChange,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -38,6 +41,10 @@ export function PresencesReportFilters({
   const yesterday = shiftDate(today, -1);
 
   function pushParams(next: { classe?: string; date?: string }) {
+    if (onFiltersChange) {
+      onFiltersChange(next);
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     if (next.date !== undefined) {
       if (next.date) params.set('date', next.date);

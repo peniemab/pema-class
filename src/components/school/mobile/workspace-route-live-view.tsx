@@ -32,6 +32,11 @@ import { RepeatedAbsencesReportView } from '@/components/school/rapports/repeate
 import { StudentHistoryReportView } from '@/components/school/rapports/student-history-report-view';
 import { ParametresLiveView } from '@/components/school/parametres-live-view';
 import { ParametresScreen } from '@/components/school/parametres-screen';
+import { TeacherImpayesLiveView } from '@/components/school/impayes/teacher-impayes-live-view';
+import {
+  canonicalWorkspacePath,
+  reportsBaseForHref,
+} from '@/lib/navigation/workspace-route-utils';
 import { normalizeWorkspaceHref } from '@/lib/navigation/workspace-overlay-routes';
 import { getOfflineDb } from '@/lib/offline/db';
 
@@ -184,9 +189,15 @@ type Props = {
   schoolId: string;
 };
 
-/** Rendu d'une route workspace en overlay (sans quitter /school). */
+/** Rendu d'une route workspace en overlay (sans quitter /school ou /app). */
 export function WorkspaceRouteLiveView({ href, schoolId }: Props) {
-  const path = normalizeWorkspaceHref(href);
+  const rawPath = normalizeWorkspaceHref(href);
+  const path = canonicalWorkspacePath(href);
+  const reportsBase = reportsBaseForHref(href);
+
+  if (rawPath === '/app/impayes') {
+    return <TeacherImpayesLiveView schoolId={schoolId} href={href} />;
+  }
 
   if (path === '/school/impayes') {
     return <ImpayesLiveView schoolId={schoolId} />;
@@ -206,25 +217,29 @@ export function WorkspaceRouteLiveView({ href, schoolId }: Props) {
     );
   }
 
-  if (path === '/school/rapports/caisse') return <CaisseReportsHub />;
-  if (path === '/school/rapports/impayes') return <ImpayesReportsHub />;
+  if (path === '/school/rapports/caisse') {
+    return <CaisseReportsHub reportsBase={reportsBase} />;
+  }
+  if (path === '/school/rapports/impayes') {
+    return <ImpayesReportsHub reportsBase={reportsBase} />;
+  }
   if (path === '/school/rapports/caisse/journal') {
     return <CashJournalLiveView schoolId={schoolId} href={href} />;
   }
   if (path === '/school/rapports/effectifs') {
-    return <EnrollmentLiveView schoolId={schoolId} />;
+    return <EnrollmentLiveView schoolId={schoolId} href={href} />;
   }
   if (path === '/school/rapports') {
-    return <RapportsHubLiveView schoolId={schoolId} />;
+    return <RapportsHubLiveView schoolId={schoolId} href={href} />;
   }
   if (path === '/school/rapports/impayes/synthese') {
-    return <ImpayesSyntheseLiveView schoolId={schoolId} />;
+    return <ImpayesSyntheseLiveView schoolId={schoolId} href={href} />;
   }
   if (path === '/school/rapports/impayes/liste') {
     return <ImpayesListeLiveView schoolId={schoolId} href={href} />;
   }
   if (path === '/school/rapports/presences') {
-    return <PresencesHubLiveView schoolId={schoolId} />;
+    return <PresencesHubLiveView schoolId={schoolId} href={href} />;
   }
   if (path === '/school/rapports/presences/jour') {
     return <PresencesJourLiveView schoolId={schoolId} href={href} />;

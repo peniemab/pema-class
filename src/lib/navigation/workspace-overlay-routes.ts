@@ -1,10 +1,13 @@
 import { getSchoolMobilePageMeta } from '@/lib/navigation/school-nav';
+import { getAppMobilePageMeta } from '@/lib/navigation/app-nav';
 
-/** Préfixes de routes ouvrables en overlay depuis le workspace /school. */
+/** Préfixes de routes ouvrables en overlay depuis le workspace. */
 const WORKSPACE_OVERLAY_PREFIXES = [
   '/school/rapports',
   '/school/impayes',
   '/school/parametres',
+  '/app/rapports',
+  '/app/impayes',
 ] as const;
 
 export function isWorkspaceOverlayHref(href: string): boolean {
@@ -19,5 +22,9 @@ export function normalizeWorkspaceHref(href: string): string {
 }
 
 export function overlayTitleForHref(href: string): string {
-  return getSchoolMobilePageMeta(normalizeWorkspaceHref(href)).title;
+  const path = normalizeWorkspaceHref(href);
+  if (path.startsWith('/app/')) {
+    return getAppMobilePageMeta(path).title;
+  }
+  return getSchoolMobilePageMeta(path).title;
 }

@@ -14,6 +14,7 @@ import { SCHOOL_REPORTS_BASE, reportHref } from '@/lib/navigation/reports-paths'
 type Props = {
   data: WeeklyAttendanceReportData | null;
   reportsBase?: string;
+  onFiltersChange?: (params: { date?: string; classe?: string }) => void;
 };
 
 function formatShortDate(iso: string): string {
@@ -26,6 +27,7 @@ function formatShortDate(iso: string): string {
 export function WeeklyPresencesReportView({
   data,
   reportsBase = SCHOOL_REPORTS_BASE,
+  onFiltersChange,
 }: Props) {
   return (
     <ReportPageShell
@@ -61,6 +63,7 @@ export function WeeklyPresencesReportView({
                 classes={data.classes}
                 selectedClassId={data.selectedClassId}
                 selectedDate={data.anchorDate}
+                onFiltersChange={onFiltersChange}
               />
             </div>
           </Suspense>

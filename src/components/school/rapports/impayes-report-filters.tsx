@@ -17,6 +17,12 @@ type Props = {
   selectedClassId: string | null;
   selectedFeeId: string | null;
   search?: string;
+  /** Mode overlay : filtres locaux sans router.push. */
+  onFiltersChange?: (params: {
+    q?: string;
+    classe?: string;
+    frais?: string;
+  }) => void;
 };
 
 export function ImpayesReportFilters({
@@ -26,6 +32,7 @@ export function ImpayesReportFilters({
   selectedClassId,
   selectedFeeId,
   search: initialSearch = '',
+  onFiltersChange,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -44,15 +51,22 @@ export function ImpayesReportFilters({
 
   const apply = useCallback(
     (next: Record<string, string | undefined>) => {
+      const q = next.q?.trim() || undefined;
+      const classe = next.classe || undefined;
+      const frais = next.frais || undefined;
+      if (onFiltersChange) {
+        onFiltersChange({ q, classe, frais });
+        return;
+      }
       const params = new URLSearchParams(searchParams.toString());
-      for (const [key, value] of Object.entries(next)) {
+      for (const [key, value] of Object.entries({ q, classe, frais })) {
         if (!value) params.delete(key);
         else params.set(key, value);
       }
-      const q = params.toString();
-      router.push(q ? `${basePath}?${q}` : basePath);
+      const built = params.toString();
+      router.push(built ? `${basePath}?${built}` : basePath);
     },
-    [router, searchParams, basePath],
+    [router, searchParams, basePath, onFiltersChange],
   );
 
   const buildParams = useCallback(
@@ -88,6 +102,10 @@ export function ImpayesReportFilters({
   }
 
   function clearFilters() {
+    if (onFiltersChange) {
+      onFiltersChange({});
+      return;
+    }
     router.push(basePath);
   }
 

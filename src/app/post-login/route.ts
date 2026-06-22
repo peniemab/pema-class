@@ -7,6 +7,7 @@ export async function GET(request: Request) {
 
   try {
     const supabase = await createClient();
+    await supabase.auth.getSession();
     const {
       data: { user },
       error,

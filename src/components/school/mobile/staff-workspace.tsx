@@ -12,6 +12,13 @@ import { OfflinePresencesView } from '@/components/school/presences/offline-pres
 import { OfflineCaisseHomeView } from '@/components/school/caisse/offline-caisse-home-view';
 import { OfflineCaisseStudentView } from '@/components/school/caisse/offline-caisse-student-view';
 import { AppDataProvider } from '@/lib/offline/app-data-context';
+import {
+  WorkspaceOverlayProvider,
+  useWorkspaceOverlayOptional,
+  type WorkspaceOverlayScreen,
+} from '@/lib/navigation/workspace-overlay-context';
+import { overlayTitleForHref } from '@/lib/navigation/workspace-overlay-routes';
+import { WorkspaceRouteLiveView } from '@/components/school/mobile/workspace-route-live-view';
 import type { StaffDashboardPageData } from '@/lib/school/load-staff-dashboard-page';
 import type { StudentsSnapshot } from '@/lib/offline/students-snapshot';
 import type { CaisseSnapshot } from '@/lib/offline/caisse-snapshot';
@@ -29,9 +36,7 @@ type Props = {
 
 /**
  * Workspace /app — modèle WhatsApp :
- * - AppDataProvider charge les données UNE fois (au-dessus des onglets)
- * - tous les onglets montés (eager) et lisent le magasin en mémoire
- * - changement d'onglet = masquer/afficher, données toujours en place
+ * onglets keep-alive + overlays rapports (sans quitter /app).
  */
 export function StaffWorkspace({
   role,
@@ -47,6 +52,7 @@ export function StaffWorkspace({
   const tabKeys = tabs?.tabKeys ?? ['accueil'];
 
   const [caisseStudentId, setCaisseStudentId] = useState<string | null>(null);
+  const [overlay, setOverlay] = useState<WorkspaceOverlayScreen | null>(null);
 
   const openCaisseStudent = useCallback((studentId: string) => {
     setCaisseStudentId(studentId);
@@ -66,7 +72,22 @@ export function StaffWorkspace({
   }, []);
 
   useEffect(() => {
-    const onPop = () => setCaisseStudentId(null);
+    const onPop = () => {
+      const state = window.history.state as {
+        pema?: string;
+        href?: string;
+      } | null;
+
+      if (state?.pema !== 'caisse-student') {
+        setCaisseStudentId(null);
+      }
+
+      if (state?.pema === 'overlay' && typeof state.href === 'string') {
+        setOverlay({ kind: 'route', href: state.href });
+        return;
+      }
+      setOverlay(null);
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
@@ -113,33 +134,63 @@ export function StaffWorkspace({
       caisseSnapshot={caisseSnapshot}
       attendanceSnapshot={attendanceSnapshot}
     >
-      <KeepAliveTabs activeKey={activeTab} tabs={allTabs} eager />
+      <WorkspaceOverlayProvider overlay={overlay} setOverlay={setOverlay}>
+        <KeepAliveTabs activeKey={activeTab} tabs={allTabs} eager />
 
-      {caisseStudentId ? (
-        <div className="fixed inset-0 z-50 flex flex-col bg-wa-bg">
-          <div className="no-print sticky top-0 z-10 flex h-14 shrink-0 items-center gap-1 bg-wa-header px-2 text-wa-header-foreground safe-top">
-            <button
-              type="button"
-              onClick={closeCaisseStudent}
-              className="flex size-10 items-center justify-center rounded-full transition-colors hover:bg-white/10 active:bg-white/20"
-              aria-label="Retour"
-            >
-              <ArrowLeft className="size-5" aria-hidden />
-            </button>
-            <h2 className="min-w-0 flex-1 truncate text-lg font-medium">
-              Encaissement
-            </h2>
+        {overlay ? (
+          <div className="fixed inset-0 z-50 flex flex-col bg-wa-bg">
+            <div className="no-print sticky top-0 z-10 flex h-14 shrink-0 items-center gap-1 bg-wa-header px-2 text-wa-header-foreground safe-top">
+              <OverlayBackButton />
+              <h2 className="min-w-0 flex-1 truncate text-lg font-medium">
+                {overlayTitleForHref(overlay.href)}
+              </h2>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto safe-bottom">
+              <WorkspaceRouteLiveView href={overlay.href} schoolId={schoolId} />
+            </div>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto safe-bottom">
-            <OfflineCaisseStudentView
-              schoolId={schoolId}
-              studentId={caisseStudentId}
-              caisseBasePath="/app/caisse"
-              initialSnapshot={caisseSnapshot}
-            />
+        ) : null}
+
+        {caisseStudentId ? (
+          <div className="fixed inset-0 z-50 flex flex-col bg-wa-bg">
+            <div className="no-print sticky top-0 z-10 flex h-14 shrink-0 items-center gap-1 bg-wa-header px-2 text-wa-header-foreground safe-top">
+              <button
+                type="button"
+                onClick={closeCaisseStudent}
+                className="flex size-10 items-center justify-center rounded-full transition-colors hover:bg-white/10 active:bg-white/20"
+                aria-label="Retour"
+              >
+                <ArrowLeft className="size-5" aria-hidden />
+              </button>
+              <h2 className="min-w-0 flex-1 truncate text-lg font-medium">
+                Encaissement
+              </h2>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto safe-bottom">
+              <OfflineCaisseStudentView
+                schoolId={schoolId}
+                studentId={caisseStudentId}
+                caisseBasePath="/app/caisse"
+                initialSnapshot={caisseSnapshot}
+              />
+            </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </WorkspaceOverlayProvider>
     </AppDataProvider>
+  );
+}
+
+function OverlayBackButton() {
+  const ctx = useWorkspaceOverlayOptional();
+  return (
+    <button
+      type="button"
+      onClick={() => ctx?.closeOverlay()}
+      className="flex size-10 items-center justify-center rounded-full transition-colors hover:bg-white/10 active:bg-white/20"
+      aria-label="Retour"
+    >
+      <ArrowLeft className="size-5" aria-hidden />
+    </button>
   );
 }

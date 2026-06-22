@@ -9,6 +9,8 @@ import { todayIsoDate } from '@/lib/date-utils';
 import { useAppData } from '@/lib/offline/app-data-context';
 import { buildCashJournalFromAppData } from '@/lib/offline/cash-journal-local';
 import { cashJournalCacheKey } from '@/lib/offline/prefetch-cash-journal';
+import { reportsBaseForHref } from '@/lib/navigation/workspace-route-utils';
+import { reportHref } from '@/lib/navigation/reports-paths';
 import { cn } from '@/lib/utils';
 
 function parseDateFromHref(href: string): string {
@@ -55,7 +57,7 @@ export function CashJournalLiveView({ schoolId, href }: Props) {
 
   useEffect(() => {
     let alive = true;
-    const syncHref = `/school/rapports/caisse/journal?date=${selectedDate}`;
+    const syncHref = `${reportHref(reportsBaseForHref(href), 'caisse', 'journal')}?date=${selectedDate}`;
     fetch(`/api/sync/workspace?href=${encodeURIComponent(syncHref)}`, {
       cache: 'no-store',
       credentials: 'same-origin',
@@ -93,6 +95,7 @@ export function CashJournalLiveView({ schoolId, href }: Props) {
   return (
     <CashJournalReportView
       data={data}
+      reportsBase={reportsBaseForHref(href)}
       onDateChange={setSelectedDate}
     />
   );

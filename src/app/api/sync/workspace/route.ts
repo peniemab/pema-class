@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSchoolDirection } from '@/lib/auth/require-role';
+import { getStaffByUserId } from '@/lib/db/staff';
+import { createClient } from '@/lib/supabase/server';
+import {
+  normalizeStaffRole,
+  OFFICE_STAFF_ROLES,
+  SCHOOL_DIRECTION_ROLES,
+  type StaffRole,
+} from '@/lib/auth/types';
 import { getImpayesPageData, getImpayesRecouvrementPageData } from '@/lib/db/impayes-page';
 import {
   getCashJournalReport,
@@ -16,26 +23,92 @@ import {
 import { loadReferentialsPageData } from '@/lib/school/referentials-actions';
 import { loadSchoolSettingsForDirection } from '@/lib/school/settings-actions';
 import { loadTeamPageData } from '@/lib/school/team-actions';
+import { getTeacherImpayesPageData } from '@/lib/db/teacher-impayes-page';
+import { getSchoolFeeCurrencies } from '@/lib/school/fee-currencies';
+import { listFeesForAcademicYearLabel } from '@/lib/db/fees';
 import { isWorkspaceOverlayHref, normalizeWorkspaceHref } from '@/lib/navigation/workspace-overlay-routes';
+import { canonicalWorkspacePath } from '@/lib/navigation/workspace-route-utils';
 
 export const dynamic = 'force-dynamic';
+
+type WorkspaceAuth = {
+  userId: string;
+  schoolId: string;
+  staffId: string;
+  role: StaffRole;
+};
+
+async function authorizeWorkspaceSync(href: string): Promise<WorkspaceAuth | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const staff = await getStaffByUserId(user.id);
+  if (!staff?.school_id || staff.status !== 'active' || !staff.is_active) {
+    return null;
+  }
+
+  const role = normalizeStaffRole(staff.role);
+  const path = normalizeWorkspaceHref(href);
+  const ctx: WorkspaceAuth = {
+    userId: user.id,
+    schoolId: staff.school_id,
+    staffId: staff.id,
+    role,
+  };
+
+  if (path.startsWith('/app/')) {
+    if (SCHOOL_DIRECTION_ROLES.includes(role)) return null;
+    if (path.startsWith('/app/rapports')) {
+      if (!OFFICE_STAFF_ROLES.includes(role)) return null;
+    } else if (path.startsWith('/app/impayes')) {
+      if (role !== 'enseignant') return null;
+    } else {
+      return null;
+    }
+    return ctx;
+  }
+
+  if (!SCHOOL_DIRECTION_ROLES.includes(role)) return null;
+  return ctx;
+}
 
 /** Charge les données d'une route workspace (rapports, paramètres, etc.). */
 export async function GET(request: NextRequest) {
   const href = request.nextUrl.searchParams.get('href') ?? '';
   const path = normalizeWorkspaceHref(href);
+  const canonicalPath = canonicalWorkspacePath(href);
 
   if (!isWorkspaceOverlayHref(href)) {
     return NextResponse.json({ error: 'Route non supportée' }, { status: 404 });
   }
 
-  const { schoolId } = await requireSchoolDirection();
+  const auth = await authorizeWorkspaceSync(href);
+  if (!auth) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+  }
+
+  const { schoolId, staffId } = auth;
   const params = Object.fromEntries(
     new URL(href, 'http://local').searchParams.entries(),
   );
 
   try {
-    switch (path) {
+    if (path === '/app/impayes') {
+      const data = await getTeacherImpayesPageData(schoolId, staffId, params);
+      const fees = data.activeYear
+        ? await listFeesForAcademicYearLabel(schoolId, data.activeYear.name)
+        : [];
+      return NextResponse.json({
+        view: 'teacher-impayes',
+        data,
+        feeCurrencies: getSchoolFeeCurrencies(fees),
+      });
+    }
+
+    switch (canonicalPath) {
       case '/school/rapports': {
         const preview = await getRapportsHubPreview(schoolId);
         const todayPresences = await getAttendanceReportData(schoolId, {});

@@ -19,6 +19,11 @@ import { SCHOOL_REPORTS_BASE, reportHref } from '@/lib/navigation/reports-paths'
 type Props = {
   data: StudentAttendanceHistoryData | null;
   reportsBase?: string;
+  onFiltersChange?: (params: {
+    eleve?: string;
+    debut?: string;
+    fin?: string;
+  }) => void;
 };
 
 const STATUS_LABELS = {
@@ -39,6 +44,7 @@ function formatLongDate(iso: string): string {
 export function StudentHistoryReportView({
   data,
   reportsBase = SCHOOL_REPORTS_BASE,
+  onFiltersChange,
 }: Props) {
   const [search, setSearch] = useState('');
   const basePath = reportHref(reportsBase, 'presences', 'eleve');
@@ -73,12 +79,16 @@ export function StudentHistoryReportView({
                 onSearchChange={setSearch}
                 selectedStudentId={data.student?.id ?? null}
                 basePath={basePath}
+                onStudentSelect={(studentId) =>
+                  onFiltersChange?.({ eleve: studentId })
+                }
               />
               <DateRangeFilters
                 startDate={data.startDate}
                 endDate={data.endDate}
                 studentId={data.student?.id ?? null}
                 basePath={basePath}
+                onDateRangeChange={(next) => onFiltersChange?.(next)}
               />
             </div>
           </Suspense>
@@ -148,16 +158,22 @@ function StudentPicker({
   onSearchChange,
   selectedStudentId,
   basePath,
+  onStudentSelect,
 }: {
   search: string;
   onSearchChange: (value: string) => void;
   selectedStudentId: string | null;
   basePath: string;
+  onStudentSelect?: (studentId: string) => void;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   function selectStudent(studentId: string) {
+    if (onStudentSelect) {
+      onStudentSelect(studentId);
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     params.set('eleve', studentId);
     router.push(`${basePath}?${params.toString()}`);
@@ -179,16 +195,22 @@ function DateRangeFilters({
   endDate,
   studentId,
   basePath,
+  onDateRangeChange,
 }: {
   startDate: string;
   endDate: string;
   studentId: string | null;
   basePath: string;
+  onDateRangeChange?: (next: { debut?: string; fin?: string }) => void;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   function pushDates(next: { debut?: string; fin?: string }) {
+    if (onDateRangeChange) {
+      onDateRangeChange(next);
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     if (studentId) params.set('eleve', studentId);
     if (next.debut !== undefined) {

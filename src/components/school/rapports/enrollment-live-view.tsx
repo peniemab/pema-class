@@ -9,6 +9,7 @@ import type { EnrollmentReportData } from '@/lib/db/finance-reports';
 import { useAppData } from '@/lib/offline/app-data-context';
 import { buildEnrollmentFromAppData } from '@/lib/offline/enrollment-local';
 import { ENROLLMENT_META_SCOPE } from '@/lib/offline/prefetch-enrollment';
+import { reportsBaseForHref } from '@/lib/navigation/workspace-route-utils';
 import { cn } from '@/lib/utils';
 
 const DASHBOARD_SCOPE = 'school-dashboard';
@@ -36,9 +37,10 @@ function EnrollmentSkeleton() {
 
 type Props = {
   schoolId: string;
+  href?: string;
 };
 
-export function EnrollmentLiveView({ schoolId }: Props) {
+export function EnrollmentLiveView({ schoolId, href = '/school/rapports/effectifs' }: Props) {
   const appData = useAppData();
 
   const dashboardMeta = useLiveQuery(
@@ -61,7 +63,7 @@ export function EnrollmentLiveView({ schoolId }: Props) {
 
   useEffect(() => {
     let alive = true;
-    fetch('/api/sync/workspace?href=%2Fschool%2Frapports%2Feffectifs', {
+    fetch(`/api/sync/workspace?href=${encodeURIComponent(href.split('#')[0])}`, {
       cache: 'no-store',
       credentials: 'same-origin',
     })
@@ -85,7 +87,7 @@ export function EnrollmentLiveView({ schoolId }: Props) {
     return () => {
       alive = false;
     };
-  }, [schoolId]);
+  }, [schoolId, href]);
 
   const data =
     localData ??
@@ -95,5 +97,10 @@ export function EnrollmentLiveView({ schoolId }: Props) {
 
   if (!data) return <EnrollmentSkeleton />;
 
-  return <EnrollmentReportView data={data} />;
+  return (
+    <EnrollmentReportView
+      data={data}
+      reportsBase={reportsBaseForHref(href)}
+    />
+  );
 }

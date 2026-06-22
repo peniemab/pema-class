@@ -8,21 +8,27 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-type Props = {
+type ClassFilterProps = {
   basePath: string;
   classes: ClassRow[];
   selectedClassId: string | null;
+  onClassChange?: (classId: string | null) => void;
 };
 
 export function ReportClassFilter({
   basePath,
   classes,
   selectedClassId,
-}: Props) {
+  onClassChange,
+}: ClassFilterProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   function pushClass(classId: string) {
+    if (onClassChange) {
+      onClassChange(classId || null);
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     if (classId) params.set('classe', classId);
     else params.delete('classe');
@@ -54,15 +60,21 @@ export function ReportPeriodToggle({
   basePath,
   periodDays,
   options,
+  onPeriodChange,
 }: {
   basePath: string;
   periodDays: number;
   options: { value: number; label: string }[];
+  onPeriodChange?: (days: number) => void;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   function pushPeriod(value: number) {
+    if (onPeriodChange) {
+      onPeriodChange(value);
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     params.set('periode', String(value));
     router.push(`${basePath}?${params.toString()}`);

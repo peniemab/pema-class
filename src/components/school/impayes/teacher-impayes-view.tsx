@@ -18,13 +18,18 @@ import {
 type Props = {
   data: TeacherImpayesPageData;
   feeCurrencies: FeeCurrency[];
+  onFiltersChange?: (patch: Record<string, string | undefined>) => void;
 };
 
-export function TeacherImpayesView({ data, feeCurrencies }: Props) {
+export function TeacherImpayesView({ data, feeCurrencies, onFiltersChange }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   function updateFilter(key: string, value: string) {
+    if (onFiltersChange) {
+      onFiltersChange({ [key]: value || undefined });
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
     else params.delete(key);

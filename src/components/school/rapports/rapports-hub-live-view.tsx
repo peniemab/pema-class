@@ -6,6 +6,7 @@ import {
   buildRapportsHubPreviewFromAppData,
   type RapportsHubLivePreview,
 } from '@/lib/offline/rapports-hub-local';
+import { reportsBaseForHref } from '@/lib/navigation/workspace-route-utils';
 import { useWorkspaceReportData } from '@/lib/offline/use-workspace-report';
 import { cn } from '@/lib/utils';
 
@@ -26,18 +27,19 @@ function HubSkeleton() {
 
 type Props = {
   schoolId: string;
+  href?: string;
 };
 
-export function RapportsHubLiveView({ schoolId }: Props) {
+export function RapportsHubLiveView({ schoolId, href = '/school/rapports' }: Props) {
   const appData = useAppData();
   const data = useWorkspaceReportData<RapportsHubLivePreview>({
     schoolId,
     metaScope: 'school-rapports-hub',
-    workspaceHref: '/school/rapports',
+    workspaceHref: href.split('#')[0],
     view: 'rapports-hub',
     buildLocal: () => buildRapportsHubPreviewFromAppData(appData),
   });
 
   if (!data) return <HubSkeleton />;
-  return <RapportsHub preview={data} />;
+  return <RapportsHub preview={data} reportsBase={reportsBaseForHref(href)} />;
 }
