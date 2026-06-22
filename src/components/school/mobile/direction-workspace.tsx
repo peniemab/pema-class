@@ -17,8 +17,8 @@ import {
   useWorkspaceOverlayOptional,
   type WorkspaceOverlayScreen,
 } from '@/lib/navigation/workspace-overlay-context';
-import { ImpayesLiveView } from '@/components/school/impayes/impayes-live-view';
-import { RecouvrementLiveView } from '@/components/school/impayes/recouvrement-live-view';
+import { overlayTitleForHref } from '@/lib/navigation/workspace-overlay-routes';
+import { WorkspaceRouteLiveView } from '@/components/school/mobile/workspace-route-live-view';
 import type { StudentsSnapshot } from '@/lib/offline/students-snapshot';
 import type { CaisseSnapshot } from '@/lib/offline/caisse-snapshot';
 import type { AttendanceSnapshot } from '@/lib/offline/attendance-snapshot';
@@ -73,26 +73,15 @@ export function DirectionWorkspace({
     const onPop = () => {
       const state = window.history.state as {
         pema?: string;
-        feeId?: string;
-        search?: string;
-        classId?: string;
+        href?: string;
       } | null;
 
       if (state?.pema !== 'caisse-student') {
         setCaisseStudentId(null);
       }
 
-      if (state?.pema === 'recouvrement' && state.feeId) {
-        setOverlay({
-          kind: 'recouvrement',
-          feeId: state.feeId,
-          search: state.search,
-          classId: state.classId,
-        });
-        return;
-      }
-      if (state?.pema === 'impayes') {
-        setOverlay({ kind: 'impayes' });
+      if (state?.pema === 'overlay' && typeof state.href === 'string') {
+        setOverlay({ kind: 'route', href: state.href });
         return;
       }
       setOverlay(null);
@@ -155,22 +144,13 @@ export function DirectionWorkspace({
         {overlay ? (
           <div className="fixed inset-0 z-50 flex flex-col bg-wa-bg">
             <div className="no-print sticky top-0 z-10 flex h-14 shrink-0 items-center gap-1 bg-wa-header px-2 text-wa-header-foreground safe-top">
-              <OverlayBackButton overlay={overlay} />
+              <OverlayBackButton />
               <h2 className="min-w-0 flex-1 truncate text-lg font-medium">
-                {overlay.kind === 'impayes' ? 'Impayés' : 'Recouvrement'}
+                {overlayTitleForHref(overlay.href)}
               </h2>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto safe-bottom">
-              {overlay.kind === 'impayes' ? (
-                <ImpayesLiveView schoolId={schoolId} />
-              ) : (
-                <RecouvrementLiveView
-                  schoolId={schoolId}
-                  feeId={overlay.feeId}
-                  search={overlay.search}
-                  classId={overlay.classId}
-                />
-              )}
+              <WorkspaceRouteLiveView href={overlay.href} schoolId={schoolId} />
             </div>
           </div>
         ) : null}
@@ -205,20 +185,12 @@ export function DirectionWorkspace({
   );
 }
 
-function OverlayBackButton({ overlay }: { overlay: WorkspaceOverlayScreen }) {
+function OverlayBackButton() {
   const ctx = useWorkspaceOverlayOptional();
-  const onBack = () => {
-    if (overlay.kind === 'recouvrement') {
-      ctx?.backInOverlay();
-    } else {
-      ctx?.closeOverlay();
-    }
-  };
-
   return (
     <button
       type="button"
-      onClick={onBack}
+      onClick={() => ctx?.closeOverlay()}
       className="flex size-10 items-center justify-center rounded-full transition-colors hover:bg-white/10 active:bg-white/20"
       aria-label="Retour"
     >

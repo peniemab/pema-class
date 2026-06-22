@@ -5,17 +5,15 @@ import { usePathname } from 'next/navigation';
 import { forwardRef, type ComponentProps, type MouseEvent } from 'react';
 import { useAppTabsOptional } from '@/lib/navigation/app-tab-context';
 import {
-  overlayActionForHref,
+  shouldOpenWorkspaceOverlay,
   useWorkspaceOverlayOptional,
 } from '@/lib/navigation/workspace-overlay-context';
 
 type WorkspaceLinkProps = ComponentProps<typeof Link>;
 
 /**
- * Lien qui se comporte comme la bottombar : si l'on est sur la racine du
- * workspace (`/app` ou `/school`) et que la cible correspond à un onglet
- * gardé en mémoire, on bascule l'onglet (0 ms, keep-alive) au lieu de
- * naviguer. Sinon, navigation Next classique.
+ * Lien workspace : bascule un onglet keep-alive ou ouvre un overlay selon la
+ * cible. Depuis /school (accueil, outils, etc.), aucune navigation Next.js.
  */
 export const WorkspaceLink = forwardRef<HTMLAnchorElement, WorkspaceLinkProps>(
   function WorkspaceLink({ href, onClick, ...rest }, ref) {
@@ -28,7 +26,6 @@ export const WorkspaceLink = forwardRef<HTMLAnchorElement, WorkspaceLinkProps>(
       onClick?.(event);
       if (event.defaultPrevented) return;
       if (!inWorkspace || !tabs) return;
-      // Laisser le comportement natif pour ouvrir dans un nouvel onglet.
       if (
         event.button !== 0 ||
         event.metaKey ||
@@ -38,20 +35,15 @@ export const WorkspaceLink = forwardRef<HTMLAnchorElement, WorkspaceLinkProps>(
       ) {
         return;
       }
+
       const raw = typeof href === 'string' ? href : (href.pathname ?? '');
-      const overlayAction = overlayActionForHref(tabs.rootPath, raw);
-      if (overlayAction && overlay) {
+
+      if (shouldOpenWorkspaceOverlay(tabs.rootPath, raw) && overlay) {
         event.preventDefault();
-        if (overlayAction.kind === 'impayes') {
-          overlay.openImpayes();
-        } else {
-          overlay.openRecouvrement(overlayAction.feeId, {
-            search: overlayAction.search,
-            classId: overlayAction.classId,
-          });
-        }
+        overlay.openRoute(raw);
         return;
       }
+
       const path = raw.split('#')[0].split('?')[0];
       const tabKey = tabs.tabForHref(path);
       if (tabKey) {

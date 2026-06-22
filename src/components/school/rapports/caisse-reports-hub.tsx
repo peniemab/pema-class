@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { WorkspaceLink } from '@/components/school/mobile/workspace-link';
 import { ChevronRight, ClipboardList } from 'lucide-react';
 import {
   SettingsIcon,
@@ -23,7 +23,7 @@ export function CaisseReportsHub({
       />
 
       <SettingsPanelGroup>
-        <Link
+        <WorkspaceLink
           href={reportHref(reportsBase, 'caisse', 'journal')}
           className="flex w-full min-h-[4.25rem] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50 active:bg-muted/70"
         >
@@ -37,7 +37,7 @@ export function CaisseReportsHub({
             </span>
           </span>
           <ChevronRight className="size-4 shrink-0 text-muted-foreground/50" aria-hidden />
-        </Link>
+        </WorkspaceLink>
       </SettingsPanelGroup>
     </div>
   );

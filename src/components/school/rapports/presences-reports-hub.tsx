@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { WorkspaceLink } from '@/components/school/mobile/workspace-link';
 import {
   CalendarDays,
   ChevronRight,
@@ -81,7 +81,7 @@ export function PresencesReportsHub({
         {items.map((item) => {
           const Icon = item.icon;
           return (
-            <Link
+            <WorkspaceLink
               key={item.href}
               href={item.href}
               className="flex w-full min-h-[4.25rem] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50 active:bg-muted/70"
@@ -104,7 +104,7 @@ export function PresencesReportsHub({
                 className="size-4 shrink-0 text-muted-foreground/50"
                 aria-hidden
               />
-            </Link>
+            </WorkspaceLink>
           );
         })}
       </SettingsPanelGroup>

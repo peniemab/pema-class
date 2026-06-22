@@ -1,18 +1,20 @@
 'use client';
 
 import { createContext, useCallback, useContext, useMemo } from 'react';
+import {
+  isWorkspaceOverlayHref,
+  normalizeWorkspaceHref,
+} from '@/lib/navigation/workspace-overlay-routes';
 
-export type WorkspaceOverlayScreen =
-  | { kind: 'impayes' }
-  | { kind: 'recouvrement'; feeId: string; search?: string; classId?: string };
+export type WorkspaceOverlayScreen = {
+  kind: 'route';
+  href: string;
+};
 
 type WorkspaceOverlayContextValue = {
   overlay: WorkspaceOverlayScreen | null;
-  openImpayes: () => void;
-  openRecouvrement: (feeId: string, filters?: { search?: string; classId?: string }) => void;
+  openRoute: (href: string) => void;
   closeOverlay: () => void;
-  /** Retour interne (recouvrement → impayés). */
-  backInOverlay: () => void;
 };
 
 const WorkspaceOverlayContext =
@@ -27,49 +29,31 @@ export function WorkspaceOverlayProvider({
   setOverlay: (next: WorkspaceOverlayScreen | null) => void;
   children: React.ReactNode;
 }) {
-  const openImpayes = useCallback(() => {
-    setOverlay({ kind: 'impayes' });
-    window.history.pushState({ pema: 'impayes' }, '');
-  }, [setOverlay]);
-
-  const openRecouvrement = useCallback(
-    (feeId: string, filters?: { search?: string; classId?: string }) => {
-      setOverlay({ kind: 'recouvrement', feeId, ...filters });
-      window.history.pushState(
-        { pema: 'recouvrement', feeId, search: filters?.search, classId: filters?.classId },
-        '',
-      );
+  const openRoute = useCallback(
+    (href: string) => {
+      const normalized = href.split('#')[0];
+      setOverlay({ kind: 'route', href: normalized });
+      window.history.pushState({ pema: 'overlay', href: normalized }, '');
     },
     [setOverlay],
   );
 
   const closeOverlay = useCallback(() => {
     const state = window.history.state as { pema?: string } | null;
-    if (state?.pema === 'impayes' || state?.pema === 'recouvrement') {
+    if (state?.pema === 'overlay') {
       window.history.back();
     } else {
       setOverlay(null);
     }
   }, [setOverlay]);
 
-  const backInOverlay = useCallback(() => {
-    const state = window.history.state as { pema?: string } | null;
-    if (state?.pema === 'recouvrement') {
-      window.history.back();
-    } else {
-      closeOverlay();
-    }
-  }, [closeOverlay]);
-
   const value = useMemo(
     () => ({
       overlay,
-      openImpayes,
-      openRecouvrement,
+      openRoute,
       closeOverlay,
-      backInOverlay,
     }),
-    [overlay, openImpayes, openRecouvrement, closeOverlay, backInOverlay],
+    [overlay, openRoute, closeOverlay],
   );
 
   return (
@@ -83,27 +67,9 @@ export function useWorkspaceOverlayOptional(): WorkspaceOverlayContextValue | nu
   return useContext(WorkspaceOverlayContext);
 }
 
-/** Correspondance href → action overlay (null si navigation classique). */
-export function overlayActionForHref(
-  rootPath: string,
-  href: string,
-): WorkspaceOverlayScreen | null {
-  const raw = href.split('#')[0];
-  const [path, query = ''] = raw.split('?');
-  const params = new URLSearchParams(query);
-
-  if (path === `${rootPath}/impayes`) {
-    return { kind: 'impayes' };
-  }
-  if (path === `${rootPath}/impayes/recouvrement`) {
-    const feeId = params.get('frais');
-    if (!feeId) return null;
-    return {
-      kind: 'recouvrement',
-      feeId,
-      search: params.get('q') ?? undefined,
-      classId: params.get('classe') ?? undefined,
-    };
-  }
-  return null;
+/** true si href doit s'ouvrir en overlay depuis le workspace. */
+export function shouldOpenWorkspaceOverlay(rootPath: string, href: string): boolean {
+  const path = normalizeWorkspaceHref(href);
+  if (path === rootPath || path === `${rootPath}/outils`) return false;
+  return isWorkspaceOverlayHref(href);
 }

@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import type { ComponentType } from 'react';
+import { WorkspaceLink } from '@/components/school/mobile/workspace-link';
 import { cn } from '@/lib/utils';
 
 const TONE_CLASS = {
@@ -21,7 +21,7 @@ type Props = {
 
 export function WaToolCard({ href, label, description, icon: Icon, tone }: Props) {
   return (
-    <Link
+    <WorkspaceLink
       href={href}
       className="flex flex-col gap-3 rounded-xl border border-wa-divider bg-wa-panel p-4 transition-colors hover:bg-wa-row-hover active:bg-wa-row-active"
     >
@@ -41,6 +41,6 @@ export function WaToolCard({ href, label, description, icon: Icon, tone }: Props
           </span>
         ) : null}
       </span>
-    </Link>
+    </WorkspaceLink>
   );
 }

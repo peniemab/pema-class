@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { WorkspaceLink } from '@/components/school/mobile/workspace-link';
 import {
   ChevronRight,
   ClipboardCheck,
@@ -119,7 +119,7 @@ export function RapportsHub({
           const badge = section.badge(preview);
           const badgeTone = section.badgeTone(preview);
           return (
-            <Link
+            <WorkspaceLink
               key={section.href}
               href={section.href}
               className="flex w-full min-h-[4.25rem] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-wa-row-hover active:bg-wa-row-active"
@@ -153,7 +153,7 @@ export function RapportsHub({
                 className="size-4 shrink-0 text-muted-foreground/50"
                 aria-hidden
               />
-            </Link>
+            </WorkspaceLink>
           );
         })}
       </SettingsPanelGroup>
