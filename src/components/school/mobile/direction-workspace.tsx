@@ -12,6 +12,13 @@ import { OfflinePresencesView } from '@/components/school/presences/offline-pres
 import { OfflineCaisseHomeView } from '@/components/school/caisse/offline-caisse-home-view';
 import { OfflineCaisseStudentView } from '@/components/school/caisse/offline-caisse-student-view';
 import { AppDataProvider } from '@/lib/offline/app-data-context';
+import {
+  WorkspaceOverlayProvider,
+  useWorkspaceOverlayOptional,
+  type WorkspaceOverlayScreen,
+} from '@/lib/navigation/workspace-overlay-context';
+import { ImpayesLiveView } from '@/components/school/impayes/impayes-live-view';
+import { RecouvrementLiveView } from '@/components/school/impayes/recouvrement-live-view';
 import type { StudentsSnapshot } from '@/lib/offline/students-snapshot';
 import type { CaisseSnapshot } from '@/lib/offline/caisse-snapshot';
 import type { AttendanceSnapshot } from '@/lib/offline/attendance-snapshot';
@@ -43,6 +50,7 @@ export function DirectionWorkspace({
   const tabKeys = tabs?.tabKeys ?? ['accueil'];
 
   const [caisseStudentId, setCaisseStudentId] = useState<string | null>(null);
+  const [overlay, setOverlay] = useState<WorkspaceOverlayScreen | null>(null);
 
   const openCaisseStudent = useCallback((studentId: string) => {
     setCaisseStudentId(studentId);
@@ -62,7 +70,33 @@ export function DirectionWorkspace({
   }, []);
 
   useEffect(() => {
-    const onPop = () => setCaisseStudentId(null);
+    const onPop = () => {
+      const state = window.history.state as {
+        pema?: string;
+        feeId?: string;
+        search?: string;
+        classId?: string;
+      } | null;
+
+      if (state?.pema !== 'caisse-student') {
+        setCaisseStudentId(null);
+      }
+
+      if (state?.pema === 'recouvrement' && state.feeId) {
+        setOverlay({
+          kind: 'recouvrement',
+          feeId: state.feeId,
+          search: state.search,
+          classId: state.classId,
+        });
+        return;
+      }
+      if (state?.pema === 'impayes') {
+        setOverlay({ kind: 'impayes' });
+        return;
+      }
+      setOverlay(null);
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
@@ -115,9 +149,33 @@ export function DirectionWorkspace({
       caisseSnapshot={caisseSnapshot}
       attendanceSnapshot={attendanceSnapshot}
     >
-      <KeepAliveTabs activeKey={activeTab} tabs={allTabs} eager />
+      <WorkspaceOverlayProvider overlay={overlay} setOverlay={setOverlay}>
+        <KeepAliveTabs activeKey={activeTab} tabs={allTabs} eager />
 
-      {caisseStudentId ? (
+        {overlay ? (
+          <div className="fixed inset-0 z-50 flex flex-col bg-wa-bg">
+            <div className="no-print sticky top-0 z-10 flex h-14 shrink-0 items-center gap-1 bg-wa-header px-2 text-wa-header-foreground safe-top">
+              <OverlayBackButton overlay={overlay} />
+              <h2 className="min-w-0 flex-1 truncate text-lg font-medium">
+                {overlay.kind === 'impayes' ? 'Impayés' : 'Recouvrement'}
+              </h2>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto safe-bottom">
+              {overlay.kind === 'impayes' ? (
+                <ImpayesLiveView schoolId={schoolId} />
+              ) : (
+                <RecouvrementLiveView
+                  schoolId={schoolId}
+                  feeId={overlay.feeId}
+                  search={overlay.search}
+                  classId={overlay.classId}
+                />
+              )}
+            </div>
+          </div>
+        ) : null}
+
+        {caisseStudentId ? (
         <div className="fixed inset-0 z-50 flex flex-col bg-wa-bg">
           <div className="no-print sticky top-0 z-10 flex h-14 shrink-0 items-center gap-1 bg-wa-header px-2 text-wa-header-foreground safe-top">
             <button
@@ -142,6 +200,29 @@ export function DirectionWorkspace({
           </div>
         </div>
       ) : null}
+      </WorkspaceOverlayProvider>
     </AppDataProvider>
+  );
+}
+
+function OverlayBackButton({ overlay }: { overlay: WorkspaceOverlayScreen }) {
+  const ctx = useWorkspaceOverlayOptional();
+  const onBack = () => {
+    if (overlay.kind === 'recouvrement') {
+      ctx?.backInOverlay();
+    } else {
+      ctx?.closeOverlay();
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={onBack}
+      className="flex size-10 items-center justify-center rounded-full transition-colors hover:bg-white/10 active:bg-white/20"
+      aria-label="Retour"
+    >
+      <ArrowLeft className="size-5" aria-hidden />
+    </button>
   );
 }

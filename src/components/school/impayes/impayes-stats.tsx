@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import type { ImpayesStats } from '@/lib/db/impayes-page';
+import { WorkspaceLink } from '@/components/school/mobile/workspace-link';
 import { formatFeeAmount } from '@/lib/school/referentials/constants';
 import {
   unpaidTotalLabel,
@@ -83,7 +83,7 @@ export function ImpayesStatsCards({ stats, feeCurrencies }: Props) {
               );
 
               return (
-                <Link
+                <WorkspaceLink
                   key={fee.fee_id}
                   href={feeRecouvrementHref(fee.fee_id)}
                   className={cardClassName}
@@ -125,7 +125,7 @@ export function ImpayesStatsCards({ stats, feeCurrencies }: Props) {
                       <> · Aucun encaissement</>
                     )}
                   </p>
-                </Link>
+                </WorkspaceLink>
               );
             })}
           </div>

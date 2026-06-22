@@ -4,6 +4,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { forwardRef, type ComponentProps, type MouseEvent } from 'react';
 import { useAppTabsOptional } from '@/lib/navigation/app-tab-context';
+import {
+  overlayActionForHref,
+  useWorkspaceOverlayOptional,
+} from '@/lib/navigation/workspace-overlay-context';
 
 type WorkspaceLinkProps = ComponentProps<typeof Link>;
 
@@ -16,6 +20,7 @@ type WorkspaceLinkProps = ComponentProps<typeof Link>;
 export const WorkspaceLink = forwardRef<HTMLAnchorElement, WorkspaceLinkProps>(
   function WorkspaceLink({ href, onClick, ...rest }, ref) {
     const tabs = useAppTabsOptional();
+    const overlay = useWorkspaceOverlayOptional();
     const pathname = usePathname();
     const inWorkspace = tabs != null && pathname === tabs.rootPath;
 
@@ -34,6 +39,19 @@ export const WorkspaceLink = forwardRef<HTMLAnchorElement, WorkspaceLinkProps>(
         return;
       }
       const raw = typeof href === 'string' ? href : (href.pathname ?? '');
+      const overlayAction = overlayActionForHref(tabs.rootPath, raw);
+      if (overlayAction && overlay) {
+        event.preventDefault();
+        if (overlayAction.kind === 'impayes') {
+          overlay.openImpayes();
+        } else {
+          overlay.openRecouvrement(overlayAction.feeId, {
+            search: overlayAction.search,
+            classId: overlayAction.classId,
+          });
+        }
+        return;
+      }
       const path = raw.split('#')[0].split('?')[0];
       const tabKey = tabs.tabForHref(path);
       if (tabKey) {
