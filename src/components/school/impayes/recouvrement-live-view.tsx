@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { RecouvrementFilters } from '@/components/school/impayes/recouvrement-filters';
 import { RecouvrementPrintButton } from '@/components/school/impayes/recouvrement-print-button';
@@ -46,6 +47,9 @@ type Props = {
   feeId: string;
   search?: string;
   classId?: string;
+  onBack?: () => void;
+  /** Changement de frais depuis les filtres (stack interne). */
+  onFeeChange?: (feeId: string) => void;
 };
 
 export function RecouvrementLiveView({
@@ -53,6 +57,8 @@ export function RecouvrementLiveView({
   feeId: initialFeeId,
   search: initialSearch,
   classId: initialClassId,
+  onBack,
+  onFeeChange,
 }: Props) {
   const appData = useAppData();
   const [feeId, setFeeId] = useState(initialFeeId);
@@ -125,14 +131,15 @@ export function RecouvrementLiveView({
       setFeeId(params.frais);
       setSearch(params.q);
       setClassId(params.classe);
+      onFeeChange?.(params.frais);
     },
-    [],
+    [onFeeChange],
   );
 
   const data =
+    localData ??
     fresh ??
     (cached?.value as ImpayesRecouvrementPageData | undefined) ??
-    localData ??
     null;
 
   if (!data) return <RecouvrementSkeleton />;
@@ -146,11 +153,23 @@ export function RecouvrementLiveView({
   return (
     <div className="recouvrement-view mx-auto max-w-5xl space-y-6 p-4 pb-8">
       <div className="no-print flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Recouvrement</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {data.fee.name} — Année {data.activeYear.name}
-          </p>
+        <div className="flex min-w-0 items-start gap-2">
+          {onBack ? (
+            <button
+              type="button"
+              onClick={onBack}
+              className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-muted"
+              aria-label="Retour aux impayés"
+            >
+              <ArrowLeft className="size-5" aria-hidden />
+            </button>
+          ) : null}
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold tracking-tight">Recouvrement</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {data.fee.name} — Année {data.activeYear.name}
+            </p>
+          </div>
         </div>
         <RecouvrementPrintButton />
       </div>

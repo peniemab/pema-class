@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { CheckCircle2 } from 'lucide-react';
 import { ImpayesStatsCards } from '@/components/school/impayes/impayes-stats';
+import { RecouvrementLiveView } from '@/components/school/impayes/recouvrement-live-view';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getOfflineDb, metaKey } from '@/lib/offline/db';
 import type { ImpayesPageData } from '@/lib/db/impayes-page';
@@ -49,6 +50,7 @@ type Props = {
 
 export function ImpayesLiveView({ schoolId }: Props) {
   const appData = useAppData();
+  const [recouvrementFeeId, setRecouvrementFeeId] = useState<string | null>(null);
 
   const localData = useMemo(
     () => buildImpayesFromAppData(appData),
@@ -97,6 +99,17 @@ export function ImpayesLiveView({ schoolId }: Props) {
 
   if (!data) return <ImpayesSkeleton />;
 
+  if (recouvrementFeeId) {
+    return (
+      <RecouvrementLiveView
+        schoolId={schoolId}
+        feeId={recouvrementFeeId}
+        onBack={() => setRecouvrementFeeId(null)}
+        onFeeChange={setRecouvrementFeeId}
+      />
+    );
+  }
+
   const feeCurrencies = getSchoolFeeCurrencies(data.fees);
 
   return (
@@ -131,7 +144,11 @@ export function ImpayesLiveView({ schoolId }: Props) {
         <>
           <div className="border-b border-wa-divider bg-wa-panel p-4">
             {data.stats ? (
-              <ImpayesStatsCards stats={data.stats} feeCurrencies={feeCurrencies} />
+              <ImpayesStatsCards
+                stats={data.stats}
+                feeCurrencies={feeCurrencies}
+                onFeeSelect={setRecouvrementFeeId}
+              />
             ) : null}
           </div>
 
