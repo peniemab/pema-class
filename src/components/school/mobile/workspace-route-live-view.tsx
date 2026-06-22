@@ -9,6 +9,18 @@ import { CaisseReportsHub } from '@/components/school/rapports/caisse-reports-hu
 import { ImpayesReportsHub } from '@/components/school/rapports/impayes-reports-hub';
 import { PresencesReportsHub } from '@/components/school/rapports/presences-reports-hub';
 import { EnrollmentLiveView } from '@/components/school/rapports/enrollment-live-view';
+import { RapportsHubLiveView } from '@/components/school/rapports/rapports-hub-live-view';
+import {
+  ImpayesListeLiveView,
+  ImpayesSyntheseLiveView,
+} from '@/components/school/rapports/impayes-reports-live-view';
+import {
+  PresencesAbsencesLiveView,
+  PresencesEleveLiveView,
+  PresencesHebdoLiveView,
+  PresencesHubLiveView,
+  PresencesJourLiveView,
+} from '@/components/school/rapports/presences-reports-live-view';
 import { EnrollmentReportView } from '@/components/school/rapports/enrollment-report-view';
 import { CashJournalLiveView } from '@/components/school/rapports/cash-journal-live-view';
 import { CashJournalReportView } from '@/components/school/rapports/cash-journal-report-view';
@@ -200,6 +212,30 @@ export function WorkspaceRouteLiveView({ href, schoolId }: Props) {
   }
   if (path === '/school/rapports/effectifs') {
     return <EnrollmentLiveView schoolId={schoolId} />;
+  }
+  if (path === '/school/rapports') {
+    return <RapportsHubLiveView schoolId={schoolId} />;
+  }
+  if (path === '/school/rapports/impayes/synthese') {
+    return <ImpayesSyntheseLiveView schoolId={schoolId} />;
+  }
+  if (path === '/school/rapports/impayes/liste') {
+    return <ImpayesListeLiveView schoolId={schoolId} href={href} />;
+  }
+  if (path === '/school/rapports/presences') {
+    return <PresencesHubLiveView schoolId={schoolId} />;
+  }
+  if (path === '/school/rapports/presences/jour') {
+    return <PresencesJourLiveView schoolId={schoolId} href={href} />;
+  }
+  if (path === '/school/rapports/presences/hebdo') {
+    return <PresencesHebdoLiveView schoolId={schoolId} href={href} />;
+  }
+  if (path === '/school/rapports/presences/absences-repetees') {
+    return <PresencesAbsencesLiveView schoolId={schoolId} href={href} />;
+  }
+  if (path === '/school/rapports/presences/eleve') {
+    return <PresencesEleveLiveView schoolId={schoolId} href={href} />;
   }
 
   return <WorkspaceRouteDataView href={href} />;

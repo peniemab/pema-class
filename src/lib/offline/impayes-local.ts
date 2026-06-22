@@ -2,6 +2,7 @@ import type { ClassRow } from '@/lib/db/classes';
 import type { EnrolledStudent } from '@/lib/db/enrolled-students';
 import type { FeeRow } from '@/lib/db/fees';
 import type { ImpayesPageData, ImpayesRecouvrementPageData } from '@/lib/db/impayes-page';
+import type { ImpayesReportData } from '@/lib/db/finance-reports';
 import type { AppDataValue } from '@/lib/offline/app-data-context';
 import {
   buildPaidByStudentFee,
@@ -91,6 +92,50 @@ export function buildImpayesFromAppData(data: AppDataValue): ImpayesPageData | n
     paidByStudentFee,
     filters: { page: 1 },
   });
+}
+
+function impayesPageFromAppData(
+  data: AppDataValue,
+  filters: { search?: string; classId?: string; feeId?: string },
+): ImpayesPageData | null {
+  const bundle = appDataBundle(data);
+  if (!bundle) return null;
+
+  const { activeYear, enrolled, fees, classes, paidByStudentFee } = bundle;
+
+  return computeImpayesPageData({
+    activeYear,
+    fees,
+    classes,
+    enrolled,
+    paidByStudentFee,
+    filters: {
+      search: filters.search?.trim() || undefined,
+      classId: filters.classId || undefined,
+      feeId: filters.feeId || undefined,
+      page: 1,
+    },
+    allRows: true,
+  });
+}
+
+/** Rapport impayés (synthèse / liste) depuis AppData. */
+export function buildImpayesReportFromAppData(
+  data: AppDataValue,
+  params: { search?: string; classId?: string; feeId?: string } = {},
+): ImpayesReportData | null {
+  const page = impayesPageFromAppData(data, params);
+  if (!page?.activeYear || !page.stats) return null;
+
+  return {
+    activeYear: page.activeYear,
+    selectedClassId: params.classId?.trim() || null,
+    selectedFeeId: params.feeId?.trim() || null,
+    classes: page.classes,
+    fees: page.fees,
+    stats: page.stats,
+    rows: page.rows,
+  };
 }
 
 /** Recouvrement par frais depuis AppData (affichage instantané). */

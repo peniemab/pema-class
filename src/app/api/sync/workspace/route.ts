@@ -38,7 +38,16 @@ export async function GET(request: NextRequest) {
     switch (path) {
       case '/school/rapports': {
         const preview = await getRapportsHubPreview(schoolId);
-        return NextResponse.json({ view: 'rapports-hub', data: preview });
+        const todayPresences = await getAttendanceReportData(schoolId, {});
+        const presencesIssues = todayPresences
+          ? todayPresences.totals.absent +
+            todayPresences.totals.late +
+            todayPresences.totals.unmarked
+          : null;
+        return NextResponse.json({
+          view: 'rapports-hub',
+          data: { ...preview, presencesIssues },
+        });
       }
       case '/school/rapports/effectifs': {
         const data = await getEnrollmentReport(schoolId);
