@@ -11,6 +11,7 @@ import { LogoutButton } from '@/components/auth/logout-button';
 import { useAppData } from '@/lib/offline/app-data-context';
 import { prefetchImpayesSnapshot } from '@/lib/offline/prefetch-impayes';
 import { prefetchCashJournalSnapshot } from '@/lib/offline/prefetch-cash-journal';
+import { prefetchEnrollmentSnapshot } from '@/lib/offline/prefetch-enrollment';
 
 export function SchoolToolsPage() {
   const { schoolId } = useAppData();
@@ -18,6 +19,7 @@ export function SchoolToolsPage() {
   useEffect(() => {
     prefetchImpayesSnapshot(schoolId);
     prefetchCashJournalSnapshot(schoolId);
+    prefetchEnrollmentSnapshot(schoolId);
   }, [schoolId]);
 
   return (

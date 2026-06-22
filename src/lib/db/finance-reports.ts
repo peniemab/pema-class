@@ -8,11 +8,9 @@ import { getImpayesPageData } from '@/lib/db/impayes-page';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
   normalizeSchoolCycles,
-  CYCLE_DISPLAY_ORDER,
-  levelToCycle,
-  SCHOOL_CYCLE_LABELS,
   type SchoolCycle,
 } from '@/lib/school/referentials/constants';
+import { computeEnrollmentReport } from '@/lib/school/enrollment-compute';
 import { getSchoolByIdForStaff } from '@/lib/db/schools';
 import type { FeeRow } from '@/lib/db/fees';
 import {
@@ -213,60 +211,13 @@ async function fetchEnrollmentReport(
     listEnrolledStudentsForYear(schoolId, activeYear.id),
   ]);
 
-  const offeredCycles = normalizeSchoolCycles(school?.offered_cycles);
-  const countByClass = new Map<string, number>();
-  for (const student of enrolled) {
-    if (!student.class_id) continue;
-    countByClass.set(student.class_id, (countByClass.get(student.class_id) ?? 0) + 1);
-  }
-
-  const rows: ClassEnrollmentRow[] = classes.map((cls) => {
-    const enrolledCount = countByClass.get(cls.id) ?? 0;
-    const cycle = (cls.cycle ?? levelToCycle(cls.level)) as SchoolCycle;
-    const max = cls.max_capacity > 0 ? cls.max_capacity : 30;
-    return {
-      class_id: cls.id,
-      class_level: cls.level,
-      class_name: cls.name,
-      cycle,
-      enrolled: enrolledCount,
-      max_capacity: max,
-      fill_rate: max > 0 ? Math.round((enrolledCount / max) * 100) : 0,
-    };
-  });
-
-  rows.sort((a, b) =>
-    `${a.class_level} ${a.class_name}`.localeCompare(
-      `${b.class_level} ${b.class_name}`,
-      'fr',
-    ),
-  );
-
-  const byCycle = CYCLE_DISPLAY_ORDER.filter((c) => offeredCycles.includes(c)).map(
-    (cycle) => {
-      const cycleRows = rows.filter((r) => r.cycle === cycle);
-      return {
-        cycle,
-        label: SCHOOL_CYCLE_LABELS[cycle],
-        class_count: cycleRows.length,
-        enrolled: cycleRows.reduce((s, r) => s + r.enrolled, 0),
-      };
-    },
-  );
-
-  return {
+  return computeEnrollmentReport({
     activeYear: { id: activeYear.id, name: activeYear.name },
     schoolName: school?.display_name ?? school?.name ?? 'Établissement',
-    offeredCycles,
+    offeredCycles: normalizeSchoolCycles(school?.offered_cycles),
     classes,
-    rows,
-    byCycle,
-    totals: {
-      class_count: rows.length,
-      enrolled: enrolled.length,
-      capacity: rows.reduce((s, r) => s + r.max_capacity, 0),
-    },
-  };
+    enrolled,
+  });
 }
 
 async function fetchRapportsHubPreview(
