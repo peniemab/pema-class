@@ -11,6 +11,7 @@ import type { ImpayesPageData } from '@/lib/db/impayes-page';
 import { useAppData } from '@/lib/offline/app-data-context';
 import { buildImpayesFromAppData } from '@/lib/offline/impayes-local';
 import { IMPAYES_META_SCOPE } from '@/lib/offline/prefetch-impayes';
+import { prefetchRecouvrementSnapshot } from '@/lib/offline/prefetch-recouvrement';
 import { getSchoolFeeCurrencies } from '@/lib/school/fee-currencies';
 import { cn } from '@/lib/utils';
 
@@ -86,6 +87,13 @@ export function ImpayesLiveView({ schoolId }: Props) {
     (cached?.value as ImpayesPageData | undefined) ??
     localData ??
     null;
+
+  useEffect(() => {
+    if (!data?.stats?.feeBreakdown?.length) return;
+    for (const fee of data.stats.feeBreakdown) {
+      prefetchRecouvrementSnapshot(schoolId, fee.fee_id);
+    }
+  }, [schoolId, data?.stats?.feeBreakdown]);
 
   if (!data) return <ImpayesSkeleton />;
 

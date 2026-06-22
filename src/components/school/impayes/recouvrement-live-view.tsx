@@ -1,15 +1,21 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { RecouvrementFilters } from '@/components/school/impayes/recouvrement-filters';
 import { RecouvrementPrintButton } from '@/components/school/impayes/recouvrement-print-button';
 import { RecouvrementTable } from '@/components/school/impayes/recouvrement-table';
-import { getOfflineDb } from '@/lib/offline/db';
+import { WorkspaceLink } from '@/components/school/mobile/workspace-link';
+import { getOfflineDb, metaKey } from '@/lib/offline/db';
+import type { DashboardPageData } from '@/lib/db/dashboard-page';
 import type { ImpayesRecouvrementPageData } from '@/lib/db/impayes-page';
+import { useAppData } from '@/lib/offline/app-data-context';
+import { buildRecouvrementFromAppData } from '@/lib/offline/impayes-local';
+import { recouvrementCacheKey } from '@/lib/offline/prefetch-recouvrement';
 import { formatFeeAmount } from '@/lib/school/referentials/constants';
 import { cn } from '@/lib/utils';
+
+const DASHBOARD_SCOPE = 'school-dashboard';
 
 function Bone({ className }: { className?: string }) {
   return (
@@ -42,23 +48,42 @@ type Props = {
   classId?: string;
 };
 
-function recouvrementCacheKey(
-  schoolId: string,
-  feeId: string,
-  search?: string,
-  classId?: string,
-) {
-  const q = search ?? '';
-  const c = classId ?? '';
-  return `${schoolId}:impayes-recouvrement:${feeId}:${q}:${c}`;
-}
+export function RecouvrementLiveView({
+  schoolId,
+  feeId: initialFeeId,
+  search: initialSearch,
+  classId: initialClassId,
+}: Props) {
+  const appData = useAppData();
+  const [feeId, setFeeId] = useState(initialFeeId);
+  const [search, setSearch] = useState(initialSearch);
+  const [classId, setClassId] = useState(initialClassId);
 
-export function RecouvrementLiveView({ schoolId, feeId, search, classId }: Props) {
-  const cacheKey = useMemo(
-    () => recouvrementCacheKey(schoolId, feeId, search, classId),
-    [schoolId, feeId, search, classId],
+  useEffect(() => {
+    setFeeId(initialFeeId);
+    setSearch(initialSearch);
+    setClassId(initialClassId);
+  }, [initialFeeId, initialSearch, initialClassId]);
+
+  const dashboardMeta = useLiveQuery(
+    () => getOfflineDb().meta.get(metaKey(schoolId, DASHBOARD_SCOPE)),
+    [schoolId],
+  );
+  const schoolName =
+    (dashboardMeta?.value as DashboardPageData | undefined)?.schoolName ?? '';
+
+  const localData = useMemo(
+    () =>
+      buildRecouvrementFromAppData(appData, {
+        feeId,
+        search,
+        classId,
+        schoolName,
+      }),
+    [appData, feeId, search, classId, schoolName],
   );
 
+  const cacheKey = recouvrementCacheKey(schoolId, feeId, search, classId);
   const cached = useLiveQuery(
     () => getOfflineDb().meta.get(cacheKey),
     [cacheKey],
@@ -95,8 +120,21 @@ export function RecouvrementLiveView({ schoolId, feeId, search, classId }: Props
     };
   }, [schoolId, feeId, search, classId, cacheKey]);
 
+  const handleFiltersChange = useCallback(
+    (params: { frais: string; q?: string; classe?: string }) => {
+      setFeeId(params.frais);
+      setSearch(params.q);
+      setClassId(params.classe);
+    },
+    [],
+  );
+
   const data =
-    fresh ?? (cached?.value as ImpayesRecouvrementPageData | undefined) ?? null;
+    fresh ??
+    (cached?.value as ImpayesRecouvrementPageData | undefined) ??
+    localData ??
+    null;
+
   if (!data) return <RecouvrementSkeleton />;
 
   const totalRemaining = data.rows.reduce((s, r) => s + r.amount_remaining, 0);
@@ -157,6 +195,7 @@ export function RecouvrementLiveView({ schoolId, feeId, search, classId }: Props
             search: data.filters.search,
             classId: data.filters.classId,
           }}
+          onFiltersChange={handleFiltersChange}
         />
       </Suspense>
 
@@ -174,9 +213,9 @@ export function RecouvrementLiveView({ schoolId, feeId, search, classId }: Props
 
       <p className="no-print text-center text-xs text-muted-foreground">
         Cliquez sur un élève pour la fiche, ou{' '}
-        <Link href="/school/caisse" className="text-primary underline">
+        <WorkspaceLink href="/school/caisse" className="text-primary underline">
           ouvrir la caisse
-        </Link>{' '}
+        </WorkspaceLink>{' '}
         pour encaisser.
       </p>
     </div>

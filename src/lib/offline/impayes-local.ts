@@ -1,12 +1,41 @@
 import type { ClassRow } from '@/lib/db/classes';
 import type { EnrolledStudent } from '@/lib/db/enrolled-students';
 import type { FeeRow } from '@/lib/db/fees';
-import type { ImpayesPageData } from '@/lib/db/impayes-page';
+import type { ImpayesPageData, ImpayesRecouvrementPageData } from '@/lib/db/impayes-page';
 import type { AppDataValue } from '@/lib/offline/app-data-context';
 import {
   buildPaidByStudentFee,
   computeImpayesPageData,
+  computeRecouvrementPageData,
 } from '@/lib/school/impayes-compute';
+
+function appDataBundle(data: AppDataValue) {
+  const activeYear =
+    data.caisseState?.activeYear ?? data.studentsState?.activeYear ?? null;
+  if (!activeYear) return null;
+
+  const enrolled = data.students
+    .filter((s) => s.status === 'active')
+    .map(toEnrolledStudent);
+
+  const fees = data.fees
+    .filter((f) => f.academic_year === activeYear.name)
+    .map(toFeeRow);
+
+  const classes = data.classes
+    .filter((c) => c.academic_year_id === activeYear.id)
+    .map(toClassRow);
+
+  const paidByStudentFee = buildPaidByStudentFee(
+    data.payments.map((p) => ({
+      student_id: p.student_id,
+      fee_id: p.fee_id,
+      amount_paid: p.amount_paid,
+    })),
+  );
+
+  return { activeYear, enrolled, fees, classes, paidByStudentFee };
+}
 
 function toEnrolledStudent(s: AppDataValue['students'][number]): EnrolledStudent {
   return {
@@ -48,31 +77,11 @@ function toClassRow(c: AppDataValue['classes'][number]): ClassRow {
 
 /** Synthèse impayés depuis le magasin AppData (affichage instantané). */
 export function buildImpayesFromAppData(data: AppDataValue): ImpayesPageData | null {
-  const activeYear =
-    data.caisseState?.activeYear ?? data.studentsState?.activeYear ?? null;
-
-  if (!activeYear) return null;
+  const bundle = appDataBundle(data);
+  if (!bundle) return null;
   if (data.students.length === 0 && data.fees.length === 0) return null;
 
-  const enrolled = data.students
-    .filter((s) => s.status === 'active')
-    .map(toEnrolledStudent);
-
-  const fees = data.fees
-    .filter((f) => f.academic_year === activeYear.name)
-    .map(toFeeRow);
-
-  const classes = data.classes
-    .filter((c) => c.academic_year_id === activeYear.id)
-    .map(toClassRow);
-
-  const paidByStudentFee = buildPaidByStudentFee(
-    data.payments.map((p) => ({
-      student_id: p.student_id,
-      fee_id: p.fee_id,
-      amount_paid: p.amount_paid,
-    })),
-  );
+  const { activeYear, enrolled, fees, classes, paidByStudentFee } = bundle;
 
   return computeImpayesPageData({
     activeYear,
@@ -81,5 +90,36 @@ export function buildImpayesFromAppData(data: AppDataValue): ImpayesPageData | n
     enrolled,
     paidByStudentFee,
     filters: { page: 1 },
+  });
+}
+
+/** Recouvrement par frais depuis AppData (affichage instantané). */
+export function buildRecouvrementFromAppData(
+  data: AppDataValue,
+  params: {
+    feeId: string;
+    search?: string;
+    classId?: string;
+    schoolName?: string;
+  },
+): ImpayesRecouvrementPageData | null {
+  const bundle = appDataBundle(data);
+  if (!bundle) return null;
+
+  const { activeYear, enrolled, fees, classes, paidByStudentFee } = bundle;
+
+  return computeRecouvrementPageData({
+    activeYear,
+    schoolName: params.schoolName ?? '',
+    fees,
+    classes,
+    enrolled,
+    paidByStudentFee,
+    feeId: params.feeId,
+    filters: {
+      feeId: params.feeId,
+      search: params.search,
+      classId: params.classId,
+    },
   });
 }

@@ -4,20 +4,25 @@ import type { FeeRow } from '@/lib/db/fees';
 import type {
   ImpayesFilters,
   ImpayesPageData,
+  ImpayesRecouvrementPageData,
   ImpayesStats,
+  RecouvrementStudentRow,
   UnpaidStudentRow,
   FeeBreakdownStat,
 } from '@/lib/db/impayes-page';
 import {
   applyScolaritePoolToBalances,
   buildRawStudentFeeBalances,
+  hasScolariteTranches,
   isScolaritePoolAggregateFee,
   scolaritePoolFeeId,
   scolaritePoolSummaryForStudent,
+  SCOLARITE_POOL_VIRTUAL_FEE_ID,
 } from '@/lib/school/scolarite-balances';
 import {
   FEE_ANNUAL_LUMP_LABEL,
   feeTrancheSortOrder,
+  isAnnualScolariteFee,
   isScolariteFeeName,
   isTrancheScolariteFee,
 } from '@/lib/school/referentials/constants';
@@ -370,6 +375,191 @@ export function computeImpayesPageData(input: {
     total,
     page: filters.page,
     pageSize: IMPAYES_PAGE_SIZE,
+    filters,
+  };
+}
+
+function buildPoolDisplayFee(fees: FeeRow[]): FeeRow {
+  const trancheFees = fees.filter((f) => isTrancheScolariteFee(f.name));
+  const trancheTotal = trancheFees.reduce((sum, f) => sum + Number(f.amount), 0);
+  const annual = fees.find((f) => isAnnualScolariteFee(f.name));
+  const base = annual ?? trancheFees[0] ?? fees[0];
+  return {
+    ...base,
+    id: scolaritePoolFeeId(fees),
+    name: FEE_ANNUAL_LUMP_LABEL,
+    amount: trancheTotal,
+    currency: trancheFees[0]?.currency ?? base.currency,
+  };
+}
+
+function resolveRecouvrementFee(
+  feeId: string,
+  fees: FeeRow[],
+): { fee: FeeRow; isPoolView: boolean } | null {
+  if (feeId === SCOLARITE_POOL_VIRTUAL_FEE_ID) {
+    if (!hasScolariteTranches(fees)) return null;
+    return { fee: buildPoolDisplayFee(fees), isPoolView: true };
+  }
+
+  const feeFromDb = fees.find((f) => f.id === feeId);
+  if (!feeFromDb) return null;
+
+  if (isScolaritePoolAggregateFee(feeFromDb, fees)) {
+    return { fee: buildPoolDisplayFee(fees), isPoolView: true };
+  }
+
+  return { fee: feeFromDb, isPoolView: false };
+}
+
+/** Recouvrement par frais à partir de données déjà en mémoire (0 requête). */
+export function computeRecouvrementPageData(input: {
+  activeYear: { id: string; name: string };
+  schoolName: string;
+  fees: FeeRow[];
+  classes: ClassRow[];
+  enrolled: EnrolledStudent[];
+  paidByStudentFee: Map<string, number>;
+  feeId: string;
+  filters: { search?: string; classId?: string; feeId: string };
+}): ImpayesRecouvrementPageData | null {
+  const {
+    activeYear,
+    schoolName,
+    fees,
+    classes,
+    enrolled,
+    paidByStudentFee,
+    feeId,
+    filters,
+  } = input;
+
+  const resolved = resolveRecouvrementFee(feeId, fees);
+  if (!resolved) return null;
+
+  const { fee, isPoolView } = resolved;
+  const breakdownFeeId = isPoolView ? scolaritePoolFeeId(fees) : feeId;
+
+  if (enrolled.length === 0) {
+    const emptyStat: FeeBreakdownStat = {
+      fee_id: breakdownFeeId,
+      fee_name: fee.name,
+      currency: fee.currency,
+      total_expected: 0,
+      total_collected: 0,
+      total_remaining: 0,
+      student_count: 0,
+      ...(isPoolView ? { is_scolarite_pool: true } : {}),
+    };
+    return {
+      activeYear,
+      schoolName,
+      fee,
+      feeStat: emptyStat,
+      rows: [],
+      classes,
+      fees,
+      filters,
+    };
+  }
+
+  const feeStat =
+    buildFeeBreakdown(fees, enrolled, paidByStudentFee).find(
+      (s) => s.fee_id === breakdownFeeId,
+    ) ?? {
+      fee_id: breakdownFeeId,
+      fee_name: fee.name,
+      currency: fee.currency,
+      total_expected: isPoolView
+        ? fee.amount * enrolled.length
+        : Number(fee.amount) * enrolled.length,
+      total_collected: 0,
+      total_remaining: 0,
+      student_count: 0,
+      ...(isPoolView ? { is_scolarite_pool: true } : {}),
+    };
+
+  let rows: RecouvrementStudentRow[] = [];
+
+  for (const student of enrolled) {
+    if (isPoolView) {
+      const summary = scolaritePoolSummaryForStudent(
+        student.id,
+        fees,
+        paidByStudentFee,
+      );
+      if (!summary) continue;
+      rows.push({
+        student_id: student.id,
+        first_name: student.first_name,
+        last_name: student.last_name,
+        matricule: student.matricule,
+        class_id: student.class_id,
+        class_name: student.class_name,
+        class_level: student.class_level,
+        amount_remaining: summary.total_remaining,
+        currency: summary.currency,
+      });
+      continue;
+    }
+
+    const balances = studentDisplayBalances(
+      student.id,
+      fees,
+      paidByStudentFee,
+    );
+    const line = balances.find((b) => b.fee_id === feeId);
+    if (!line) continue;
+
+    rows.push({
+      student_id: student.id,
+      first_name: student.first_name,
+      last_name: student.last_name,
+      matricule: student.matricule,
+      class_id: student.class_id,
+      class_name: student.class_name,
+      class_level: student.class_level,
+      amount_remaining: line.amount_remaining,
+      currency: line.currency,
+    });
+  }
+
+  rows.sort((a, b) => {
+    const byLast = a.last_name.localeCompare(b.last_name, 'fr');
+    if (byLast !== 0) return byLast;
+    return a.first_name.localeCompare(b.first_name, 'fr');
+  });
+
+  const search = filters.search?.toLowerCase() ?? '';
+  if (search) {
+    rows = rows.filter((r) =>
+      matchesSearch(
+        {
+          id: r.student_id,
+          first_name: r.first_name,
+          last_name: r.last_name,
+          matricule: r.matricule,
+          class_id: r.class_id,
+          class_name: r.class_name,
+          class_level: r.class_level,
+        },
+        search,
+      ),
+    );
+  }
+
+  if (filters.classId) {
+    rows = rows.filter((r) => r.class_id === filters.classId);
+  }
+
+  return {
+    activeYear,
+    schoolName,
+    fee,
+    feeStat,
+    rows,
+    classes,
+    fees,
     filters,
   };
 }

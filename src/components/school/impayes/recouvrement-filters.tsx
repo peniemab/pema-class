@@ -17,9 +17,21 @@ type Props = {
     search?: string;
     classId?: string;
   };
+  /** Mode overlay workspace : pas de navigation Next.js. */
+  onFiltersChange?: (params: {
+    frais: string;
+    q?: string;
+    classe?: string;
+  }) => void;
 };
 
-export function RecouvrementFilters({ classes, fees, feeId, filters }: Props) {
+export function RecouvrementFilters({
+  classes,
+  fees,
+  feeId,
+  filters,
+  onFiltersChange,
+}: Props) {
   const router = useRouter();
 
   const [search, setSearch] = useState(filters.search ?? '');
@@ -36,14 +48,20 @@ export function RecouvrementFilters({ classes, fees, feeId, filters }: Props) {
 
   const apply = useCallback(
     (next: Record<string, string | undefined>) => {
-      const params = new URLSearchParams();
       const frais = next.frais ?? feeId;
+      const q = next.q?.trim() || undefined;
+      const classe = next.classe || undefined;
+      if (onFiltersChange) {
+        onFiltersChange({ frais, q, classe });
+        return;
+      }
+      const params = new URLSearchParams();
       params.set('frais', frais);
-      if (next.q) params.set('q', next.q);
-      if (next.classe) params.set('classe', next.classe);
+      if (q) params.set('q', q);
+      if (classe) params.set('classe', classe);
       router.push(`/school/impayes/recouvrement?${params.toString()}`);
     },
-    [router, feeId],
+    [router, feeId, onFiltersChange],
   );
 
   const buildParams = useCallback(
@@ -79,6 +97,10 @@ export function RecouvrementFilters({ classes, fees, feeId, filters }: Props) {
   }
 
   function clearFilters() {
+    if (onFiltersChange) {
+      onFiltersChange({ frais: feeId });
+      return;
+    }
     router.push(`/school/impayes/recouvrement?frais=${feeId}`);
   }
 
