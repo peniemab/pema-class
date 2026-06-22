@@ -1,86 +1,52 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import dynamic from 'next/dynamic';
 import { ArrowLeft } from 'lucide-react';
 import type { StaffRole } from '@/lib/auth/types';
 import { useAppTabsOptional, type AppTabKey } from '@/lib/navigation/app-tab-context';
 import { KeepAliveTabs } from '@/components/navigation/keep-alive-tabs';
-import {
-  CaisseSkeleton,
-  PresencesSkeleton,
-  StudentsSkeleton,
-} from '@/components/school/mobile/view-skeletons';
 import { APP_STUDENTS_BASE } from '@/lib/navigation/students-paths';
 import { StaffDashboard } from '@/components/school/staff-dashboard';
-import { prefetchStaffTabSnapshots } from '@/lib/offline/prefetch-staff-tabs';
+import { OfflineStudentsView } from '@/components/school/students/offline-students-view';
+import { OfflinePresencesView } from '@/components/school/presences/offline-presences-view';
+import { OfflineCaisseHomeView } from '@/components/school/caisse/offline-caisse-home-view';
+import { OfflineCaisseStudentView } from '@/components/school/caisse/offline-caisse-student-view';
+import { AppDataProvider } from '@/lib/offline/app-data-context';
 import type { StaffDashboardPageData } from '@/lib/school/load-staff-dashboard-page';
-
-const OfflineStudentsView = dynamic(
-  () =>
-    import('@/components/school/students/offline-students-view').then(
-      (mod) => mod.OfflineStudentsView,
-    ),
-  { loading: () => <StudentsSkeleton /> },
-);
-
-const OfflinePresencesView = dynamic(
-  () =>
-    import('@/components/school/presences/offline-presences-view').then(
-      (mod) => mod.OfflinePresencesView,
-    ),
-  { loading: () => <PresencesSkeleton /> },
-);
-
-const OfflineCaisseHomeView = dynamic(
-  () =>
-    import('@/components/school/caisse/offline-caisse-home-view').then(
-      (mod) => mod.OfflineCaisseHomeView,
-    ),
-  { loading: () => <CaisseSkeleton /> },
-);
-
-const OfflineCaisseStudentView = dynamic(
-  () =>
-    import('@/components/school/caisse/offline-caisse-student-view').then(
-      (mod) => mod.OfflineCaisseStudentView,
-    ),
-  { ssr: false },
-);
+import type { StudentsSnapshot } from '@/lib/offline/students-snapshot';
+import type { CaisseSnapshot } from '@/lib/offline/caisse-snapshot';
+import type { AttendanceSnapshot } from '@/lib/offline/attendance-snapshot';
 
 type Props = {
   role: StaffRole;
   schoolId: string;
   staffId: string;
   dashboard: StaffDashboardPageData;
+  studentsSnapshot: StudentsSnapshot | null;
+  caisseSnapshot: CaisseSnapshot | null;
+  attendanceSnapshot: AttendanceSnapshot | null;
 };
 
 /**
- * Workspace /app — shell WhatsApp Web :
- * - accueil monté tout de suite (données serveur)
- * - autres onglets : lazy + keep-alive + prefetch idle
+ * Workspace /app — modèle WhatsApp :
+ * - AppDataProvider charge les données UNE fois (au-dessus des onglets)
+ * - tous les onglets montés (eager) et lisent le magasin en mémoire
+ * - changement d'onglet = masquer/afficher, données toujours en place
  */
 export function StaffWorkspace({
   role,
   schoolId,
   staffId,
   dashboard,
+  studentsSnapshot,
+  caisseSnapshot,
+  attendanceSnapshot,
 }: Props) {
   const tabs = useAppTabsOptional();
   const activeTab: AppTabKey = tabs?.activeTab ?? 'accueil';
   const tabKeys = tabs?.tabKeys ?? ['accueil'];
 
   const [caisseStudentId, setCaisseStudentId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (tabKeys.length <= 1) return;
-    return prefetchStaffTabSnapshots({
-      schoolId,
-      staffId,
-      role,
-      tabKeys,
-    });
-  }, [schoolId, staffId, role, tabKeys]);
 
   const openCaisseStudent = useCallback((studentId: string) => {
     setCaisseStudentId(studentId);
@@ -111,38 +77,20 @@ export function StaffWorkspace({
   );
 
   const elevesPanel = useMemo(
-    () => (
-      <OfflineStudentsView
-        schoolId={schoolId}
-        initialSnapshot={null}
-        studentsBase={APP_STUDENTS_BASE}
-      />
-    ),
-    [schoolId],
+    () => <OfflineStudentsView studentsBase={APP_STUDENTS_BASE} />,
+    [],
   );
 
-  const presencesPanel = useMemo(
-    () => (
-      <OfflinePresencesView
-        schoolId={schoolId}
-        role={role}
-        initialSnapshot={null}
-        studentsSnapshot={null}
-      />
-    ),
-    [schoolId, role],
-  );
+  const presencesPanel = useMemo(() => <OfflinePresencesView />, []);
 
   const caissePanel = useMemo(
     () => (
       <OfflineCaisseHomeView
-        schoolId={schoolId}
         caisseBasePath="/app/caisse"
-        initialSnapshot={null}
         onOpenStudent={openCaisseStudent}
       />
     ),
-    [schoolId, openCaisseStudent],
+    [openCaisseStudent],
   );
 
   const allTabs = useMemo(
@@ -157,8 +105,15 @@ export function StaffWorkspace({
   );
 
   return (
-    <>
-      <KeepAliveTabs activeKey={activeTab} tabs={allTabs} eager={false} />
+    <AppDataProvider
+      schoolId={schoolId}
+      staffId={staffId}
+      role={role}
+      studentsSnapshot={studentsSnapshot}
+      caisseSnapshot={caisseSnapshot}
+      attendanceSnapshot={attendanceSnapshot}
+    >
+      <KeepAliveTabs activeKey={activeTab} tabs={allTabs} eager />
 
       {caisseStudentId ? (
         <div className="fixed inset-0 z-50 flex flex-col bg-wa-bg">
@@ -180,11 +135,11 @@ export function StaffWorkspace({
               schoolId={schoolId}
               studentId={caisseStudentId}
               caisseBasePath="/app/caisse"
-              initialSnapshot={null}
+              initialSnapshot={caisseSnapshot}
             />
           </div>
         </div>
       ) : null}
-    </>
+    </AppDataProvider>
   );
 }

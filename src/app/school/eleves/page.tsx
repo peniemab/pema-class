@@ -1,22 +1,28 @@
 import { requireSchoolDirection } from '@/lib/auth/require-role';
 import { getStudentsSnapshot } from '@/lib/offline/students-snapshot';
 import { OfflineStudentsView } from '@/components/school/students/offline-students-view';
+import { StandaloneAppData } from '@/components/school/mobile/standalone-app-data';
 
 export const dynamic = 'force-dynamic';
 
 export default async function SchoolElevesPage() {
-  const { schoolId } = await requireSchoolDirection();
+  const { schoolId, staffId, role } = await requireSchoolDirection();
 
-  // Amorce le premier rendu (peinture instantanée en ligne) ; le client
-  // bascule ensuite sur le cache local IndexedDB + sync en arrière-plan.
-  let initialSnapshot = null;
+  let studentsSnapshot = null;
   try {
-    initialSnapshot = await getStudentsSnapshot(schoolId);
+    studentsSnapshot = await getStudentsSnapshot(schoolId);
   } catch {
-    initialSnapshot = null;
+    studentsSnapshot = null;
   }
 
   return (
-    <OfflineStudentsView schoolId={schoolId} initialSnapshot={initialSnapshot} />
+    <StandaloneAppData
+      schoolId={schoolId}
+      staffId={staffId}
+      role={role}
+      studentsSnapshot={studentsSnapshot}
+    >
+      <OfflineStudentsView />
+    </StandaloneAppData>
   );
 }

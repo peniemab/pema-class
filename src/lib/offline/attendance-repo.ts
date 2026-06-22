@@ -255,7 +255,7 @@ export function attendanceSnapshotToSyncState(
   };
 }
 
-function attendanceSnapshotToLocalRows(
+export function attendanceSnapshotToLocalRows(
   snapshot: AttendanceSnapshot,
 ): LocalAttendance[] {
   return snapshot.attendances.map((a) => ({

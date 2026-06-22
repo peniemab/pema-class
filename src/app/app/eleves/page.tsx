@@ -1,25 +1,29 @@
 import { requireSchoolStaff } from '@/lib/auth/require-role';
 import { getStudentsSnapshot } from '@/lib/offline/students-snapshot';
 import { OfflineStudentsView } from '@/components/school/students/offline-students-view';
+import { StandaloneAppData } from '@/components/school/mobile/standalone-app-data';
 import { APP_STUDENTS_BASE } from '@/lib/navigation/students-paths';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AppElevesPage() {
-  const { schoolId } = await requireSchoolStaff();
+  const { schoolId, staffId, role } = await requireSchoolStaff();
 
-  let initialSnapshot = null;
+  let studentsSnapshot = null;
   try {
-    initialSnapshot = await getStudentsSnapshot(schoolId);
+    studentsSnapshot = await getStudentsSnapshot(schoolId);
   } catch {
-    initialSnapshot = null;
+    studentsSnapshot = null;
   }
 
   return (
-    <OfflineStudentsView
+    <StandaloneAppData
       schoolId={schoolId}
-      initialSnapshot={initialSnapshot}
-      studentsBase={APP_STUDENTS_BASE}
-    />
+      staffId={staffId}
+      role={role}
+      studentsSnapshot={studentsSnapshot}
+    >
+      <OfflineStudentsView studentsBase={APP_STUDENTS_BASE} />
+    </StandaloneAppData>
   );
 }

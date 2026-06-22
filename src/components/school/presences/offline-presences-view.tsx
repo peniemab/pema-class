@@ -1,148 +1,65 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import type { StaffRole } from '@/lib/auth/types';
 import { SyncStatusBadge } from '@/components/offline/sync-status-badge';
 import { PresencesSkeleton } from '@/components/school/mobile/view-skeletons';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PresencesFiltersLocal } from '@/components/school/presences/presences-filters-local';
 import { PresencesPanel } from '@/components/school/presences/presences-panel';
-import type { AttendancePageData } from '@/lib/db/attendance-page';
 import type { AttendanceStatus } from '@/lib/db/attendances';
-import {
-  buildPresencesPageFromSnapshots,
-  presencesPaintCacheKey,
-  saveAttendanceSnapshot,
-} from '@/lib/offline/attendance-repo';
+import { buildLocalAttendancePageData } from '@/lib/offline/attendance-repo';
 import { saveAttendanceBatchLocally } from '@/lib/offline/save-attendance-local';
-import {
-  presencesTodayIsoDate,
-  usePresencesSync,
-} from '@/lib/offline/use-presences-sync';
-import { saveStudentsSnapshot } from '@/lib/offline/students-repo';
-import { readStaleCache, writeStaleCache } from '@/lib/offline/stale-cache';
-import type { StudentsSnapshot } from '@/lib/offline/students-snapshot';
-import type { AttendanceSnapshot } from '@/lib/offline/attendance-snapshot';
+import { useAppData } from '@/lib/offline/app-data-context';
 import { cn } from '@/lib/utils';
 
-type Props = {
-  schoolId: string;
-  role: StaffRole;
-  initialSnapshot: AttendanceSnapshot | null;
-  studentsSnapshot: StudentsSnapshot | null;
-};
-
-function readPresencesPaint(
-  schoolId: string,
-  role: StaffRole,
-  date: string,
-  classId: string | null,
-  attendanceSnapshot: AttendanceSnapshot | null,
-  studentsSnapshot: StudentsSnapshot | null,
-): AttendancePageData | null {
-  const cached = readStaleCache<AttendancePageData>(
-    presencesPaintCacheKey(schoolId, date, classId),
-  );
-  if (cached) return cached;
-
-  if (attendanceSnapshot && studentsSnapshot) {
-    return buildPresencesPageFromSnapshots(
-      attendanceSnapshot,
-      studentsSnapshot,
-      role,
-      classId,
-      date,
-    );
-  }
-
-  return null;
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
-export function OfflinePresencesView({
-  schoolId,
-  role,
-  initialSnapshot,
-  studentsSnapshot,
-}: Props) {
-  const [selectedDate, setSelectedDate] = useState(presencesTodayIsoDate);
-  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
-
-  const [paintData, setPaintData] = useState<AttendancePageData | null>(() =>
-    readPresencesPaint(
-      schoolId,
-      role,
-      presencesTodayIsoDate(),
-      null,
-      initialSnapshot,
-      studentsSnapshot,
-    ),
-  );
-
-  useEffect(() => {
-    const next = readPresencesPaint(
-      schoolId,
-      role,
-      selectedDate,
-      selectedClassId,
-      initialSnapshot,
-      studentsSnapshot,
-    );
-    setPaintData(next);
-  }, [
+export function OfflinePresencesView() {
+  const {
     schoolId,
     role,
-    selectedDate,
-    selectedClassId,
-    initialSnapshot,
-    studentsSnapshot,
-  ]);
+    classes,
+    students,
+    attendance,
+    attendanceState,
+    phase,
+    online,
+    pendingCount,
+    refresh,
+    hydrating,
+  } = useAppData();
 
-  useEffect(() => {
-    if (initialSnapshot) {
-      void saveAttendanceSnapshot(initialSnapshot);
-    }
-  }, [initialSnapshot]);
+  const [selectedDate, setSelectedDate] = useState(todayIsoDate);
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (studentsSnapshot) {
-      void saveStudentsSnapshot(studentsSnapshot);
-    }
-  }, [studentsSnapshot]);
-
-  const { pageData, syncState, phase, online, pendingCount, refresh } =
-    usePresencesSync(schoolId, role, {
-      classId: selectedClassId,
-      date: selectedDate,
-    });
-
-  const displayData = pageData !== undefined ? pageData : paintData;
-  const displaySyncState =
-    syncState !== undefined
-      ? syncState
-      : initialSnapshot
-        ? {
-            activeYear: initialSnapshot.activeYear,
-            teacherClassIds: initialSnapshot.teacherClassIds,
-            teacherLimited: initialSnapshot.teacherLimited,
-            lastSyncAt: initialSnapshot.generatedAt,
-          }
-        : null;
-
-  useEffect(() => {
-    if (pageData === undefined || pageData === null) return;
-    writeStaleCache(
-      presencesPaintCacheKey(
+  const pageData = useMemo(
+    () =>
+      buildLocalAttendancePageData({
         schoolId,
-        pageData.selectedDate,
-        pageData.selectedClassId,
-      ),
-      pageData,
-    );
-  }, [pageData, schoolId]);
+        role,
+        syncState: attendanceState,
+        classes,
+        students,
+        attendances: attendance,
+        selectedClassId,
+        selectedDate,
+      }),
+    [
+      schoolId,
+      role,
+      attendanceState,
+      classes,
+      students,
+      attendance,
+      selectedClassId,
+      selectedDate,
+    ],
+  );
 
-  const resolvedClassId = displayData?.selectedClassId ?? null;
-
+  const resolvedClassId = pageData?.selectedClassId ?? null;
   useEffect(() => {
     if (resolvedClassId && resolvedClassId !== selectedClassId) {
       setSelectedClassId(resolvedClassId);
@@ -155,24 +72,17 @@ export function OfflinePresencesView({
       date: string;
       entries: { studentId: string; status: AttendanceStatus }[];
     }) => {
-      const result = await saveAttendanceBatchLocally({
-        schoolId,
-        ...input,
-      });
+      const result = await saveAttendanceBatchLocally({ schoolId, ...input });
       if (!result.ok) return result;
-      if (online) {
-        scheduleSilentPush(refresh);
-      }
+      if (online) scheduleSilentPush(refresh);
       return { ok: true as const, saved: result.saved };
     },
     [schoolId, online, refresh],
   );
 
-  const loading = displayData === null && pageData === undefined;
+  const stats = pageData?.stats;
 
-  const stats = displayData?.stats;
-
-  if (loading) {
+  if (hydrating) {
     return (
       <div className="mx-auto w-full max-w-4xl space-y-0">
         <PresencesSkeleton />
@@ -186,13 +96,13 @@ export function OfflinePresencesView({
         <SyncStatusBadge
           phase={phase}
           online={online}
-          lastSyncAt={displaySyncState?.lastSyncAt ?? null}
+          lastSyncAt={attendanceState?.lastSyncAt ?? null}
           pendingCount={pendingCount}
           onRefresh={refresh}
         />
       </div>
 
-      {!displayData ? (
+      {!pageData ? (
         <Alert className="mx-4 mt-4">
           <AlertDescription>
             Configurez d&apos;abord une{' '}
@@ -205,10 +115,10 @@ export function OfflinePresencesView({
             et des classes.
           </AlertDescription>
         </Alert>
-      ) : displayData.classes.length === 0 ? (
+      ) : pageData.classes.length === 0 ? (
         <Alert className="mx-4 mt-4">
           <AlertDescription>
-            {displayData.teacherLimited
+            {pageData.teacherLimited
               ? 'Aucune classe ne vous est assignée. Contactez la direction.'
               : 'Aucune classe pour cette année. Ajoutez des classes dans les référentiels.'}
           </AlertDescription>
@@ -238,25 +148,25 @@ export function OfflinePresencesView({
 
           <div className="border-b border-wa-divider bg-wa-panel px-4 py-3">
             <PresencesFiltersLocal
-              classes={displayData.classes}
-              selectedClassId={displayData.selectedClassId}
-              selectedDate={displayData.selectedDate}
+              classes={pageData.classes}
+              selectedClassId={pageData.selectedClassId}
+              selectedDate={pageData.selectedDate}
               onClassChange={setSelectedClassId}
               onDateChange={setSelectedDate}
             />
           </div>
 
-          {displayData.rows.length === 0 ? (
+          {pageData.rows.length === 0 ? (
             <Alert className="mx-4 mt-4">
               <AlertDescription>
                 Aucun élève inscrit dans cette classe pour{' '}
-                {displayData.activeYear.name}.
+                {pageData.activeYear.name}.
               </AlertDescription>
             </Alert>
           ) : (
             <PresencesPanel
-              key={`${displayData.selectedClassId}-${displayData.selectedDate}`}
-              data={displayData}
+              key={`${pageData.selectedClassId}-${pageData.selectedDate}`}
+              data={pageData}
               basePath="/app/presences"
               onSaveLocal={handleSaveLocal}
             />

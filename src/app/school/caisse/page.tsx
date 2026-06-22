@@ -1,24 +1,28 @@
 import { requireSchoolFinance } from '@/lib/auth/require-role';
 import { getCaisseSnapshot } from '@/lib/offline/caisse-snapshot';
 import { OfflineCaisseHomeView } from '@/components/school/caisse/offline-caisse-home-view';
+import { StandaloneAppData } from '@/components/school/mobile/standalone-app-data';
 
 export const dynamic = 'force-dynamic';
 
 export default async function SchoolCaissePage() {
-  const { schoolId } = await requireSchoolFinance();
+  const { schoolId, staffId, role } = await requireSchoolFinance();
 
-  let initialSnapshot = null;
+  let caisseSnapshot = null;
   try {
-    initialSnapshot = await getCaisseSnapshot(schoolId);
+    caisseSnapshot = await getCaisseSnapshot(schoolId);
   } catch {
-    initialSnapshot = null;
+    caisseSnapshot = null;
   }
 
   return (
-    <OfflineCaisseHomeView
+    <StandaloneAppData
       schoolId={schoolId}
-      caisseBasePath="/school/caisse"
-      initialSnapshot={initialSnapshot}
-    />
+      staffId={staffId}
+      role={role}
+      caisseSnapshot={caisseSnapshot}
+    >
+      <OfflineCaisseHomeView caisseBasePath="/school/caisse" />
+    </StandaloneAppData>
   );
 }

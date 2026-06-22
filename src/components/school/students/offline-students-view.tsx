@@ -10,88 +10,38 @@ import { StudentsTable } from '@/components/school/students/students-table';
 import { StudentDetailPanel } from '@/components/school/students/student-detail-panel';
 import { StudentsSkeleton } from '@/components/school/mobile/view-skeletons';
 import { SyncStatusBadge } from '@/components/offline/sync-status-badge';
-import { useStudentsSync } from '@/lib/offline/use-students-sync';
-import {
-  saveStudentsSnapshot,
-  studentsPaintCacheKey,
-  studentsPaintFromSnapshot,
-  type StudentsPaintBundle,
-} from '@/lib/offline/students-repo';
+import { useAppData } from '@/lib/offline/app-data-context';
 import {
   filterLocalStudents,
   toDirectoryRow,
   type LocalStudentsFilters,
 } from '@/lib/offline/students-filter';
-import { readStaleCache, writeStaleCache } from '@/lib/offline/stale-cache';
-
-import type { StudentsSnapshot } from '@/lib/offline/students-snapshot';
-
 import { SCHOOL_STUDENTS_BASE, studentsPath } from '@/lib/navigation/students-paths';
 
-function readStudentsPaint(
-  schoolId: string,
-  initialSnapshot: StudentsSnapshot | null,
-): StudentsPaintBundle | null {
-  const cached = readStaleCache<StudentsPaintBundle>(
-    studentsPaintCacheKey(schoolId),
-  );
-  if (cached) return cached;
-  if (initialSnapshot) return studentsPaintFromSnapshot(initialSnapshot);
-  return null;
-}
-
 type Props = {
-  schoolId: string;
-  initialSnapshot: StudentsSnapshot | null;
   studentsBase?: string;
 };
 
 export function OfflineStudentsView({
-  schoolId,
-  initialSnapshot,
   studentsBase = SCHOOL_STUDENTS_BASE,
 }: Props) {
-  const { students, classes, state, phase, online, pendingCount, refresh } =
-    useStudentsSync(schoolId);
-
-  const [paint, setPaint] = useState<StudentsPaintBundle | null>(() =>
-    readStudentsPaint(schoolId, initialSnapshot),
-  );
-
-  useEffect(() => {
-    setPaint(readStudentsPaint(schoolId, initialSnapshot));
-  }, [schoolId, initialSnapshot]);
+  const {
+    schoolId,
+    students,
+    classes,
+    studentsState,
+    phase,
+    online,
+    pendingCount,
+    refresh,
+    hydrating,
+  } = useAppData();
 
   const [search, setSearch] = useState('');
   const [classId, setClassId] = useState('');
   const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [unassignedOnly, setUnassignedOnly] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  // Amorce Dexie en arrière-plan (peinture via sessionStorage / snapshot).
-  useEffect(() => {
-    if (initialSnapshot) {
-      void saveStudentsSnapshot(initialSnapshot);
-    }
-  }, [initialSnapshot]);
-
-  useEffect(() => {
-    if (students === undefined || classes === undefined || state === undefined) {
-      return;
-    }
-    writeStaleCache(studentsPaintCacheKey(schoolId), {
-      students,
-      classes,
-      state: state ?? {
-        activeYear: null,
-        stats: null,
-        lastSyncAt: null,
-      },
-    });
-  }, [students, classes, state, schoolId]);
-
-  const allStudents = students ?? paint?.students ?? [];
-  const syncState = state !== undefined ? state : (paint?.state ?? null);
 
   const filters: LocalStudentsFilters = useMemo(
     () => ({
@@ -104,41 +54,39 @@ export function OfflineStudentsView({
   );
 
   const filtered = useMemo(
-    () => filterLocalStudents(allStudents, filters),
-    [allStudents, filters],
+    () => filterLocalStudents(students, filters),
+    [students, filters],
   );
 
   const pendingIds = useMemo(() => {
     const set = new Set<string>();
-    for (const s of allStudents) {
+    for (const s of students) {
       if (s.sync_status === 'pending') set.add(s.id);
     }
     return set;
-  }, [allStudents]);
+  }, [students]);
 
   const stats = useMemo(() => {
-    const active = allStudents.filter((s) => s.status === 'active');
+    const active = students.filter((s) => s.status === 'active');
     const enrolled = active.filter((s) => s.class_id).length;
     return {
       total: active.length,
       enrolled,
       unassigned: Math.max(0, active.length - enrolled),
     };
-  }, [allStudents]);
+  }, [students]);
 
   const sortedClasses = useMemo(
     () =>
-      [...(classes ?? paint?.classes ?? [])].sort(
+      [...classes].sort(
         (a, b) =>
           a.level.localeCompare(b.level, 'fr') ||
           a.name.localeCompare(b.name, 'fr'),
       ),
-    [classes, paint?.classes],
+    [classes],
   );
 
-  const activeYear =
-    syncState?.activeYear ?? initialSnapshot?.activeYear ?? null;
-  const loading = students === undefined && !paint;
+  const activeYear = studentsState?.activeYear ?? null;
   const hasFilters =
     Boolean(search) || Boolean(classId) || status !== 'all' || unassignedOnly;
 
@@ -149,8 +97,6 @@ export function OfflineStudentsView({
     setUnassignedOnly(false);
   }
 
-  // Fiche élève en panneau (master-detail) — aucune navigation serveur,
-  // fonctionne hors ligne. Le bouton « retour » du téléphone ferme le panneau.
   useEffect(() => {
     const onPop = () => setSelectedId(null);
     window.addEventListener('popstate', onPop);
@@ -173,17 +119,21 @@ export function OfflineStudentsView({
     }
   }, []);
 
+  if (hydrating) {
+    return (
+      <div className="mx-auto w-full max-w-4xl space-y-0">
+        <StudentsSkeleton />
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-4xl space-y-0">
-      {loading ? (
-        <StudentsSkeleton />
-      ) : (
-        <>
       <div className="no-print flex items-center justify-end px-4 py-2">
         <SyncStatusBadge
           phase={phase}
           online={online}
-          lastSyncAt={syncState?.lastSyncAt ?? null}
+          lastSyncAt={studentsState?.lastSyncAt ?? null}
           pendingCount={pendingCount}
           onRefresh={refresh}
         />
@@ -307,7 +257,7 @@ export function OfflineStudentsView({
             </div>
           </div>
 
-          {allStudents.length === 0 && !hasFilters ? (
+          {students.length === 0 && !hasFilters ? (
             <div className="px-6 py-10 text-center">
               <p className="text-sm text-wa-text-secondary">
                 {activeYear
@@ -345,8 +295,6 @@ export function OfflineStudentsView({
           onSync={refresh}
         />
       ) : null}
-        </>
-      )}
     </div>
   );
 }
