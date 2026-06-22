@@ -1,5 +1,4 @@
 import { requireSchoolDirection } from '@/lib/auth/require-role';
-import { getDashboardPageData } from '@/lib/db/dashboard-page';
 import { getStudentsSnapshot } from '@/lib/offline/students-snapshot';
 import { getCaisseSnapshot } from '@/lib/offline/caisse-snapshot';
 import { getAttendanceSnapshot } from '@/lib/offline/attendance-snapshot';
@@ -16,16 +15,16 @@ async function safe<T>(promise: Promise<T>): Promise<T | null> {
 }
 
 /**
- * Workspace direction : dashboard + snapshots chargés en parallèle côté
- * serveur (rapide grâce aux index). Le client peint instantanément et
- * garde tous les onglets en mémoire (modèle WhatsApp).
+ * Workspace direction. Le tableau de bord (accueil) n'est PAS chargé ici :
+ * son squelette s'affiche tout de suite et les chiffres arrivent ensuite
+ * (fetch client). On ne charge côté serveur que les snapshots des autres
+ * onglets (élèves, caisse, présences) pour leur peinture instantanée.
  */
 export default async function SchoolDashboardPage() {
   const { role, schoolId, staffId } = await requireSchoolDirection();
 
-  const [dashboard, studentsSnapshot, caisseSnapshot, attendanceSnapshot] =
+  const [studentsSnapshot, caisseSnapshot, attendanceSnapshot] =
     await Promise.all([
-      getDashboardPageData(schoolId),
       safe(getStudentsSnapshot(schoolId)),
       safe(getCaisseSnapshot(schoolId)),
       safe(getAttendanceSnapshot(schoolId, staffId, role)),
@@ -36,7 +35,6 @@ export default async function SchoolDashboardPage() {
       role={role}
       schoolId={schoolId}
       staffId={staffId}
-      dashboard={dashboard}
       studentsSnapshot={studentsSnapshot}
       caisseSnapshot={caisseSnapshot}
       attendanceSnapshot={attendanceSnapshot}

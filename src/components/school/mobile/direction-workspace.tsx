@@ -5,14 +5,13 @@ import { ArrowLeft } from 'lucide-react';
 import type { StaffRole } from '@/lib/auth/types';
 import { useAppTabsOptional, type AppTabKey } from '@/lib/navigation/app-tab-context';
 import { KeepAliveTabs } from '@/components/navigation/keep-alive-tabs';
-import { SchoolDashboard } from '@/components/school/school-dashboard';
+import { SchoolDashboardLive } from '@/components/school/school-dashboard-live';
 import { SchoolToolsPage } from '@/components/school/school-tools-page';
 import { OfflineStudentsView } from '@/components/school/students/offline-students-view';
 import { OfflinePresencesView } from '@/components/school/presences/offline-presences-view';
 import { OfflineCaisseHomeView } from '@/components/school/caisse/offline-caisse-home-view';
 import { OfflineCaisseStudentView } from '@/components/school/caisse/offline-caisse-student-view';
 import { AppDataProvider } from '@/lib/offline/app-data-context';
-import type { DashboardPageData } from '@/lib/db/dashboard-page';
 import type { StudentsSnapshot } from '@/lib/offline/students-snapshot';
 import type { CaisseSnapshot } from '@/lib/offline/caisse-snapshot';
 import type { AttendanceSnapshot } from '@/lib/offline/attendance-snapshot';
@@ -21,7 +20,6 @@ type Props = {
   role: StaffRole;
   schoolId: string;
   staffId: string;
-  dashboard: DashboardPageData;
   studentsSnapshot: StudentsSnapshot | null;
   caisseSnapshot: CaisseSnapshot | null;
   attendanceSnapshot: AttendanceSnapshot | null;
@@ -36,7 +34,6 @@ export function DirectionWorkspace({
   role,
   schoolId,
   staffId,
-  dashboard,
   studentsSnapshot,
   caisseSnapshot,
   attendanceSnapshot,
@@ -71,8 +68,8 @@ export function DirectionWorkspace({
   }, []);
 
   const accueilPanel = useMemo(
-    () => <SchoolDashboard data={dashboard} />,
-    [dashboard],
+    () => <SchoolDashboardLive schoolId={schoolId} />,
+    [schoolId],
   );
   const elevesPanel = useMemo(() => <OfflineStudentsView />, []);
   const presencesPanel = useMemo(
