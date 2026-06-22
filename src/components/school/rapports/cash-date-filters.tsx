@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils';
 type Props = {
   basePath: string;
   selectedDate: string;
+  /** Mode overlay workspace : pas de navigation Next.js. */
+  onDateChange?: (date: string) => void;
 };
 
 function shiftDate(iso: string, days: number): string {
@@ -21,13 +23,17 @@ function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function CashDateFilters({ basePath, selectedDate }: Props) {
+export function CashDateFilters({ basePath, selectedDate, onDateChange }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const today = todayIsoDate();
   const yesterday = shiftDate(today, -1);
 
   function pushDate(date: string) {
+    if (onDateChange) {
+      onDateChange(date);
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     if (date) params.set('date', date);
     else params.delete('date');

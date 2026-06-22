@@ -9,6 +9,7 @@ import { CaisseReportsHub } from '@/components/school/rapports/caisse-reports-hu
 import { ImpayesReportsHub } from '@/components/school/rapports/impayes-reports-hub';
 import { PresencesReportsHub } from '@/components/school/rapports/presences-reports-hub';
 import { EnrollmentReportView } from '@/components/school/rapports/enrollment-report-view';
+import { CashJournalLiveView } from '@/components/school/rapports/cash-journal-live-view';
 import { CashJournalReportView } from '@/components/school/rapports/cash-journal-report-view';
 import { ImpayesSyntheseReportView } from '@/components/school/rapports/impayes-synthese-report-view';
 import { ImpayesListeReportView } from '@/components/school/rapports/impayes-liste-report-view';
@@ -193,6 +194,9 @@ export function WorkspaceRouteLiveView({ href, schoolId }: Props) {
 
   if (path === '/school/rapports/caisse') return <CaisseReportsHub />;
   if (path === '/school/rapports/impayes') return <ImpayesReportsHub />;
+  if (path === '/school/rapports/caisse/journal') {
+    return <CashJournalLiveView schoolId={schoolId} href={href} />;
+  }
 
   return <WorkspaceRouteDataView href={href} />;
 }

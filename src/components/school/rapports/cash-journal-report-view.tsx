@@ -17,6 +17,7 @@ import { SCHOOL_REPORTS_BASE, reportHref } from '@/lib/navigation/reports-paths'
 type Props = {
   data: CashJournalReportData | null;
   reportsBase?: string;
+  onDateChange?: (date: string) => void;
 };
 
 function formatTime(iso: string): string {
@@ -29,6 +30,7 @@ function formatTime(iso: string): string {
 export function CashJournalReportView({
   data,
   reportsBase = SCHOOL_REPORTS_BASE,
+  onDateChange,
 }: Props) {
   const formattedDate = data
     ? new Date(`${data.selectedDate}T12:00:00`).toLocaleDateString('fr-FR', {
@@ -76,6 +78,7 @@ export function CashJournalReportView({
               <CashDateFilters
                 basePath={reportHref(reportsBase, 'caisse', 'journal')}
                 selectedDate={data.selectedDate}
+                onDateChange={onDateChange}
               />
             </div>
           </Suspense>

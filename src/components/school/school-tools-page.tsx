@@ -10,12 +10,14 @@ import { WaToolCard } from '@/components/school/mobile/wa-tool-card';
 import { LogoutButton } from '@/components/auth/logout-button';
 import { useAppData } from '@/lib/offline/app-data-context';
 import { prefetchImpayesSnapshot } from '@/lib/offline/prefetch-impayes';
+import { prefetchCashJournalSnapshot } from '@/lib/offline/prefetch-cash-journal';
 
 export function SchoolToolsPage() {
   const { schoolId } = useAppData();
 
   useEffect(() => {
     prefetchImpayesSnapshot(schoolId);
+    prefetchCashJournalSnapshot(schoolId);
   }, [schoolId]);
 
   return (
