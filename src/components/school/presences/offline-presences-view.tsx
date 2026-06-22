@@ -17,7 +17,11 @@ function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function OfflinePresencesView() {
+type Props = {
+  basePath?: '/school/presences' | '/app/presences';
+};
+
+export function OfflinePresencesView({ basePath = '/app/presences' }: Props = {}) {
   const {
     schoolId,
     role,
@@ -167,7 +171,7 @@ export function OfflinePresencesView() {
             <PresencesPanel
               key={`${pageData.selectedClassId}-${pageData.selectedDate}`}
               data={pageData}
-              basePath="/app/presences"
+              basePath={basePath}
               onSaveLocal={handleSaveLocal}
             />
           )}

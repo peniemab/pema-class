@@ -315,33 +315,43 @@ export function AppDataProvider({
 
       const run = async () => {
         await pushOutbox(schoolId);
-        const tasks: Promise<void>[] = [];
+        const tasks: Promise<boolean>[] = [];
+        // Chaque domaine est isolé : un échec n'empêche pas les autres.
         if (caps.students) {
           tasks.push(
-            pullJson<StudentsSnapshot>('/api/sync/students').then((snap) =>
-              saveStudentsSnapshot(snap),
-            ),
+            pullJson<StudentsSnapshot>('/api/sync/students')
+              .then((snap) => saveStudentsSnapshot(snap))
+              .then(() => true)
+              .catch(() => false),
           );
         }
         if (caps.caisse) {
           tasks.push(
-            pullJson<CaisseSnapshot>('/api/sync/caisse').then((snap) =>
-              saveCaisseSnapshot(snap),
-            ),
+            pullJson<CaisseSnapshot>('/api/sync/caisse')
+              .then((snap) => saveCaisseSnapshot(snap))
+              .then(() => true)
+              .catch(() => false),
           );
         }
         if (caps.presences) {
           tasks.push(
-            pullJson<AttendanceSnapshot>('/api/sync/attendance').then((snap) =>
-              saveAttendanceSnapshot(snap),
-            ),
+            pullJson<AttendanceSnapshot>('/api/sync/attendance')
+              .then((snap) => saveAttendanceSnapshot(snap))
+              .then(() => true)
+              .catch(() => false),
           );
         }
-        await Promise.all(tasks);
+        const results = await Promise.all(tasks);
+        // Échec seulement si AUCUN domaine n'a pu se synchroniser.
+        return results.length === 0 || results.some((ok) => ok);
       };
 
       run()
-        .then(() => setPhase('idle'))
+        .then((ok) => {
+          if (ok) setPhase('idle');
+          else if (!hasLocalCache || visible) setPhase('error');
+          else setPhase('idle');
+        })
         .catch(() => {
           if (!hasLocalCache || visible) setPhase('error');
         })

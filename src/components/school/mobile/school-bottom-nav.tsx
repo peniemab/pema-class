@@ -3,10 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useWaShell } from '@/lib/navigation/wa-shell-context';
-import {
-  APP_TAB_BY_HREF,
-  useAppTabsOptional,
-} from '@/lib/navigation/app-tab-context';
+import { useAppTabsOptional } from '@/lib/navigation/app-tab-context';
 import type { SchoolNavItem } from '@/lib/navigation/school-nav';
 import { cn } from '@/lib/utils';
 
@@ -34,9 +31,9 @@ export function SchoolBottomNav() {
   const pathname = usePathname();
   const { bottomNav, isNavActive } = useWaShell();
   const tabs = useAppTabsOptional();
-  // Sur la page racine /app, les onglets sont gardés en mémoire : on bascule
-  // l'état local (0 ms) au lieu de naviguer.
-  const inWorkspace = tabs != null && pathname === '/app';
+  // Sur la racine du workspace (/app ou /school), les onglets sont gardés en
+  // mémoire : on bascule l'état local (0 ms) au lieu de naviguer.
+  const inWorkspace = tabs != null && pathname === tabs.rootPath;
 
   return (
     <nav
@@ -45,7 +42,7 @@ export function SchoolBottomNav() {
     >
       <div className="flex h-[3.25rem] items-stretch">
         {bottomNav.map((item) => {
-          const tabKey = APP_TAB_BY_HREF[item.href];
+          const tabKey = tabs?.tabForHref(item.href) ?? null;
           if (inWorkspace && tabKey) {
             const active = tabs!.activeTab === tabKey;
             return (

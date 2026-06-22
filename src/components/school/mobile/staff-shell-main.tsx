@@ -11,6 +11,7 @@ import {
   type AppTabKey,
 } from '@/lib/navigation/app-tab-context';
 import { useTabRouter } from '@/lib/navigation/use-tab-router';
+import { useCallback } from 'react';
 
 type Props = {
   role: StaffRole;
@@ -29,9 +30,20 @@ export function StaffShellMain({ role, children }: Props) {
   );
   const { currentTab, selectTab } = useTabRouter<AppTabKey>('accueil', tabKeys);
 
+  const tabForHref = useCallback(
+    (href: string) => APP_TAB_BY_HREF[href] ?? null,
+    [],
+  );
+
   const tabValue = useMemo(
-    () => ({ activeTab: currentTab, selectTab, tabKeys }),
-    [currentTab, selectTab, tabKeys],
+    () => ({
+      activeTab: currentTab,
+      selectTab,
+      tabKeys,
+      rootPath: '/app',
+      tabForHref,
+    }),
+    [currentTab, selectTab, tabKeys, tabForHref],
   );
 
   return (

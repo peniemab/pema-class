@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/server';
 import {
   getRoleHomePath,
   normalizeStaffRole,
+  ATTENDANCE_ROLES,
   ENROLLMENT_ROLES,
   FINANCE_ROLES,
   REPORT_ROLES,
@@ -109,6 +110,29 @@ export async function requireSchoolEnrollment(): Promise<{
   }
   const role = normalizeStaffRole(staff.role);
   if (!ENROLLMENT_ROLES.includes(role)) {
+    redirect('/post-login');
+  }
+  return {
+    userId,
+    schoolId: staff.school_id,
+    staffId: staff.id,
+    role,
+  };
+}
+
+export async function requireSchoolAttendance(): Promise<{
+  userId: string;
+  schoolId: string;
+  staffId: string;
+  role: StaffRole;
+}> {
+  const { userId } = await requireSession();
+  const staff = await getStaffByUserId(userId);
+  if (!staff?.school_id || staff.status !== 'active' || !staff.is_active) {
+    redirect('/post-login');
+  }
+  const role = normalizeStaffRole(staff.role);
+  if (!ATTENDANCE_ROLES.includes(role)) {
     redirect('/post-login');
   }
   return {

@@ -6,10 +6,7 @@ import { LogOut } from 'lucide-react';
 import { brand } from '@/lib/brand';
 import { SCHOOL_LOGOUT_ITEM } from '@/lib/navigation/school-nav';
 import { useWaShell } from '@/lib/navigation/wa-shell-context';
-import {
-  APP_TAB_BY_HREF,
-  useAppTabsOptional,
-} from '@/lib/navigation/app-tab-context';
+import { useAppTabsOptional } from '@/lib/navigation/app-tab-context';
 import { LogoutButton } from '@/components/auth/logout-button';
 import { cn } from '@/lib/utils';
 
@@ -17,8 +14,8 @@ export function SchoolSideRail() {
   const pathname = usePathname();
   const { homeHref, bottomNav, isNavActive } = useWaShell();
   const tabs = useAppTabsOptional();
-  // Sur /app, bascule d'onglet instantanée (état local) au lieu de naviguer.
-  const inWorkspace = tabs != null && pathname === '/app';
+  // Sur la racine du workspace (/app ou /school), bascule d'onglet instantanée.
+  const inWorkspace = tabs != null && pathname === tabs.rootPath;
 
   return (
     <aside
@@ -48,7 +45,7 @@ export function SchoolSideRail() {
       <nav className="flex w-full flex-1 flex-col items-center gap-1">
         {bottomNav.map((item) => {
           const Icon = item.icon;
-          const tabKey = APP_TAB_BY_HREF[item.href];
+          const tabKey = tabs?.tabForHref(item.href) ?? null;
           const railClasses = (active: boolean) =>
             cn(
               'flex size-11 items-center justify-center rounded-xl transition-colors',

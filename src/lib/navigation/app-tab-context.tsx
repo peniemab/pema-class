@@ -2,14 +2,28 @@
 
 import { createContext, useContext } from 'react';
 
-export type AppTabKey = 'accueil' | 'eleves' | 'presences' | 'caisse';
+export type AppTabKey =
+  | 'accueil'
+  | 'eleves'
+  | 'presences'
+  | 'caisse'
+  | 'outils';
 
-/** Correspondance href de la bottom nav → clé d'onglet du workspace. */
+/** Correspondance href de la nav → clé d'onglet (espace personnel /app). */
 export const APP_TAB_BY_HREF: Record<string, AppTabKey> = {
   '/app': 'accueil',
   '/app/eleves': 'eleves',
   '/app/presences': 'presences',
   '/app/caisse': 'caisse',
+};
+
+/** Correspondance href de la nav → clé d'onglet (direction /school). */
+export const SCHOOL_TAB_BY_HREF: Record<string, AppTabKey> = {
+  '/school': 'accueil',
+  '/school/eleves': 'eleves',
+  '/school/presences': 'presences',
+  '/school/caisse': 'caisse',
+  '/school/outils': 'outils',
 };
 
 /** Titre affiché dans le header selon l'onglet actif. */
@@ -18,12 +32,17 @@ export const APP_TAB_TITLES: Record<AppTabKey, string> = {
   eleves: 'Élèves',
   presences: 'Présences',
   caisse: 'Caisse',
+  outils: 'Outils',
 };
 
 type AppTabContextValue = {
   activeTab: AppTabKey;
   selectTab: (key: AppTabKey) => void;
   tabKeys: AppTabKey[];
+  /** Racine du workspace (`/app` ou `/school`). */
+  rootPath: string;
+  /** Convertit un href de nav en clé d'onglet (ou null si hors workspace). */
+  tabForHref: (href: string) => AppTabKey | null;
 };
 
 const AppTabContext = createContext<AppTabContextValue | null>(null);
@@ -40,7 +59,7 @@ export function AppTabProvider({
   );
 }
 
-/** Optionnel : `null` hors du shell personnel (/school n'est pas concerné). */
+/** Optionnel : `null` hors d'un workspace à onglets. */
 export function useAppTabsOptional(): AppTabContextValue | null {
   return useContext(AppTabContext);
 }

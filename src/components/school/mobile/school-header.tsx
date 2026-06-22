@@ -22,7 +22,7 @@ export function SchoolHeader({ title, backHref, actions, showPrint }: Props) {
   const pathname = usePathname();
   const { getPageMeta, shouldShowBottomNav } = useWaShell();
   const tabs = useAppTabsOptional();
-  const inWorkspace = tabs != null && pathname === '/app';
+  const inWorkspace = tabs != null && pathname === tabs.rootPath;
   const meta = getPageMeta(pathname);
   const showBack = !shouldShowBottomNav(pathname);
   const displayTitle =

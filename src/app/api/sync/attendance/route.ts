@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { ATTENDANCE_ROLES } from '@/lib/auth/types';
-import { requireSchoolStaff } from '@/lib/auth/require-role';
+import { requireSchoolAttendance } from '@/lib/auth/require-role';
 import { upsertAttendancesBatch } from '@/lib/db/attendances';
 import { getAttendanceSnapshot } from '@/lib/offline/attendance-snapshot';
 import type { SaveAttendanceBatchPayload } from '@/lib/offline/outbox-types';
@@ -14,11 +13,7 @@ type PushBody = {
 
 /** Snapshot présences (90 j) pour le cache hors ligne. */
 export async function GET() {
-  const { schoolId, staffId, role } = await requireSchoolStaff();
-  if (!ATTENDANCE_ROLES.includes(role)) {
-    return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 });
-  }
-
+  const { schoolId, staffId, role } = await requireSchoolAttendance();
   const snapshot = await getAttendanceSnapshot(schoolId, staffId, role);
   return NextResponse.json(snapshot, {
     headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, private' },
@@ -27,10 +22,7 @@ export async function GET() {
 
 /** Pousse un lot de présences locales (outbox) vers Supabase. */
 export async function POST(request: Request) {
-  const { staffId, role } = await requireSchoolStaff();
-  if (!ATTENDANCE_ROLES.includes(role)) {
-    return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 });
-  }
+  const { staffId } = await requireSchoolAttendance();
 
   let body: PushBody;
   try {
