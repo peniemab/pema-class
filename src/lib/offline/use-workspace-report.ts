@@ -18,6 +18,8 @@ type Options<T> = {
   view: string;
   buildLocal: () => T | null;
   deps?: unknown[];
+  /** false = API/cache avant le calcul local (ex. paramètres complets). */
+  localFirst?: boolean;
 };
 
 /** Données locales → cache Dexie → sync workspace (pattern instantané). */
@@ -28,6 +30,7 @@ export function useWorkspaceReportData<T>({
   view,
   buildLocal,
   deps = [],
+  localFirst = true,
 }: Options<T>): T | null {
   const appData = useAppData();
 
@@ -70,10 +73,19 @@ export function useWorkspaceReportData<T>({
     };
   }, [schoolId, cacheKey, workspaceHref, view]);
 
+  if (localFirst) {
+    return (
+      localData ??
+      fresh ??
+      (cached?.value as T | undefined) ??
+      null
+    );
+  }
+
   return (
-    localData ??
     fresh ??
     (cached?.value as T | undefined) ??
+    localData ??
     null
   );
 }

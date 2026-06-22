@@ -12,6 +12,7 @@ import { useAppData } from '@/lib/offline/app-data-context';
 import { prefetchImpayesSnapshot } from '@/lib/offline/prefetch-impayes';
 import { prefetchCashJournalSnapshot } from '@/lib/offline/prefetch-cash-journal';
 import { prefetchEnrollmentSnapshot } from '@/lib/offline/prefetch-enrollment';
+import { prefetchParametresSnapshot } from '@/lib/offline/prefetch-parametres';
 import { prefetchRapportsHubSnapshot } from '@/lib/offline/prefetch-rapports-hub';
 
 export function SchoolToolsPage() {
@@ -22,6 +23,7 @@ export function SchoolToolsPage() {
     prefetchCashJournalSnapshot(schoolId);
     prefetchEnrollmentSnapshot(schoolId);
     prefetchRapportsHubSnapshot(schoolId);
+    prefetchParametresSnapshot(schoolId);
   }, [schoolId]);
 
   return (

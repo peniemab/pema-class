@@ -30,6 +30,7 @@ import { PresencesReportPageView } from '@/components/school/rapports/presences-
 import { WeeklyPresencesReportView } from '@/components/school/rapports/weekly-presences-report-view';
 import { RepeatedAbsencesReportView } from '@/components/school/rapports/repeated-absences-report-view';
 import { StudentHistoryReportView } from '@/components/school/rapports/student-history-report-view';
+import { ParametresLiveView } from '@/components/school/parametres-live-view';
 import { ParametresScreen } from '@/components/school/parametres-screen';
 import { normalizeWorkspaceHref } from '@/lib/navigation/workspace-overlay-routes';
 import { getOfflineDb } from '@/lib/offline/db';
@@ -236,6 +237,9 @@ export function WorkspaceRouteLiveView({ href, schoolId }: Props) {
   }
   if (path === '/school/rapports/presences/eleve') {
     return <PresencesEleveLiveView schoolId={schoolId} href={href} />;
+  }
+  if (path === '/school/parametres') {
+    return <ParametresLiveView schoolId={schoolId} />;
   }
 
   return <WorkspaceRouteDataView href={href} />;
