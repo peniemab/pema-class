@@ -1,10 +1,12 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from '@/lib/env';
+import { OFFLINE_BOOT_COOKIE } from '@/lib/offline/local-session';
 
 /** Routes accessibles sans session (inscription par lien d'invitation incluse). */
 const PUBLIC_PATHS = [
   '/',
+  '/boot',
   '/register',
   '/join',
   '/logout',
@@ -15,6 +17,14 @@ const PUBLIC_PATHS = [
   '/post-login',
   '/presentation',
 ];
+
+const WORKSPACE_PREFIXES = ['/app', '/school', '/boot'] as const;
+
+function isWorkspacePath(pathname: string): boolean {
+  return WORKSPACE_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.includes(pathname)) return true;
@@ -44,6 +54,26 @@ function redirectWithSession(
   supabaseResponse: NextResponse,
 ): NextResponse {
   return withSupabaseCookies(NextResponse.redirect(url), supabaseResponse);
+}
+
+function hasOfflineBootCookie(request: NextRequest): boolean {
+  return request.cookies.get(OFFLINE_BOOT_COOKIE)?.value === '1';
+}
+
+function allowOfflineWorkspaceThrough(
+  request: NextRequest,
+  pathname: string,
+  supabaseResponse: NextResponse,
+): NextResponse | null {
+  if (!isWorkspacePath(pathname)) return null;
+  if (!hasSupabaseAuthCookie(request) && !hasOfflineBootCookie(request)) {
+    return null;
+  }
+  supabaseResponse.headers.set(
+    'Cache-Control',
+    'no-store, no-cache, must-revalidate, private',
+  );
+  return supabaseResponse;
 }
 
 function allowSessionCookieThrough(
@@ -110,7 +140,9 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (!user) {
-    const passthrough = allowSessionCookieThrough(request, pathname, supabaseResponse);
+    const passthrough =
+      allowSessionCookieThrough(request, pathname, supabaseResponse) ??
+      allowOfflineWorkspaceThrough(request, pathname, supabaseResponse);
     if (passthrough) return passthrough;
   }
 

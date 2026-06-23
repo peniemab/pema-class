@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 
 /** Bump à chaque changement majeur de stratégie SW (une seule migration par appareil). */
-const SW_STRATEGY_VERSION = 'pema-sw-v4-assets-only';
+const SW_STRATEGY_VERSION = 'pema-sw-v5-workspace-shell';
 
 /**
  * Remplace l'ancien SW (cache auth cassé) par la stratégie assets-only, une fois.

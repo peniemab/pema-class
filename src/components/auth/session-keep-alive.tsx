@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { hasSupabaseAuthCookie } from '@/lib/offline/local-session';
+import { hasSupabaseAuthCookie, syncBootCookieFromLocalSession } from '@/lib/offline/local-session';
 
 const REFRESH_MS = 30 * 60 * 1000;
 
@@ -15,6 +15,7 @@ export function SessionKeepAlive() {
     const supabase = createClient();
 
     async function refresh() {
+      syncBootCookieFromLocalSession();
       if (!hasSupabaseAuthCookie()) return;
       try {
         await supabase.auth.getSession();

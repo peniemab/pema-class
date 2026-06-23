@@ -3,6 +3,10 @@ import type { StaffDashboardPageData } from '@/lib/school/load-staff-dashboard-p
 
 export const LOCAL_SESSION_KEY = 'pema-local-session';
 export const LOCAL_SESSION_VERSION = 1 as const;
+/** Cookie lu par le middleware pour laisser passer /app et /school hors ligne. */
+export const OFFLINE_BOOT_COOKIE = 'pema-offline-boot';
+const BOOT_COOKIE_MAX_AGE_SEC = 60 * 60 * 24 * 400; // ~13 mois
+export const WORKSPACE_SHELL_CACHE = 'pema-workspace-shell';
 
 export type LocalSession = {
   version: typeof LOCAL_SESSION_VERSION;
@@ -69,6 +73,7 @@ export function writeLocalSession(input: LocalSessionInput): void {
   };
   try {
     localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(session));
+    document.cookie = `${OFFLINE_BOOT_COOKIE}=1; path=/; max-age=${BOOT_COOKIE_MAX_AGE_SEC}; SameSite=Lax`;
   } catch {
     /* quota dépassé — non bloquant */
   }
@@ -78,9 +83,16 @@ export function clearLocalSession(): void {
   if (!isBrowser()) return;
   try {
     localStorage.removeItem(LOCAL_SESSION_KEY);
+    document.cookie = `${OFFLINE_BOOT_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
+    void clearWorkspaceShellCache();
   } catch {
     /* ignore */
   }
+}
+
+export async function clearWorkspaceShellCache(): Promise<void> {
+  if (!isBrowser() || !('caches' in window)) return;
+  await caches.delete(WORKSPACE_SHELL_CACHE);
 }
 
 /** Session locale utilisable : cookie auth OU appareil hors ligne. */
@@ -89,6 +101,11 @@ export function canTrustLocalSession(session: LocalSession | null): session is L
   if (hasSupabaseAuthCookie()) return true;
   if (isBrowser() && !navigator.onLine) return true;
   return false;
+}
+
+export function syncBootCookieFromLocalSession(): void {
+  if (!isBrowser() || !readLocalSession()) return;
+  document.cookie = `${OFFLINE_BOOT_COOKIE}=1; path=/; max-age=${BOOT_COOKIE_MAX_AGE_SEC}; SameSite=Lax`;
 }
 
 export function homePathForRole(role: StaffRole): string {

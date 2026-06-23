@@ -18,7 +18,7 @@ export function OfflineRecovery() {
     const session = readLocalSession();
     if (canTrustLocalSession(session)) {
       setRedirecting(true);
-      window.location.replace(session.homePath);
+      window.location.replace('/boot');
     }
   }, []);
 

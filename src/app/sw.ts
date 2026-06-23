@@ -1,14 +1,22 @@
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist';
-import { CacheFirst, NetworkOnly, Serwist, StaleWhileRevalidate } from 'serwist';
+import {
+  CacheFirst,
+  NetworkFirst,
+  NetworkOnly,
+  Serwist,
+  StaleWhileRevalidate,
+} from 'serwist';
 
 /**
- * Stratégie PWA « Schoolap » : installer l'app + assets en cache,
- * mais JAMAIS les pages HTML / RSC / session (évite les faux logout).
+ * PWA WhatsApp + session Facebook :
+ * - shell workspace (/boot, /app, /school) en cache pour ouverture hors ligne
+ * - API / RSC toujours réseau (pas de faux logout sur les mutations)
  */
 const APP_PATH_PREFIXES = [
   '/platform',
   '/school',
   '/app',
+  '/boot',
   '/post-login',
   '/logout',
   '/register',
@@ -18,11 +26,20 @@ const APP_PATH_PREFIXES = [
   '/presentation',
 ] as const;
 
+const WORKSPACE_SHELL_PATHS = ['/boot', '/app', '/school'] as const;
+
 function isAppPath(pathname: string): boolean {
   if (pathname === '/') return true;
   return APP_PATH_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
+}
+
+function isWorkspaceShellDocument(url: URL, request: Request): boolean {
+  if (request.mode !== 'navigate' && request.destination !== 'document') {
+    return false;
+  }
+  return WORKSPACE_SHELL_PATHS.some((prefix) => url.pathname === prefix);
 }
 
 function isAppRequest(url: URL, request: Request, sameOrigin: boolean): boolean {
@@ -48,6 +65,21 @@ const serwist = new Serwist({
   clientsClaim: true,
   navigationPreload: false,
   runtimeCaching: [
+    {
+      matcher: ({ url }) => url.pathname.startsWith('/api/'),
+      handler: new NetworkOnly(),
+    },
+    {
+      matcher: ({ request }) => request.headers.get('RSC') === '1',
+      handler: new NetworkOnly(),
+    },
+    {
+      matcher: ({ url, request }) => isWorkspaceShellDocument(url, request),
+      handler: new NetworkFirst({
+        cacheName: 'pema-workspace-shell',
+        networkTimeoutSeconds: 4,
+      }),
+    },
     {
       matcher: ({ url, request, sameOrigin }) =>
         isAppRequest(url, request, sameOrigin),
@@ -77,7 +109,7 @@ const serwist = new Serwist({
   fallbacks: {
     entries: [
       {
-        url: '/~offline',
+        url: '/boot',
         matcher({ request }) {
           return request.destination === 'document';
         },

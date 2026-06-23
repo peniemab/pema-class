@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: 'Pema Class',
     description:
       'Gestion scolaire pour établissements en RDC : élèves, caisse, présences et rapports. Installez l’application sur votre téléphone.',
-    start_url: '/',
+    start_url: '/boot',
     scope: '/',
     display: 'standalone',
     display_override: ['standalone', 'minimal-ui'],
